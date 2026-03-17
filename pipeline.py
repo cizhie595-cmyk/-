@@ -169,7 +169,7 @@ class SelectionPipeline:
 
         crawler = CoupangSearchCrawler(http_client=self.http_client)
         try:
-            self.products = crawler.search(keyword, max_pages=max_products // 20 + 1)
+            self.products = crawler.search(keyword, top_n=max_products)
             self.products = self.products[:max_products]
             logger.info(f"Found {len(self.products)} products")
         finally:

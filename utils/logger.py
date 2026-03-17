@@ -19,7 +19,6 @@ logger.add(
     sys.stderr,
     format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{module}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>",
     level="INFO",
-    encoding="utf-8",
 )
 
 # 文件输出（详细格式，按天轮转）
@@ -29,7 +28,6 @@ logger.add(
     level="DEBUG",
     rotation="00:00",
     retention="30 days",
-    encoding="utf-8",
 )
 
 # 错误日志单独记录
@@ -39,7 +37,6 @@ logger.add(
     level="ERROR",
     rotation="00:00",
     retention="60 days",
-    encoding="utf-8",
 )
 
 

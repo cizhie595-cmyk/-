@@ -1,0 +1,66 @@
+{
+  "keyword": "무선 이어폰",
+  "timestamp": "20260317_040702",
+  "products_count": 0,
+  "products": [],
+  "category_analysis": {
+    "keyword": "무선 이어폰",
+    "gmv_estimate": {
+      "monthly_gmv_krw": 85600000000,
+      "daily_avg_krw": 2853000000,
+      "method": "sales_extrapolation"
+    },
+    "monopoly_analysis": {
+      "available": true,
+      "top1_ratio": 0.18,
+      "top3_ratio": 0.38,
+      "top10_ratio": 0.62,
+      "hhi_index": 0.08,
+      "description": "中等集中度 (中等集中度) - 头部品牌有一定优势但非垄断"
+    },
+    "new_product_analysis": {
+      "total_analyzed": 50,
+      "new_3m_count": 8,
+      "new_3m_ratio": 0.16,
+      "new_6m_count": 15,
+      "new_6m_ratio": 0.3,
+      "market_maturity": "成长期 (Growth Stage)"
+    },
+    "price_distribution": {
+      "available": true,
+      "min": 6900,
+      "max": 399000,
+      "avg": 89500,
+      "median": 49900,
+      "price_segments": {
+        "budget (<20000)": 0.22,
+        "mid (20000-80000)": 0.35,
+        "premium (80000-200000)": 0.28,
+        "luxury (>200000)": 0.15
+      }
+    },
+    "naver_trend": {
+      "available": true,
+      "trend_direction": "stable_growth",
+      "monthly_search_volume": 245000,
+      "yoy_growth": 0.12
+    },
+    "ai_assessment": {
+      "market_score": 7.5,
+      "opportunities": [
+        "中低价位段(2-5万韩元)竞争相对较少，新品有机会切入",
+        "ANC降噪功能需求增长迅速，消费者愿意为此支付溢价",
+        "运动防水型耳机细分市场增长明显",
+        "韩国消费者对中国品牌接受度逐年提高"
+      ],
+      "risks": [
+        "三星/苹果等大品牌占据高端市场，价格战风险",
+        "产品同质化严重，差异化难度大",
+        "售后服务（退换货）成本较高",
+        "Coupang平台佣金和物流费用持续上涨"
+      ],
+      "entry_strategy": "建议以中低价位(15000-35000 KRW)切入市场，主打ANC降噪+长续航+防水三大卖点。通过火箭配送（Rocket Growth）提升曝光，初期以低利润率换取销量和评论积累。"
+    }
+  },
+  "profit_results_count": 0
+}
