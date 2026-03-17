@@ -1,0 +1,34 @@
+{
+    "language": "zh_CN",
+    "output_dir": "reports",
+
+    "openai_api_key": "",
+    "openai_base_url": "",
+
+    "naver_client_id": "",
+    "naver_client_secret": "",
+
+    "min_delay": 1.5,
+    "max_delay": 3.0,
+
+    "filter_rules": {
+        "min_review_count": 5,
+        "min_rating": 2.0,
+        "min_30d_sales": 1,
+        "min_30d_clicks": 10,
+        "min_conversion_rate": 0.001,
+        "max_conversion_rate": 0.80,
+        "exclude_brands": [],
+        "exclude_delivery_types": []
+    },
+
+    "profit_params": {
+        "exchange_rate": 190.0,
+        "freight_per_kg": 15.0,
+        "commission_rate": 0.10,
+        "delivery_fee_krw": 3500,
+        "vat_rate": 0.10,
+        "misc_cost_rmb": 2.0,
+        "return_rate": 0.05
+    }
+}
