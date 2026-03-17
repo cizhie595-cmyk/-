@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第三方 API 密钥配置 - Coupang 选品系统</title>
+    <link rel="stylesheet" href="/static/css/ai_settings.css">
+    <style>
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 24px;
+            margin-top: 20px;
+        }
+        .service-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 24px;
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        .service-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+        .service-card.configured {
+            border-color: #4caf50;
+        }
+        .service-card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .service-card .card-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+        .service-card .card-header .status-badge {
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+        .status-badge.configured {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .status-badge.not-configured {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        .service-card .description {
+            font-size: 13px;
+            color: #777;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+        .service-card .pricing {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 12px;
+        }
+        .field-group {
+            margin-bottom: 12px;
+        }
+        .field-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 4px;
+        }
+        .field-group .help-text {
+            font-size: 11px;
+            color: #aaa;
+            margin-top: 2px;
+        }
+        .input-with-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .input-with-actions input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: border-color 0.2s;
+        }
+        .input-with-actions input:focus {
+            border-color: #1976d2;
+            outline: none;
+        }
+        .icon-btn {
+            width: 34px;
+            height: 34px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fafafa;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .icon-btn:hover {
+            background: #eee;
+        }
+        .card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .card-actions button {
+            flex: 1;
+            padding: 8px 0;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s, opacity 0.2s;
+        }
+        .btn-save {
+            background: #1976d2;
+            color: #fff;
+        }
+        .btn-save:hover { background: #1565c0; }
+        .btn-test {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .btn-test:hover { background: #c8e6c9; }
+        .btn-delete {
+            background: #ffebee;
+            color: #c62828;
+            flex: 0.5;
+        }
+        .btn-delete:hover { background: #ffcdd2; }
+        .btn-doc {
+            background: #f3e5f5;
+            color: #7b1fa2;
+            flex: 0.5;
+        }
+        .btn-doc:hover { background: #e1bee7; }
+        .test-result {
+            margin-top: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: none;
+        }
+        .test-result.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            display: block;
+        }
+        .test-result.error {
+            background: #ffebee;
+            color: #c62828;
+            display: block;
+        }
+        .page-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .page-header h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .page-header p {
+            color: #777;
+            font-size: 14px;
+        }
+        .nav-links {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .nav-links a {
+            color: #1976d2;
+            text-decoration: none;
+            margin: 0 12px;
+            font-size: 14px;
+        }
+        .nav-links a:hover { text-decoration: underline; }
+        .loading-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #ccc;
+            border-top-color: #1976d2;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            z-index: 9999;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .toast.success { background: #4caf50; }
+        .toast.error { background: #f44336; }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 1100px; margin: 0 auto; padding: 30px 20px;">
+        <div class="nav-links">
+            <a href="/">首页</a>
+            <a href="/settings/ai">AI 模型配置</a>
+            <a href="/settings/api-keys">第三方 API 密钥</a>
+        </div>
+
+        <div class="page-header">
+            <h1>第三方 API 密钥配置</h1>
+            <p>配置 Amazon SP-API、Keepa、3D 生成引擎等服务的 API 密钥</p>
+        </div>
+
+        <div id="services-container" class="services-grid">
+            <div style="text-align: center; padding: 40px; color: #999;">
+                <span class="loading-spinner"></span> 加载服务列表...
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="/static/js/clipboard.js"></script>
+    <script>
+        const API_BASE = '/api/keys';
+        let authToken = localStorage.getItem('auth_token') || '';
+        let servicesData = [];
+        let configsData = {};
+
+        // ============================================================
+        // 初始化
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!authToken) {
+                document.getElementById('services-container').innerHTML =
+                    '<div style="text-align:center;padding:40px;color:#e65100;">' +
+                    '请先<a href="/settings/ai">登录</a>后再配置 API 密钥</div>';
+                return;
+            }
+            await loadServices();
+        });
+
+        async function loadServices() {
+            try {
+                // 并行加载服务列表和已有配置
+                const [servicesRes, configsRes] = await Promise.all([
+                    apiFetch(`${API_BASE}/services`),
+                    apiFetch(`${API_BASE}/all`),
+                ]);
+
+                servicesData = servicesRes.services || [];
+                configsData = configsRes.configs || {};
+
+                renderServices();
+            } catch (err) {
+                document.getElementById('services-container').innerHTML =
+                    `<div style="text-align:center;padding:40px;color:#c62828;">加载失败: ${err.message}</div>`;
+            }
+        }
+
+        // ============================================================
+        // 渲染服务卡片
+        // ============================================================
+        function renderServices() {
+            const container = document.getElementById('services-container');
+            container.innerHTML = '';
+
+            servicesData.forEach(service => {
+                const config = configsData[service.id] || {};
+                const isConfigured = config.configured === true;
+
+                const card = document.createElement('div');
+                card.className = `service-card ${isConfigured ? 'configured' : ''}`;
+                card.id = `card-${service.id}`;
+
+                let fieldsHTML = '';
+                service.fields.forEach(field => {
+                    const savedValue = isConfigured
+                        ? (field.type === 'password'
+                            ? (config[field.key + '_masked'] || '')
+                            : (config[field.key] || ''))
+                        : (field.default || '');
+
+                    const inputType = field.type === 'password' ? 'password' : 'text';
+                    const helpHTML = field.help
+                        ? `<div class="help-text">${field.help}</div>` : '';
+
+                    fieldsHTML += `
+                        <div class="field-group">
+                            <label>${field.label} ${field.required ? '<span style="color:#c62828">*</span>' : ''}</label>
+                            <div class="input-with-actions">
+                                <input type="${inputType}"
+                                       id="field-${service.id}-${field.key}"
+                                       placeholder="${isConfigured && field.type === 'password' ? savedValue : '请输入 ' + field.label}"
+                                       value="${isConfigured && field.type !== 'password' ? savedValue : ''}"
+                                       data-field-key="${field.key}"
+                                       data-field-type="${field.type}">
+                                ${field.type === 'password' ? `
+                                    <button class="icon-btn" onclick="toggleVisibility('field-${service.id}-${field.key}')" title="显示/隐藏">👁</button>
+                                ` : ''}
+                                <button class="icon-btn" onclick="pasteToField('field-${service.id}-${field.key}')" title="粘贴">📋</button>
+                                <button class="icon-btn" onclick="copyFromField('field-${service.id}-${field.key}')" title="复制">📄</button>
+                            </div>
+                            ${helpHTML}
+                        </div>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <h3>${service.name}</h3>
+                        <span class="status-badge ${isConfigured ? 'configured' : 'not-configured'}">
+                            ${isConfigured ? '已配置' : '未配置'}
+                        </span>
+                    </div>
+                    <div class="description">${service.description}</div>
+                    ${service.pricing ? `<div class="pricing">💰 ${service.pricing}</div>` : ''}
+                    ${fieldsHTML}
+                    <div class="card-actions">
+                        <button class="btn-save" onclick="saveConfig('${service.id}')">保存配置</button>
+                        <button class="btn-test" onclick="testConfig('${service.id}')" ${!isConfigured ? 'disabled style="opacity:0.5"' : ''}>测试连接</button>
+                        ${service.doc_url ? `<button class="btn-doc" onclick="window.open('${service.doc_url}','_blank')">文档</button>` : ''}
+                        ${isConfigured ? `<button class="btn-delete" onclick="deleteConfig('${service.id}')">删除</button>` : ''}
+                    </div>
+                    <div class="test-result" id="result-${service.id}"></div>
+                `;
+
+                container.appendChild(card);
+            });
+
+            // 初始化剪贴板功能
+            if (window.ClipboardHelper) {
+                ClipboardHelper.initAll();
+            }
+        }
+
+        // ============================================================
+        // 保存配置
+        // ============================================================
+        async function saveConfig(serviceId) {
+            const service = servicesData.find(s => s.id === serviceId);
+            if (!service) return;
+
+            const config = {};
+            let hasEmpty = false;
+
+            service.fields.forEach(field => {
+                const input = document.getElementById(`field-${serviceId}-${field.key}`);
+                const value = input ? input.value.trim() : '';
+
+                if (field.required && !value) {
+                    hasEmpty = true;
+                    if (input) input.style.borderColor = '#c62828';
+                } else {
+                    if (input) input.style.borderColor = '#ddd';
+                }
+
+                config[field.key] = value;
+            });
+
+            if (hasEmpty) {
+                showToast('请填写所有必填字段', 'error');
+                return;
+            }
+
+            const btn = event.target;
+            btn.innerHTML = '<span class="loading-spinner"></span>保存中...';
+            btn.disabled = true;
+
+            try {
+                const res = await apiFetch(`${API_BASE}/${serviceId}`, 'POST', config);
+                showToast(res.message || '保存成功', 'success');
+                await loadServices();  // 重新加载
+            } catch (err) {
+                showToast(err.message || '保存失败', 'error');
+            } finally {
+                btn.innerHTML = '保存配置';
+                btn.disabled = false;
+            }
+        }
+
+        // ============================================================
+        // 测试连接
+        // ============================================================
+        async function testConfig(serviceId) {
+            const resultEl = document.getElementById(`result-${serviceId}`);
+            resultEl.className = 'test-result';
+            resultEl.innerHTML = '<span class="loading-spinner"></span>测试连接中...';
+            resultEl.style.display = 'block';
+            resultEl.style.background = '#f5f5f5';
+            resultEl.style.color = '#666';
+
+            try {
+                const res = await apiFetch(`${API_BASE}/${serviceId}/test`, 'POST');
+                resultEl.className = `test-result ${res.success ? 'success' : 'error'}`;
+                resultEl.textContent = res.message;
+            } catch (err) {
+                resultEl.className = 'test-result error';
+                resultEl.textContent = err.message || '测试失败';
+            }
+        }
+
+        // ============================================================
+        // 删除配置
+        // ============================================================
+        async function deleteConfig(serviceId) {
+            if (!confirm('确定要删除该服务的配置吗？')) return;
+
+            try {
+                const res = await apiFetch(`${API_BASE}/${serviceId}`, 'DELETE');
+                showToast(res.message || '已删除', 'success');
+                await loadServices();
+            } catch (err) {
+                showToast(err.message || '删除失败', 'error');
+            }
+        }
+
+        // ============================================================
+        // 工具函数
+        // ============================================================
+        function toggleVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.type = input.type === 'password' ? 'text' : 'password';
+            }
+        }
+
+        async function pasteToField(inputId) {
+            try {
+                const text = await navigator.clipboard.readText();
+                const input = document.getElementById(inputId);
+                if (input) {
+                    input.value = text;
+                    input.style.borderColor = '#4caf50';
+                    setTimeout(() => input.style.borderColor = '#ddd', 1000);
+                }
+            } catch (err) {
+                showToast('粘贴失败，请手动粘贴', 'error');
+            }
+        }
+
+        function copyFromField(inputId) {
+            const input = document.getElementById(inputId);
+            if (input && input.value) {
+                navigator.clipboard.writeText(input.value).then(() => {
+                    showToast('已复制', 'success');
+                }).catch(() => {
+                    showToast('复制失败', 'error');
+                });
+            }
+        }
+
+        async function apiFetch(url, method = 'GET', body = null) {
+            const options = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`,
+                },
+            };
+            if (body) options.body = JSON.stringify(body);
+
+            const resp = await fetch(url, options);
+            const data = await resp.json();
+
+            if (!resp.ok && !data.success) {
+                throw new Error(data.message || `HTTP ${resp.status}`);
+            }
+            return data;
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.className = 'toast', 3000);
+        }
+    </script>
+</body>
+</html>

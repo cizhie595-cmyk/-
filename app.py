@@ -67,6 +67,12 @@ def create_app() -> Flask:
     from api.ai_config_routes import ai_config_bp
     app.register_blueprint(ai_config_bp)
 
+    from api.api_keys_routes import api_keys_bp
+    app.register_blueprint(api_keys_bp)
+
+    from api.monetization_routes import monetization_bp
+    app.register_blueprint(monetization_bp)
+
     # === 全局路由 ===
 
     @app.route("/")
@@ -78,6 +84,7 @@ def create_app() -> Flask:
             "api_docs": "/api/docs",
             "pages": {
                 "/settings/ai": "AI 模型配置页面",
+                "/settings/api-keys": "第三方 API 密钥配置页面",
             },
             "status": "running",
             "timestamp": datetime.now().isoformat(),
@@ -89,6 +96,11 @@ def create_app() -> Flask:
     def ai_settings_page():
         """​AI 模型配置页面"""
         return render_template("ai_settings.html")
+
+    @app.route("/settings/api-keys")
+    def api_keys_page():
+        """第三方 API 密钥配置页面"""
+        return render_template("api_keys_settings.html")
 
     @app.route("/api/health")
     def health_check():
@@ -119,6 +131,23 @@ def create_app() -> Flask:
                 "POST /api/ai/settings": "保存/更新AI配置（需登录）",
                 "POST /api/ai/test": "测试已保存的AI配置连通性（需登录）",
                 "POST /api/ai/test-direct": "直接测试AI配置（不保存，需登录）",
+            },
+            "api_keys": {
+                "GET  /api/keys/services": "获取支持的第三方服务列表",
+                "GET  /api/keys/all": "获取所有服务的脱敏配置（需登录）",
+                "GET  /api/keys/<service_id>": "获取某服务的脱敏配置（需登录）",
+                "POST /api/keys/<service_id>": "保存某服务的配置（需登录）",
+                "POST /api/keys/<service_id>/test": "测试某服务的连通性（需登录）",
+                "DELETE /api/keys/<service_id>": "删除某服务的配置（需登录）",
+            },
+            "subscription": {
+                "GET  /api/subscription/plans": "获取所有订阅计划",
+                "GET  /api/subscription/me": "获取当前用户订阅状态（需登录）",
+                "POST /api/subscription/upgrade": "升级订阅（需登录）",
+                "POST /api/subscription/cancel": "取消订阅（需登录）",
+                "GET  /api/subscription/usage": "获取使用量统计（需登录）",
+                "POST /api/affiliate/link": "生成 Affiliate 链接（需登录）",
+                "POST /api/affiliate/batch": "批量生成 Affiliate 链接（需登录）",
             },
         })
 
