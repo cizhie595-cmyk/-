@@ -14,7 +14,7 @@ All modules defined in the PRD have been implemented, including all P0 and P1 re
 |--------|--------|------------|
 | Core Pipeline Engine | Done | 100% |
 | Amazon SP-API Scraper | Done | 100% |
-| Keepa Data Integration | Done | 100% |
+| Keepa Independent Module | Done | 100% |
 | Naver Trend Crawler | Done | 100% |
 | Google Trends Integration | Done | 100% |
 | AI Analysis Engine (GPT-4V) | Done | 100% |
@@ -156,6 +156,14 @@ Amazon Visionary Sourcing Tool
 ---
 
 ## Changelog
+
+### 2026-03-18 (Phase 4) - Code Quality & Module Refinements
+- Added independent Keepa client module (`scrapers/keepa/keepa_client.py`) with BSR history, price tracking, sales estimation, deal detection
+- Generated Chrome extension icons (16/48/128px PNG) for `chrome_extension/icons/`
+- Enhanced Dashboard page: quota progress bars, activity chart (Chart.js), recent projects table, quick action cards
+- Upgraded database init script: migration tracking table, `--check`/`--migrate` CLI flags, idempotent execution
+- Implemented PRD 3.2.2 30-day normalization formula in `amazon_data_filter.py`: Sales_30D, Revenue_30D, Clicks_30D, CVR_30D, Review_Velocity, Normalized_Score (0-100) with Min-Max weighted scoring
+- Restructured tests: moved `test_*.py` to `tests/` directory, added `conftest.py` with shared fixtures
 
 ### 2026-03-18 (Phase 3) - P0/P1 Refinements Complete
 - **P0-1**: Upgraded API key encryption from Base64 to AES-256-GCM (PRD 2.2)

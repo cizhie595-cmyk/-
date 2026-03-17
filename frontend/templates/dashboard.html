@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
 {% block content %}
 <div class="top-bar">
     <div>
@@ -52,6 +57,56 @@
     </div>
 </div>
 
+<!-- Quota Progress + Activity Chart -->
+<div class="card-grid card-grid-2 mb-lg">
+    <!-- Quota Usage -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Quota Usage This Month</h3>
+            <span class="badge badge-info" id="plan-badge">Free</span>
+        </div>
+        <div style="margin-top: 16px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span class="text-muted">Analyses</span>
+                <span id="quota-analyses-text">0 / 5</span>
+            </div>
+            <div class="progress-bar" style="height: 8px; margin-bottom: 16px;">
+                <div class="progress-fill" id="quota-analyses-bar" style="width: 0%;"></div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span class="text-muted">Scrapes</span>
+                <span id="quota-scrapes-text">0 / 50</span>
+            </div>
+            <div class="progress-bar" style="height: 8px; margin-bottom: 16px;">
+                <div class="progress-fill" id="quota-scrapes-bar" style="width: 0%; background: var(--success);"></div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span class="text-muted">3D Generations</span>
+                <span id="quota-3d-text">0 / 3</span>
+            </div>
+            <div class="progress-bar" style="height: 8px; margin-bottom: 16px;">
+                <div class="progress-fill" id="quota-3d-bar" style="width: 0%; background: var(--warning);"></div>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="/settings/subscription" class="btn btn-secondary btn-sm">Upgrade Plan</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Chart -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Activity (Last 7 Days)</h3>
+        </div>
+        <div style="margin-top: 16px; height: 220px;">
+            <canvas id="activity-chart"></canvas>
+        </div>
+    </div>
+</div>
+
 <!-- Recent Projects -->
 <div class="card mb-lg">
     <div class="card-header">
@@ -72,15 +127,29 @@
                 </tr>
             </thead>
             <tbody id="projects-table">
-                <tr><td colspan="7" class="text-center text-muted" style="padding: 40px;">Loading...</td></tr>
+                <tr><td colspan="7" class="text-center text-muted" style="padding: 40px;">
+                    <div class="skeleton" style="height: 20px; width: 200px; margin: 0 auto;"></div>
+                </td></tr>
             </tbody>
         </table>
     </div>
 </div>
 
+<!-- Recent Analysis Activity -->
+<div class="card mb-lg">
+    <div class="card-header">
+        <h3 class="card-title">Recent Analysis Activity</h3>
+    </div>
+    <div id="activity-list" style="padding: 8px 0;">
+        <div class="skeleton" style="height: 48px; margin-bottom: 8px;"></div>
+        <div class="skeleton" style="height: 48px; margin-bottom: 8px;"></div>
+        <div class="skeleton" style="height: 48px;"></div>
+    </div>
+</div>
+
 <!-- Quick Actions -->
-<div class="card-grid card-grid-3">
-    <div class="card" style="cursor: pointer;" onclick="location.href='/projects/new'">
+<div class="card-grid card-grid-4">
+    <div class="card" style="cursor: pointer; transition: transform 0.2s;" onclick="location.href='/projects/new'" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='none'">
         <div style="display: flex; align-items: center; gap: 16px;">
             <div class="stat-icon primary" style="width: 56px; height: 56px; font-size: 1.6rem;">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -91,7 +160,7 @@
             </div>
         </div>
     </div>
-    <div class="card" style="cursor: pointer;" onclick="location.href='/market'">
+    <div class="card" style="cursor: pointer; transition: transform 0.2s;" onclick="location.href='/market'" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='none'">
         <div style="display: flex; align-items: center; gap: 16px;">
             <div class="stat-icon success" style="width: 56px; height: 56px; font-size: 1.6rem;">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -102,7 +171,7 @@
             </div>
         </div>
     </div>
-    <div class="card" style="cursor: pointer;" onclick="location.href='/3d-lab'">
+    <div class="card" style="cursor: pointer; transition: transform 0.2s;" onclick="location.href='/3d-lab'" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='none'">
         <div style="display: flex; align-items: center; gap: 16px;">
             <div class="stat-icon warning" style="width: 56px; height: 56px; font-size: 1.6rem;">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
@@ -113,23 +182,63 @@
             </div>
         </div>
     </div>
+    <div class="card" style="cursor: pointer; transition: transform 0.2s;" onclick="location.href='/profit'" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='none'">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div class="stat-icon info" style="width: 56px; height: 56px; font-size: 1.6rem;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <div>
+                <div style="font-weight: 600; font-size: 1rem;">Profit Calculator</div>
+                <div class="text-muted" style="font-size: 0.85rem;">Estimate margins & ROI</div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+let activityChart = null;
+
 async function loadDashboard() {
     try {
-        // 加载统计数据
+        // 并行加载所有数据
         const [quota, projects] = await Promise.all([
             api.getQuota().catch(() => null),
             api.getProjects().catch(() => null),
         ]);
 
+        // ── 额度卡片 ──
         if (quota) {
-            document.getElementById('stat-quota').textContent = quota.remaining || '0';
+            const remaining = quota.remaining || 0;
+            const limit = quota.limit || 5;
+            const used = quota.used || 0;
+            document.getElementById('stat-quota').textContent = remaining;
+
+            // 额度进度条
+            const plan = quota.plan || 'Free';
+            document.getElementById('plan-badge').textContent = plan;
+
+            // 分析额度
+            const analysisLimit = quota.analysis_limit || limit;
+            const analysisUsed = quota.analysis_used || used;
+            document.getElementById('quota-analyses-text').textContent = `${analysisUsed} / ${analysisLimit}`;
+            document.getElementById('quota-analyses-bar').style.width = `${Math.min(100, (analysisUsed / analysisLimit) * 100)}%`;
+
+            // 抓取额度
+            const scrapeLimit = quota.scrape_limit || 50;
+            const scrapeUsed = quota.scrape_used || 0;
+            document.getElementById('quota-scrapes-text').textContent = `${scrapeUsed} / ${scrapeLimit}`;
+            document.getElementById('quota-scrapes-bar').style.width = `${Math.min(100, (scrapeUsed / scrapeLimit) * 100)}%`;
+
+            // 3D 额度
+            const tdLimit = quota.threed_limit || 3;
+            const tdUsed = quota.threed_used || 0;
+            document.getElementById('quota-3d-text').textContent = `${tdUsed} / ${tdLimit}`;
+            document.getElementById('quota-3d-bar').style.width = `${Math.min(100, (tdUsed / tdLimit) * 100)}%`;
         }
 
+        // ── 项目统计 ──
         if (projects && projects.projects) {
             const list = projects.projects;
             document.getElementById('stat-projects').textContent = list.length;
@@ -141,14 +250,16 @@ async function loadDashboard() {
             // 渲染表格
             const tbody = document.getElementById('projects-table');
             if (list.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding: 40px;">No projects yet. Click "New Project" to get started.</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted" style="padding: 40px;">
+                    No projects yet. Click <strong>"New Project"</strong> to get started.
+                </td></tr>`;
             } else {
                 tbody.innerHTML = list.slice(0, 10).map(p => `
                     <tr>
-                        <td><a href="/projects/${p.id}">${p.name || 'Untitled'}</a></td>
-                        <td><span class="badge badge-primary">${p.keyword || '-'}</span></td>
-                        <td>${p.marketplace || 'US'}</td>
-                        <td class="number">${p.product_count || 0}</td>
+                        <td><a href="/projects/${p.id}" style="color: var(--primary); font-weight: 500;">${escapeHtml(p.name || 'Untitled')}</a></td>
+                        <td><span class="badge badge-primary">${escapeHtml(p.keyword || '-')}</span></td>
+                        <td>${escapeHtml(p.marketplace || 'US')}</td>
+                        <td class="number">${formatNumber(p.product_count || 0)}</td>
                         <td><span class="badge badge-${p.status === 'completed' ? 'success' : p.status === 'running' ? 'warning' : 'info'}">${p.status || 'draft'}</span></td>
                         <td>${p.created_at ? formatDate(p.created_at) : '-'}</td>
                         <td>
@@ -157,10 +268,124 @@ async function loadDashboard() {
                     </tr>
                 `).join('');
             }
+
+            // 渲染最近活动
+            renderRecentActivity(list);
         }
+
+        // ── 活动图表 ──
+        renderActivityChart();
+
     } catch (e) {
         console.error('Dashboard load error:', e);
     }
+}
+
+function renderRecentActivity(projects) {
+    const container = document.getElementById('activity-list');
+    const activities = [];
+
+    // 从项目中提取最近活动
+    projects.slice(0, 5).forEach(p => {
+        activities.push({
+            icon: p.status === 'completed' ? '&#10003;' : '&#9881;',
+            iconColor: p.status === 'completed' ? 'var(--success)' : 'var(--warning)',
+            title: `Project "${p.name || 'Untitled'}" - ${p.status || 'draft'}`,
+            subtitle: `${p.marketplace || 'US'} &middot; ${p.product_count || 0} products`,
+            time: p.created_at ? formatDate(p.created_at) : '-',
+            link: `/projects/${p.id}`,
+        });
+    });
+
+    if (activities.length === 0) {
+        container.innerHTML = `<div class="text-center text-muted" style="padding: 32px;">No recent activity</div>`;
+        return;
+    }
+
+    container.innerHTML = activities.map(a => `
+        <a href="${a.link}" style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; text-decoration: none; color: inherit; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='none'">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; color: ${a.iconColor}; font-size: 1rem; flex-shrink: 0;">
+                ${a.icon}
+            </div>
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 500; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${a.title}</div>
+                <div class="text-muted" style="font-size: 0.8rem;">${a.subtitle}</div>
+            </div>
+            <div class="text-muted" style="font-size: 0.8rem; flex-shrink: 0;">${a.time}</div>
+        </a>
+    `).join('');
+}
+
+function renderActivityChart() {
+    const ctx = document.getElementById('activity-chart');
+    if (!ctx) return;
+
+    // 生成最近 7 天的标签
+    const labels = [];
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        labels.push(d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
+    }
+
+    // 占位数据（实际应从 API 获取）
+    const scrapeData = [0, 0, 0, 0, 0, 0, 0];
+    const analysisData = [0, 0, 0, 0, 0, 0, 0];
+
+    if (activityChart) activityChart.destroy();
+
+    activityChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Scrapes',
+                    data: scrapeData,
+                    backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                    borderColor: 'rgba(99, 102, 241, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                },
+                {
+                    label: 'Analyses',
+                    data: analysisData,
+                    backgroundColor: 'rgba(6, 182, 212, 0.6)',
+                    borderColor: 'rgba(6, 182, 212, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { color: '#94a3b8', font: { size: 11 } }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#64748b', font: { size: 10 } }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#64748b', stepSize: 1 }
+                }
+            }
+        }
+    });
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
 }
 
 loadDashboard();

@@ -353,44 +353,204 @@ Respond ONLY with the JSON array."""
         return products
 
     def recalculate_30d_metrics(self, products: list[dict],
-                                keepa_data: dict = None) -> list[dict]:
+                                keepa_data: dict = None,
+                                backend_data: dict = None) -> list[dict]:
         """
-        按 30 天周期重新计算预估点击量、销量和转化率，
-        确保对比基准一致。
+        按 PRD 3.2.2 核心指标重算公式，对所有产品进行 30 天归一化计算。
+
+        归一化指标：
+          - Sales_30D:   30天预估销量（Keepa > BSR反推 > 后台数据）
+          - Revenue_30D: 30天预估营收 = Sales_30D * Avg_Price_30D
+          - Clicks_30D:  30天预估点击量（后台 sessions 或 BSR 反推）
+          - CVR_30D:     30天转化率 = Sales_30D / Clicks_30D
+          - BSR_Avg_30D: 30天平均BSR
+          - Price_Avg_30D: 30天平均价格
+          - Review_Velocity: 月均评论增速
+          - Normalized_Score: 归一化综合评分 (0-100)
 
         :param products: 产品列表
         :param keepa_data: Keepa 历史数据 {asin: {...}}
-        :return: 补充了30天指标的产品列表
+        :param backend_data: 后台业务报告数据 {asin: {...}}
+        :return: 补充了 metrics_30d 的产品列表
         """
+        import math
+
         for product in products:
             asin = product.get("asin", "")
-            metrics = {"period": "30d"}
+            metrics = {"period": "30d", "data_sources": []}
 
-            # 优先使用 Keepa 数据
+            # ── 1. Sales_30D 销量归一化 ──
+            sales_30d = 0
             if keepa_data and asin in keepa_data:
                 kd = keepa_data[asin]
-                metrics["estimated_monthly_sales"] = kd.get("estimated_monthly_sales", 0)
-                metrics["estimated_monthly_revenue"] = kd.get("estimated_monthly_revenue", 0)
+                sales_30d = kd.get("estimated_monthly_sales", 0)
                 metrics["avg_price_30d"] = kd.get("avg_price", product.get("price"))
+                metrics["bsr_avg_30d"] = kd.get("avg_bsr")
+                metrics["data_sources"].append("keepa")
+
+                # 评论增速 (Keepa review_count_history)
+                review_history = kd.get("review_count_history", [])
+                if len(review_history) >= 2:
+                    first_rc = review_history[0].get("value", 0)
+                    last_rc = review_history[-1].get("value", 0)
+                    days_span = max(1, (review_history[-1].get("timestamp", 0) - review_history[0].get("timestamp", 0)) / 86400)
+                    metrics["review_velocity"] = round((last_rc - first_rc) / (days_span / 30), 1)
             else:
-                # 基于 BSR 的销量预估算法
+                metrics["avg_price_30d"] = product.get("price")
+                metrics["bsr_avg_30d"] = product.get("bsr")
+
+            # BSR 反推销量（当 Keepa 数据不可用时）
+            if sales_30d <= 0:
                 bsr = product.get("bsr", 0)
                 if bsr > 0:
-                    metrics["estimated_monthly_sales"] = self._estimate_sales_from_bsr(bsr)
-                    price = product.get("price", 0) or 0
-                    metrics["estimated_monthly_revenue"] = metrics["estimated_monthly_sales"] * price
+                    sales_30d = self._estimate_sales_from_bsr(
+                        bsr, product.get("category", "general")
+                    )
+                    metrics["data_sources"].append("bsr_estimate")
 
-            # 使用后台数据计算转化率
-            sessions = product.get("sessions", 0)
-            units = product.get("units_ordered", 0)
-            if sessions > 0 and units > 0:
-                metrics["conversion_rate"] = round(units / sessions, 4)
+            # 后台数据补充
+            if backend_data and asin in backend_data:
+                bd = backend_data[asin]
+                if bd.get("units_ordered", 0) > 0:
+                    sales_30d = max(sales_30d, bd["units_ordered"])
+                    metrics["data_sources"].append("backend")
+
+            metrics["sales_30d"] = sales_30d
+
+            # ── 2. Revenue_30D 营收归一化 ──
+            avg_price = metrics.get("avg_price_30d") or product.get("price", 0) or 0
+            metrics["revenue_30d"] = round(sales_30d * avg_price, 2)
+
+            # ── 3. Clicks_30D 点击量归一化 ──
+            clicks_30d = 0
+            if backend_data and asin in backend_data:
+                clicks_30d = backend_data[asin].get("sessions", 0)
+            elif sales_30d > 0:
+                # 无后台数据时，基于行业平均转化率 (10-15%) 反推
+                estimated_cvr = 0.12  # 行业平均
+                clicks_30d = int(sales_30d / estimated_cvr)
+            metrics["clicks_30d"] = clicks_30d
+
+            # ── 4. CVR_30D 转化率归一化 ──
+            if clicks_30d > 0 and sales_30d > 0:
+                metrics["cvr_30d"] = round(sales_30d / clicks_30d, 4)
+            elif backend_data and asin in backend_data:
+                metrics["cvr_30d"] = backend_data[asin].get("conversion_rate", 0)
             elif product.get("conversion_rate"):
-                metrics["conversion_rate"] = product["conversion_rate"]
+                metrics["cvr_30d"] = product["conversion_rate"]
+            else:
+                metrics["cvr_30d"] = 0
+
+            # ── 5. Review Velocity 评论增速 ──
+            if "review_velocity" not in metrics:
+                review_count = product.get("review_count", 0)
+                listed_since = product.get("listed_since", "")
+                if review_count > 0 and listed_since:
+                    try:
+                        from datetime import datetime
+                        listed_date = datetime.strptime(listed_since[:10], "%Y-%m-%d")
+                        months_active = max(1, (datetime.now() - listed_date).days / 30)
+                        metrics["review_velocity"] = round(review_count / months_active, 1)
+                    except (ValueError, TypeError):
+                        metrics["review_velocity"] = 0
+                else:
+                    metrics["review_velocity"] = 0
 
             product["metrics_30d"] = metrics
 
+        # ── 6. Normalized_Score 归一化综合评分 (0-100) ──
+        self._normalize_scores(products)
+
         return products
+
+    def _normalize_scores(self, products: list[dict]):
+        """
+        PRD 3.2.2 归一化综合评分。
+
+        各维度权重：
+          - Sales_30D:      30%
+          - Revenue_30D:    20%
+          - CVR_30D:        15%
+          - Rating:         15%
+          - Review_Velocity: 10%
+          - BSR (反向):      10%
+
+        所有维度先 Min-Max 归一化到 [0, 1]，再加权求和得到 0-100 分。
+        """
+        import math
+
+        if not products:
+            return
+
+        # 收集各维度的值
+        def safe_get(p, *keys):
+            val = p
+            for k in keys:
+                if isinstance(val, dict):
+                    val = val.get(k, 0)
+                else:
+                    return 0
+            return val or 0
+
+        sales_vals = [safe_get(p, "metrics_30d", "sales_30d") for p in products]
+        revenue_vals = [safe_get(p, "metrics_30d", "revenue_30d") for p in products]
+        cvr_vals = [safe_get(p, "metrics_30d", "cvr_30d") for p in products]
+        rating_vals = [p.get("rating", 0) or 0 for p in products]
+        rv_vals = [safe_get(p, "metrics_30d", "review_velocity") for p in products]
+        bsr_vals = [p.get("bsr", 0) or 0 for p in products]
+
+        def min_max(vals):
+            """Min-Max 归一化"""
+            mn, mx = min(vals) if vals else 0, max(vals) if vals else 0
+            rng = mx - mn
+            if rng == 0:
+                return [0.5] * len(vals)
+            return [(v - mn) / rng for v in vals]
+
+        def min_max_inverse(vals):
+            """反向 Min-Max 归一化（BSR 越小越好）"""
+            mn, mx = min(vals) if vals else 0, max(vals) if vals else 0
+            rng = mx - mn
+            if rng == 0:
+                return [0.5] * len(vals)
+            return [1 - (v - mn) / rng for v in vals]
+
+        norm_sales = min_max(sales_vals)
+        norm_revenue = min_max(revenue_vals)
+        norm_cvr = min_max(cvr_vals)
+        norm_rating = min_max(rating_vals)
+        norm_rv = min_max(rv_vals)
+        norm_bsr = min_max_inverse(bsr_vals)
+
+        # 加权求和
+        weights = {
+            "sales": 0.30,
+            "revenue": 0.20,
+            "cvr": 0.15,
+            "rating": 0.15,
+            "review_velocity": 0.10,
+            "bsr": 0.10,
+        }
+
+        for i, product in enumerate(products):
+            score = (
+                norm_sales[i] * weights["sales"] +
+                norm_revenue[i] * weights["revenue"] +
+                norm_cvr[i] * weights["cvr"] +
+                norm_rating[i] * weights["rating"] +
+                norm_rv[i] * weights["review_velocity"] +
+                norm_bsr[i] * weights["bsr"]
+            ) * 100
+
+            product["metrics_30d"]["normalized_score"] = round(score, 1)
+            product["metrics_30d"]["score_breakdown"] = {
+                "sales": round(norm_sales[i] * 100, 1),
+                "revenue": round(norm_revenue[i] * 100, 1),
+                "cvr": round(norm_cvr[i] * 100, 1),
+                "rating": round(norm_rating[i] * 100, 1),
+                "review_velocity": round(norm_rv[i] * 100, 1),
+                "bsr": round(norm_bsr[i] * 100, 1),
+            }
 
     @staticmethod
     def _estimate_sales_from_bsr(bsr: int, category: str = "general") -> int:
