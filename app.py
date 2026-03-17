@@ -13,7 +13,7 @@ import sys
 import argparse
 from datetime import datetime
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory, render_template
 from flask_cors import CORS
 
 # 确保项目根目录在路径中
@@ -35,7 +35,14 @@ def create_app() -> Flask:
     """
     Flask 应用工厂函数
     """
-    app = Flask(__name__)
+    # 前端文件目录
+    frontend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "frontend")
+    app = Flask(
+        __name__,
+        template_folder=os.path.join(frontend_dir, "templates"),
+        static_folder=os.path.join(frontend_dir, "static"),
+        static_url_path="/static",
+    )
 
     # === 基础配置 ===
     app.config["JSON_AS_ASCII"] = False           # 支持中文/韩文 JSON 输出
@@ -57,6 +64,9 @@ def create_app() -> Flask:
     from api.auth_routes import auth_bp
     app.register_blueprint(auth_bp)
 
+    from api.ai_config_routes import ai_config_bp
+    app.register_blueprint(ai_config_bp)
+
     # === 全局路由 ===
 
     @app.route("/")
@@ -66,9 +76,19 @@ def create_app() -> Flask:
             "system": "Coupang 跨境电商智能选品系统",
             "version": "1.0.0",
             "api_docs": "/api/docs",
+            "pages": {
+                "/settings/ai": "AI 模型配置页面",
+            },
             "status": "running",
             "timestamp": datetime.now().isoformat(),
         })
+
+    # === 前端页面路由 ===
+
+    @app.route("/settings/ai")
+    def ai_settings_page():
+        """​AI 模型配置页面"""
+        return render_template("ai_settings.html")
 
     @app.route("/api/health")
     def health_check():
@@ -92,6 +112,13 @@ def create_app() -> Flask:
                 "GET  /api/auth/users": "用户列表（需管理员）",
                 "PUT  /api/auth/users/<id>/status": "启用/禁用用户（需管理员）",
                 "PUT  /api/auth/users/<id>/role": "设置用户角色（需管理员）",
+            },
+            "ai_config": {
+                "GET  /api/ai/providers": "获取支持的AI服务商列表",
+                "GET  /api/ai/settings": "获取当前用户的AI配置（需登录）",
+                "POST /api/ai/settings": "保存/更新AI配置（需登录）",
+                "POST /api/ai/test": "测试已保存的AI配置连通性（需登录）",
+                "POST /api/ai/test-direct": "直接测试AI配置（不保存，需登录）",
             },
         })
 

@@ -49,18 +49,21 @@ class SelectionPipeline:
     Step 10: 生成报告 → 输出完整分析报告
     """
 
-    def __init__(self, config: dict = None):
+    def __init__(self, config: dict = None, user_id: int = None):
         """
         :param config: 配置字典
+        :param user_id: 用户ID（传入后会从数据库动态读取该用户的 AI 配置）
         """
         self.config = config or {}
+        self.user_id = user_id
 
         # 设置语言
         lang = self.config.get("language", "zh_CN")
         set_language(lang)
 
-        # 初始化 AI 客户端
+        # 初始化 AI 客户端（支持动态用户配置）
         self.ai_client = self._init_ai_client()
+        self.ai_model = self._get_ai_model()
 
         # 初始化各模块
         self.http_client = HttpClient(
@@ -77,7 +80,26 @@ class SelectionPipeline:
         self.category_analysis = {}
 
     def _init_ai_client(self):
-        """初始化 OpenAI 客户端"""
+        """
+        初始化 OpenAI 兼容客户端
+
+        优先级:
+        1. 如果传入了 user_id，从数据库读取该用户的 AI 配置
+        2. 如果 config 中直接传入了 api_key，使用 config 配置
+        3. 最后回退到环境变量
+        """
+        # 方式 1: 从数据库动态读取用户配置
+        if self.user_id:
+            try:
+                from auth.ai_config import AIConfigManager
+                client = AIConfigManager.create_client(self.user_id)
+                if client:
+                    logger.info(f"使用用户 {self.user_id} 的 AI 配置初始化客户端")
+                    return client
+            except Exception as e:
+                logger.warning(f"从数据库读取用户 AI 配置失败: {e}")
+
+        # 方式 2: 从 config 字典读取
         api_key = self.config.get("openai_api_key") or os.environ.get("OPENAI_API_KEY")
         if not api_key:
             logger.warning("OpenAI API key not configured, AI features will be disabled")
@@ -93,6 +115,20 @@ class SelectionPipeline:
         except ImportError:
             logger.warning("openai package not installed, run: pip install openai")
             return None
+
+    def _get_ai_model(self) -> str:
+        """
+        获取用户配置的 AI 模型名称
+
+        优先级: 用户数据库配置 > config 字典 > 默认值
+        """
+        if self.user_id:
+            try:
+                from auth.ai_config import AIConfigManager
+                return AIConfigManager.get_model_name(self.user_id)
+            except Exception:
+                pass
+        return self.config.get("openai_model", "gpt-4o")
 
     def run(self, keyword: str, max_products: int = 50,
             skip_backend: bool = False,
