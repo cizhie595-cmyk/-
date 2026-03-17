@@ -1,0 +1,52 @@
+{
+    "manifest_version": 3,
+    "name": "Amazon Visionary Sourcing Tool",
+    "version": "1.0.0",
+    "description": "跨境电商智能选品助手 - 在 Amazon 页面上实时提取隐藏数据并同步到 Web 端",
+    "permissions": [
+        "activeTab",
+        "storage",
+        "scripting"
+    ],
+    "host_permissions": [
+        "https://*.amazon.com/*",
+        "https://*.amazon.co.uk/*",
+        "https://*.amazon.de/*",
+        "https://*.amazon.co.jp/*",
+        "https://*.amazon.ca/*",
+        "https://*.amazon.fr/*",
+        "https://*.amazon.it/*",
+        "https://*.amazon.es/*"
+    ],
+    "background": {
+        "service_worker": "background.js",
+        "type": "module"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://*.amazon.com/*",
+                "https://*.amazon.co.uk/*",
+                "https://*.amazon.de/*",
+                "https://*.amazon.co.jp/*",
+                "https://*.amazon.ca/*"
+            ],
+            "js": ["content.js"],
+            "css": ["content.css"],
+            "run_at": "document_idle"
+        }
+    ],
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        }
+    },
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    }
+}

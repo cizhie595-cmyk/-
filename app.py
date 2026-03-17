@@ -73,13 +73,25 @@ def create_app() -> Flask:
     from api.monetization_routes import monetization_bp
     app.register_blueprint(monetization_bp)
 
+    from api.project_routes import project_bp
+    app.register_blueprint(project_bp)
+
+    from api.analysis_routes import analysis_bp
+    app.register_blueprint(analysis_bp)
+
+    from api.threed_routes import threed_bp
+    app.register_blueprint(threed_bp)
+
+    from api.profit_routes import profit_bp
+    app.register_blueprint(profit_bp)
+
     # === 全局路由 ===
 
     @app.route("/")
     def index():
         """API 根路径 - 系统信息"""
         return jsonify({
-            "system": "Coupang 跨境电商智能选品系统",
+            "system": "Amazon/Coupang 跨境电商智能选品系统",
             "version": "1.0.0",
             "api_docs": "/api/docs",
             "pages": {
@@ -148,6 +160,33 @@ def create_app() -> Flask:
                 "GET  /api/subscription/usage": "获取使用量统计（需登录）",
                 "POST /api/affiliate/link": "生成 Affiliate 链接（需登录）",
                 "POST /api/affiliate/batch": "批量生成 Affiliate 链接（需登录）",
+            },
+            "projects": {
+                "POST /api/v1/projects": "创建选品项目",
+                "GET  /api/v1/projects": "获取项目列表",
+                "GET  /api/v1/projects/<id>": "获取项目详情",
+                "PUT  /api/v1/projects/<id>": "更新项目",
+                "DELETE /api/v1/projects/<id>": "删除项目",
+                "POST /api/v1/projects/<id>/run": "执行项目抓取",
+            },
+            "analysis": {
+                "POST /api/v1/analysis/visual": "发起视觉语义分析",
+                "POST /api/v1/analysis/reviews": "发起评论深度挖掘",
+                "GET  /api/v1/analysis/<task_id>/result": "获取分析结果",
+                "POST /api/v1/analysis/report/generate": "生成综合决策报告",
+            },
+            "3d_assets": {
+                "POST /api/v1/3d/generate": "发起 2D 转 3D 任务",
+                "GET  /api/v1/3d/<asset_id>/status": "轮询 3D 生成进度",
+                "POST /api/v1/3d/<asset_id>/render-video": "发起视频渲染",
+                "GET  /api/v1/3d/<asset_id>/video": "获取渲染视频",
+                "GET  /api/v1/3d/assets": "获取 3D 资产列表",
+            },
+            "profit_supply": {
+                "POST /api/v1/profit/calculate": "计算单品利润",
+                "POST /api/v1/profit/batch": "批量利润计算",
+                "POST /api/v1/supply/image-search": "以图搜货 (1688)",
+                "POST /api/v1/supply/keyword-search": "关键词搜货 (1688)",
             },
         })
 
