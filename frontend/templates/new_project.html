@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+{% block title %}New Project{% endblock %}
+{% block content %}
+<div class="top-bar">
+    <div>
+        <h2 class="page-title">New Sourcing Project</h2>
+        <p class="page-subtitle">Configure and launch a new product sourcing analysis</p>
+    </div>
+</div>
+
+<div class="card-grid card-grid-2">
+    <!-- Left: Project Config -->
+    <div class="card">
+        <h3 class="card-title mb-md">Project Configuration</h3>
+
+        <form id="project-form" onsubmit="createProject(event)">
+            <div class="form-group">
+                <label class="form-label">Project Name</label>
+                <input type="text" class="form-input" id="project-name" placeholder="e.g., Kitchen Gadgets Q2 2026" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Search Keyword</label>
+                <input type="text" class="form-input" id="project-keyword" placeholder="e.g., silicone spatula set" required>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label class="form-label">Marketplace</label>
+                    <select class="form-select" id="project-marketplace">
+                        <option value="US">Amazon US</option>
+                        <option value="UK">Amazon UK</option>
+                        <option value="DE">Amazon DE</option>
+                        <option value="JP">Amazon JP</option>
+                        <option value="FR">Amazon FR</option>
+                        <option value="CA">Amazon CA</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Max Products</label>
+                    <input type="number" class="form-input" id="project-max" value="100" min="10" max="500">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Data Source</label>
+                <div style="display: flex; gap: 12px; margin-top: 8px;">
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="radio" name="data-source" value="keyword" checked onchange="toggleDataSource('keyword')"> Keyword Search
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="radio" name="data-source" value="upload" onchange="toggleDataSource('upload')"> Upload Data File
+                    </label>
+                </div>
+            </div>
+
+            <!-- File Upload Section -->
+            <div class="form-group hidden" id="upload-section">
+                <label class="form-label">Upload Backend Data (.csv / .xlsx)</label>
+                <div id="upload-dropzone" style="border: 2px dashed var(--border); border-radius: var(--radius-md); padding: 32px; text-align: center; cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('file-input').click()">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" style="margin-bottom: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <p class="text-muted">Drag & drop or click to upload</p>
+                    <p style="font-size: 0.8rem; color: var(--text-muted);">Supports .csv and .xlsx (max 50MB)</p>
+                    <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleFileUpload(this)">
+                </div>
+                <div id="upload-result" class="hidden mt-md"></div>
+            </div>
+
+            <!-- Filter Rules -->
+            <div class="card-title mt-lg mb-md">Filter Rules (Optional)</div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label class="form-label">Min Price ($)</label>
+                    <input type="number" class="form-input" id="filter-min-price" value="10" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Max Price ($)</label>
+                    <input type="number" class="form-input" id="filter-max-price" value="100" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Min Reviews</label>
+                    <input type="number" class="form-input" id="filter-min-reviews" value="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Max Reviews</label>
+                    <input type="number" class="form-input" id="filter-max-reviews" value="5000">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Min Rating</label>
+                    <input type="number" class="form-input" id="filter-min-rating" value="3.5" step="0.1" min="1" max="5">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Min Monthly Sales</label>
+                    <input type="number" class="form-input" id="filter-min-sales" value="100">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button type="submit" class="btn btn-primary btn-lg" id="create-btn">
+                    Create & Start Analysis
+                </button>
+                <button type="button" class="btn btn-secondary btn-lg" onclick="saveAsDraft()">
+                    Save as Draft
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Right: Preview & Tips -->
+    <div>
+        <div class="card mb-lg">
+            <h3 class="card-title mb-md">Analysis Pipeline</h3>
+            <div id="pipeline-steps">
+                <div class="pipeline-step">
+                    <div class="step-number">1</div>
+                    <div>
+                        <div style="font-weight: 600;">Product Search</div>
+                        <div class="text-muted" style="font-size: 0.85rem;">SP-API / Crawler fetches product list</div>
+                    </div>
+                </div>
+                <div class="pipeline-step">
+                    <div class="step-number">2</div>
+                    <div>
+                        <div style="font-weight: 600;">Data Enrichment</div>
+                        <div class="text-muted" style="font-size: 0.85rem;">Keepa historical data + BSR trends</div>
+                    </div>
+                </div>
+                <div class="pipeline-step">
+                    <div class="step-number">3</div>
+                    <div>
+                        <div style="font-weight: 600;">Smart Filtering</div>
+                        <div class="text-muted" style="font-size: 0.85rem;">Rule-based + AI relevance filtering</div>
+                    </div>
+                </div>
+                <div class="pipeline-step">
+                    <div class="step-number">4</div>
+                    <div>
+                        <div style="font-weight: 600;">Deep Analysis</div>
+                        <div class="text-muted" style="font-size: 0.85rem;">Visual semantic + Review AI analysis</div>
+                    </div>
+                </div>
+                <div class="pipeline-step">
+                    <div class="step-number">5</div>
+                    <div>
+                        <div style="font-weight: 600;">Profit Calculation</div>
+                        <div class="text-muted" style="font-size: 0.85rem;">1688 sourcing + FBA cost estimation</div>
+                    </div>
+                </div>
+                <div class="pipeline-step">
+                    <div class="step-number">6</div>
+                    <div>
+                        <div style="font-weight: 600;">Decision Report</div>
+                        <div class="text-muted" style="font-size: 0.85rem;">Comprehensive analysis with risk score</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 class="card-title mb-md">Quota Usage</h3>
+            <div id="quota-info">
+                <div class="flex-between mb-md">
+                    <span class="text-muted">Plan</span>
+                    <span class="badge badge-primary" id="quota-plan">Loading...</span>
+                </div>
+                <div class="flex-between mb-md">
+                    <span class="text-muted">Analyses Remaining</span>
+                    <span id="quota-remaining">-</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="quota-bar" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .pipeline-step {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border);
+    }
+    .pipeline-step:last-child { border-bottom: none; }
+    .step-number {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--gradient-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let uploadedFileId = null;
+
+    function toggleDataSource(source) {
+        const uploadSection = document.getElementById('upload-section');
+        if (source === 'upload') {
+            uploadSection.classList.remove('hidden');
+        } else {
+            uploadSection.classList.add('hidden');
+        }
+    }
+
+    async function handleFileUpload(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const resultDiv = document.getElementById('upload-result');
+        resultDiv.classList.remove('hidden');
+        resultDiv.innerHTML = '<div class="spinner" style="margin: 0 auto;"></div>';
+
+        try {
+            const result = await api.uploadDataFile(file);
+            if (result.success) {
+                uploadedFileId = result.file_id;
+                resultDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        File parsed: <strong>${result.filename}</strong><br>
+                        ${result.total_rows} rows | ${result.asin_count} ASINs | ${result.search_term_count} Search Terms
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+            }
+        } catch (e) {
+            resultDiv.innerHTML = `<div class="alert alert-danger">${e.message}</div>`;
+        }
+    }
+
+    async function createProject(e) {
+        e.preventDefault();
+        const btn = document.getElementById('create-btn');
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
+
+        try {
+            const data = {
+                name: document.getElementById('project-name').value,
+                keyword: document.getElementById('project-keyword').value,
+                marketplace: document.getElementById('project-marketplace').value,
+                max_products: parseInt(document.getElementById('project-max').value),
+                filter_rules: {
+                    min_price: parseFloat(document.getElementById('filter-min-price').value),
+                    max_price: parseFloat(document.getElementById('filter-max-price').value),
+                    min_reviews: parseInt(document.getElementById('filter-min-reviews').value),
+                    max_reviews: parseInt(document.getElementById('filter-max-reviews').value),
+                    min_rating: parseFloat(document.getElementById('filter-min-rating').value),
+                    min_monthly_sales: parseInt(document.getElementById('filter-min-sales').value),
+                },
+                file_id: uploadedFileId,
+                auto_start: true,
+            };
+
+            const result = await api.createProject(data);
+            showToast('Project created! Analysis starting...', 'success');
+            window.location.href = `/projects/${result.project_id}`;
+        } catch (e) {
+            showToast(e.message, 'danger');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Create & Start Analysis';
+        }
+    }
+
+    // Load quota
+    (async () => {
+        try {
+            const quota = await api.getQuota();
+            if (quota) {
+                document.getElementById('quota-plan').textContent = quota.plan || 'Free';
+                document.getElementById('quota-remaining').textContent = quota.remaining || '0';
+                const pct = quota.total ? ((quota.remaining / quota.total) * 100) : 0;
+                document.getElementById('quota-bar').style.width = pct + '%';
+            }
+        } catch (e) {}
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="top-bar">
+    <div>
+        <h2 class="page-title">Dashboard</h2>
+        <p class="page-subtitle">Overview of your sourcing projects and analysis</p>
+    </div>
+    <a href="/projects/new" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        New Project
+    </a>
+</div>
+
+<!-- Stat Cards -->
+<div class="card-grid card-grid-4 mb-lg">
+    <div class="stat-card">
+        <div class="stat-icon primary">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <div>
+            <div class="stat-value" id="stat-projects">-</div>
+            <div class="stat-label">Active Projects</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon success">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>
+        </div>
+        <div>
+            <div class="stat-value" id="stat-products">-</div>
+            <div class="stat-label">Products Analyzed</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon warning">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div>
+            <div class="stat-value" id="stat-3d">-</div>
+            <div class="stat-label">3D Models</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon info">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div>
+            <div class="stat-value" id="stat-quota">-</div>
+            <div class="stat-label">Quota Remaining</div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Projects -->
+<div class="card mb-lg">
+    <div class="card-header">
+        <h3 class="card-title">Recent Projects</h3>
+        <a href="/projects" class="btn btn-secondary btn-sm">View All</a>
+    </div>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Project Name</th>
+                    <th>Keyword</th>
+                    <th>Marketplace</th>
+                    <th>Products</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="projects-table">
+                <tr><td colspan="7" class="text-center text-muted" style="padding: 40px;">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="card-grid card-grid-3">
+    <div class="card" style="cursor: pointer;" onclick="location.href='/projects/new'">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div class="stat-icon primary" style="width: 56px; height: 56px; font-size: 1.6rem;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <div>
+                <div style="font-weight: 600; font-size: 1rem;">Start Sourcing</div>
+                <div class="text-muted" style="font-size: 0.85rem;">Search & analyze products</div>
+            </div>
+        </div>
+    </div>
+    <div class="card" style="cursor: pointer;" onclick="location.href='/market'">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div class="stat-icon success" style="width: 56px; height: 56px; font-size: 1.6rem;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div>
+                <div style="font-weight: 600; font-size: 1rem;">Market Analysis</div>
+                <div class="text-muted" style="font-size: 0.85rem;">Category trends & insights</div>
+            </div>
+        </div>
+    </div>
+    <div class="card" style="cursor: pointer;" onclick="location.href='/3d-lab'">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div class="stat-icon warning" style="width: 56px; height: 56px; font-size: 1.6rem;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            </div>
+            <div>
+                <div style="font-weight: 600; font-size: 1rem;">3D Lab</div>
+                <div class="text-muted" style="font-size: 0.85rem;">Generate 3D product models</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadDashboard() {
+    try {
+        // 加载统计数据
+        const [quota, projects] = await Promise.all([
+            api.getQuota().catch(() => null),
+            api.getProjects().catch(() => null),
+        ]);
+
+        if (quota) {
+            document.getElementById('stat-quota').textContent = quota.remaining || '0';
+        }
+
+        if (projects && projects.projects) {
+            const list = projects.projects;
+            document.getElementById('stat-projects').textContent = list.length;
+
+            let totalProducts = 0;
+            list.forEach(p => totalProducts += (p.product_count || 0));
+            document.getElementById('stat-products').textContent = formatNumber(totalProducts);
+
+            // 渲染表格
+            const tbody = document.getElementById('projects-table');
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding: 40px;">No projects yet. Click "New Project" to get started.</td></tr>';
+            } else {
+                tbody.innerHTML = list.slice(0, 10).map(p => `
+                    <tr>
+                        <td><a href="/projects/${p.id}">${p.name || 'Untitled'}</a></td>
+                        <td><span class="badge badge-primary">${p.keyword || '-'}</span></td>
+                        <td>${p.marketplace || 'US'}</td>
+                        <td class="number">${p.product_count || 0}</td>
+                        <td><span class="badge badge-${p.status === 'completed' ? 'success' : p.status === 'running' ? 'warning' : 'info'}">${p.status || 'draft'}</span></td>
+                        <td>${p.created_at ? formatDate(p.created_at) : '-'}</td>
+                        <td>
+                            <a href="/projects/${p.id}" class="btn btn-secondary btn-sm">View</a>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+    } catch (e) {
+        console.error('Dashboard load error:', e);
+    }
+}
+
+loadDashboard();
+</script>
+{% endblock %}

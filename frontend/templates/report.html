@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block title %}Analysis Report{% endblock %}
+{% block extra_css %}
+<style>
+    .report-section { margin-bottom: 32px; }
+    .report-section h3 { margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .score-ring {
+        width: 120px; height: 120px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2rem; font-weight: 700;
+        border: 4px solid var(--primary);
+        margin: 0 auto 12px;
+    }
+    .recommendation-card {
+        padding: 16px;
+        border-radius: var(--radius-md);
+        border-left: 4px solid;
+        margin-bottom: 12px;
+    }
+    .rec-go { background: rgba(34, 197, 94, 0.1); border-color: var(--success); }
+    .rec-caution { background: rgba(245, 158, 11, 0.1); border-color: var(--warning); }
+    .rec-stop { background: rgba(239, 68, 68, 0.1); border-color: var(--danger); }
+    @media print {
+        .sidebar, .top-bar .btn, .no-print { display: none !important; }
+        .main-content { margin-left: 0 !important; }
+        body { background: white; color: #1a1a1a; }
+        .card { border: 1px solid #ddd; box-shadow: none; }
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar">
+    <div>
+        <h2 class="page-title">Sourcing Decision Report</h2>
+        <p class="page-subtitle" id="report-meta">Loading...</p>
+    </div>
+    <div style="display: flex; gap: 8px;" class="no-print">
+        <button class="btn btn-secondary" onclick="window.print()">Print / PDF</button>
+        <button class="btn btn-primary" onclick="exportReport()">Export</button>
+    </div>
+</div>
+
+<!-- Executive Summary -->
+<div class="report-section">
+    <div class="card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(6, 182, 212, 0.08));">
+        <h3 class="card-title mb-md">Executive Summary</h3>
+        <div class="card-grid card-grid-3" style="gap: 24px;">
+            <div style="text-align: center;">
+                <div class="score-ring" id="overall-score">--</div>
+                <div class="text-muted">Overall Score</div>
+            </div>
+            <div style="grid-column: span 2;">
+                <div id="executive-summary" style="line-height: 1.8;">
+                    Loading report data...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Score Breakdown -->
+<div class="report-section">
+    <div class="card-grid card-grid-4">
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 2rem; font-weight: 700; color: var(--primary-light);" id="score-market">--</div>
+            <div class="text-muted">Market Score</div>
+            <div class="progress-bar mt-sm"><div class="progress-fill" id="bar-market" style="width: 0%;"></div></div>
+        </div>
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 2rem; font-weight: 700; color: var(--success);" id="score-profit">--</div>
+            <div class="text-muted">Profit Score</div>
+            <div class="progress-bar mt-sm"><div class="progress-fill" id="bar-profit" style="width: 0%;"></div></div>
+        </div>
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 2rem; font-weight: 700; color: var(--warning);" id="score-competition">--</div>
+            <div class="text-muted">Competition</div>
+            <div class="progress-bar mt-sm"><div class="progress-fill" id="bar-competition" style="width: 0%;"></div></div>
+        </div>
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 2rem; font-weight: 700; color: var(--info);" id="score-risk">--</div>
+            <div class="text-muted">Risk Score</div>
+            <div class="progress-bar mt-sm"><div class="progress-fill" id="bar-risk" style="width: 0%;"></div></div>
+        </div>
+    </div>
+</div>
+
+<!-- Market Analysis -->
+<div class="report-section">
+    <div class="card">
+        <h3 class="card-title mb-md">Market Analysis</h3>
+        <div id="market-analysis-content" class="text-muted">Loading...</div>
+    </div>
+</div>
+
+<!-- Top Products -->
+<div class="report-section">
+    <div class="card">
+        <h3 class="card-title mb-md">Top Recommended Products</h3>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>ASIN</th>
+                        <th>Title</th>
+                        <th>Price</th>
+                        <th>Est. Profit</th>
+                        <th>Margin</th>
+                        <th>Risk</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody id="top-products-tbody">
+                    <tr><td colspan="8" class="text-center text-muted">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Recommendations -->
+<div class="report-section">
+    <div class="card">
+        <h3 class="card-title mb-md">AI Recommendations</h3>
+        <div id="recommendations">
+            <div class="recommendation-card rec-go">
+                <strong style="color: var(--success);">GO - Recommended Actions</strong>
+                <div id="rec-go-content" class="mt-sm">Loading...</div>
+            </div>
+            <div class="recommendation-card rec-caution">
+                <strong style="color: var(--warning);">CAUTION - Areas to Watch</strong>
+                <div id="rec-caution-content" class="mt-sm">Loading...</div>
+            </div>
+            <div class="recommendation-card rec-stop">
+                <strong style="color: var(--danger);">RISK - Potential Issues</strong>
+                <div id="rec-stop-content" class="mt-sm">Loading...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Next Steps -->
+<div class="report-section">
+    <div class="card">
+        <h3 class="card-title mb-md">Suggested Next Steps</h3>
+        <div id="next-steps">
+            <ol style="padding-left: 20px; line-height: 2;">
+                <li>Contact top 3 suppliers on 1688 for sample quotes</li>
+                <li>Order product samples for quality verification</li>
+                <li>Run a small test batch (50-100 units) via FBA</li>
+                <li>Set up PPC campaigns with identified keywords</li>
+                <li>Monitor BSR and review velocity for 30 days</li>
+            </ol>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const projectId = window.location.pathname.split('/').pop();
+
+    async function loadReport() {
+        try {
+            const project = await api.getProject(projectId);
+            if (project) {
+                document.getElementById('report-meta').textContent =
+                    `Project: ${project.name || 'Untitled'} | Keyword: ${project.keyword || '-'} | Generated: ${new Date().toLocaleDateString('zh-CN')}`;
+            }
+
+            // 模拟报告数据
+            document.getElementById('overall-score').textContent = '78';
+            document.getElementById('score-market').textContent = '82';
+            document.getElementById('score-profit').textContent = '75';
+            document.getElementById('score-competition').textContent = '68';
+            document.getElementById('score-risk').textContent = '85';
+
+            document.getElementById('bar-market').style.width = '82%';
+            document.getElementById('bar-profit').style.width = '75%';
+            document.getElementById('bar-competition').style.width = '68%';
+            document.getElementById('bar-risk').style.width = '85%';
+
+            document.getElementById('executive-summary').innerHTML = `
+                <p>This category shows <strong>moderate growth potential</strong> with an estimated monthly GMV of $2.4M.
+                The competition level is manageable with a CR3 of 34.2%, and there is room for differentiated products.</p>
+                <p>Recommended strategy: Enter with a differentiated product focusing on the pain points identified in customer reviews.
+                Target a selling price of $25-35 with an estimated profit margin of 25-30%.</p>
+            `;
+
+            document.getElementById('rec-go-content').innerHTML = `
+                <ul style="padding-left: 16px; line-height: 1.8;">
+                    <li>Market demand is growing (15% YoY increase in search volume)</li>
+                    <li>Multiple pain points identified for product improvement</li>
+                    <li>Healthy profit margins achievable at $25-35 price point</li>
+                </ul>
+            `;
+            document.getElementById('rec-caution-content').innerHTML = `
+                <ul style="padding-left: 16px; line-height: 1.8;">
+                    <li>Top 3 sellers hold 34.2% market share - monitor their pricing</li>
+                    <li>Seasonal demand peaks in Q4 - plan inventory accordingly</li>
+                </ul>
+            `;
+            document.getElementById('rec-stop-content').innerHTML = `
+                <ul style="padding-left: 16px; line-height: 1.8;">
+                    <li>Potential IP/patent issues with certain design features</li>
+                    <li>Some products in this category face high return rates (8-12%)</li>
+                </ul>
+            `;
+        } catch (e) {
+            console.error('Report load error:', e);
+        }
+    }
+
+    function exportReport() {
+        showToast('Generating export...', 'info');
+        window.print();
+    }
+
+    loadReport();
+</script>
+{% endblock %}

@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+{% block title %}3D Lab{% endblock %}
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
+<style>
+    .viewer-container {
+        width: 100%;
+        height: 500px;
+        background: #0a0a1a;
+        border-radius: var(--radius-md);
+        position: relative;
+        overflow: hidden;
+    }
+    #three-canvas { width: 100%; height: 100%; display: block; }
+    .viewer-controls {
+        position: absolute;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 8px;
+        background: rgba(15, 23, 42, 0.8);
+        padding: 8px 16px;
+        border-radius: 999px;
+        backdrop-filter: blur(8px);
+    }
+    .viewer-btn {
+        background: rgba(255,255,255,0.1);
+        border: none;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: background 0.2s;
+    }
+    .viewer-btn:hover { background: rgba(255,255,255,0.2); }
+    .viewer-btn.active { background: var(--primary); }
+    .asset-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 16px;
+    }
+    .asset-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .asset-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+    .asset-card.selected { border-color: var(--primary); box-shadow: var(--shadow-glow); }
+    .asset-thumb {
+        width: 100%;
+        height: 140px;
+        background: #0a0a1a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .asset-info { padding: 12px; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar">
+    <div>
+        <h2 class="page-title">3D Product Lab</h2>
+        <p class="page-subtitle">Generate, preview, and render 3D product models</p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" onclick="renderVideo()">Render Video</button>
+        <button class="btn btn-primary" onclick="document.getElementById('gen-modal').classList.add('active')">Generate 3D Model</button>
+    </div>
+</div>
+
+<!-- 3D Viewer -->
+<div class="card mb-lg" style="padding: 0; overflow: hidden;">
+    <div class="viewer-container" id="viewer-container">
+        <canvas id="three-canvas"></canvas>
+        <div class="viewer-controls">
+            <button class="viewer-btn" onclick="resetCamera()">Reset View</button>
+            <button class="viewer-btn" onclick="toggleWireframe()">Wireframe</button>
+            <button class="viewer-btn" onclick="toggleAutoRotate()">Auto Rotate</button>
+            <button class="viewer-btn" onclick="changeBackground('dark')">Dark BG</button>
+            <button class="viewer-btn" onclick="changeBackground('light')">Light BG</button>
+            <button class="viewer-btn" onclick="changeBackground('studio')">Studio</button>
+            <button class="viewer-btn" onclick="takeScreenshot()">Screenshot</button>
+        </div>
+        <div id="viewer-loading" class="loading-overlay hidden">
+            <div class="spinner" style="width: 48px; height: 48px; border-width: 4px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Model Info + Assets -->
+<div class="card-grid card-grid-3 mb-lg">
+    <div class="card" style="grid-column: span 2;">
+        <h3 class="card-title mb-md">Model Information</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+            <div><span class="text-muted">Vertices:</span> <strong id="info-vertices">-</strong></div>
+            <div><span class="text-muted">Faces:</span> <strong id="info-faces">-</strong></div>
+            <div><span class="text-muted">Format:</span> <strong id="info-format">-</strong></div>
+            <div><span class="text-muted">File Size:</span> <strong id="info-size">-</strong></div>
+            <div><span class="text-muted">Textures:</span> <strong id="info-textures">-</strong></div>
+            <div><span class="text-muted">Status:</span> <span class="badge badge-info" id="info-status">No model loaded</span></div>
+        </div>
+    </div>
+    <div class="card">
+        <h3 class="card-title mb-md">Quick Actions</h3>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn-secondary" onclick="downloadModel('glb')">Download .GLB</button>
+            <button class="btn btn-secondary" onclick="downloadModel('obj')">Download .OBJ</button>
+            <button class="btn btn-secondary" onclick="downloadModel('fbx')">Download .FBX</button>
+        </div>
+    </div>
+</div>
+
+<!-- Asset Library -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">My 3D Assets</h3>
+        <span class="text-muted" id="asset-count">0 models</span>
+    </div>
+    <div class="asset-grid" id="asset-grid">
+        <div style="grid-column: 1 / -1; text-align: center; padding: 40px;" class="text-muted">
+            No 3D models yet. Click "Generate 3D Model" to create one.
+        </div>
+    </div>
+</div>
+
+<!-- Generate Modal -->
+<div class="modal-overlay" id="gen-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Generate 3D Model</h3>
+            <button class="modal-close" onclick="document.getElementById('gen-modal').classList.remove('active')">&times;</button>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Product Image URL</label>
+            <input type="text" class="form-input" id="gen-image-url" placeholder="https://...">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Or Upload Image</label>
+            <input type="file" class="form-input" id="gen-image-file" accept="image/*">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group">
+                <label class="form-label">Quality</label>
+                <select class="form-select" id="gen-quality">
+                    <option value="draft">Draft (Fast)</option>
+                    <option value="standard" selected>Standard</option>
+                    <option value="high">High Quality</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Output Format</label>
+                <select class="form-select" id="gen-format">
+                    <option value="glb" selected>GLB</option>
+                    <option value="obj">OBJ</option>
+                    <option value="fbx">FBX</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="gen-texture" checked> Generate PBR Textures
+            </label>
+        </div>
+        <button class="btn btn-primary btn-lg" style="width: 100;" onclick="startGeneration()">Start Generation</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let scene, camera, renderer, controls, currentModel;
+    let isWireframe = false;
+
+    function initViewer() {
+        const container = document.getElementById('viewer-container');
+        const canvas = document.getElementById('three-canvas');
+
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a1a);
+
+        camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(3, 2, 3);
+
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 1.0;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        dirLight.position.set(5, 5, 5);
+        scene.add(dirLight);
+
+        const backLight = new THREE.DirectionalLight(0x6366f1, 0.3);
+        backLight.position.set(-3, 3, -3);
+        scene.add(backLight);
+
+        // Grid
+        const grid = new THREE.GridHelper(10, 20, 0x334155, 0x1e293b);
+        scene.add(grid);
+
+        // Default cube
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshStandardMaterial({
+            color: 0x6366f1,
+            metalness: 0.3,
+            roughness: 0.6,
+        });
+        const cube = new THREE.Mesh(geometry, material);
+        cube.position.y = 0.5;
+        scene.add(cube);
+        currentModel = cube;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+    }
+
+    function resetCamera() {
+        camera.position.set(3, 2, 3);
+        controls.target.set(0, 0.5, 0);
+        controls.update();
+    }
+
+    function toggleWireframe() {
+        isWireframe = !isWireframe;
+        if (currentModel) {
+            currentModel.traverse(child => {
+                if (child.isMesh) child.material.wireframe = isWireframe;
+            });
+        }
+    }
+
+    function toggleAutoRotate() {
+        controls.autoRotate = !controls.autoRotate;
+    }
+
+    function changeBackground(type) {
+        if (type === 'dark') scene.background = new THREE.Color(0x0a0a1a);
+        else if (type === 'light') scene.background = new THREE.Color(0xf0f0f0);
+        else if (type === 'studio') scene.background = new THREE.Color(0x1a1a2e);
+    }
+
+    function takeScreenshot() {
+        renderer.render(scene, camera);
+        const link = document.createElement('a');
+        link.download = '3d-screenshot.png';
+        link.href = renderer.domElement.toDataURL('image/png');
+        link.click();
+        showToast('Screenshot saved!', 'success');
+    }
+
+    function loadGLTF(url) {
+        const loading = document.getElementById('viewer-loading');
+        loading.classList.remove('hidden');
+
+        const loader = new THREE.GLTFLoader();
+        loader.load(url, (gltf) => {
+            if (currentModel) scene.remove(currentModel);
+            currentModel = gltf.scene;
+            scene.add(currentModel);
+
+            // Center and scale
+            const box = new THREE.Box3().setFromObject(currentModel);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = 2 / maxDim;
+            currentModel.scale.setScalar(scale);
+            currentModel.position.sub(center.multiplyScalar(scale));
+
+            // Update info
+            let vertices = 0, faces = 0;
+            currentModel.traverse(child => {
+                if (child.isMesh && child.geometry) {
+                    vertices += child.geometry.attributes.position.count;
+                    faces += child.geometry.index ? child.geometry.index.count / 3 : child.geometry.attributes.position.count / 3;
+                }
+            });
+            document.getElementById('info-vertices').textContent = formatNumber(vertices);
+            document.getElementById('info-faces').textContent = formatNumber(Math.floor(faces));
+            document.getElementById('info-format').textContent = 'GLTF/GLB';
+            document.getElementById('info-status').textContent = 'Loaded';
+            document.getElementById('info-status').className = 'badge badge-success';
+
+            loading.classList.add('hidden');
+        }, undefined, (error) => {
+            console.error('Model load error:', error);
+            loading.classList.add('hidden');
+            showToast('Failed to load model', 'danger');
+        });
+    }
+
+    async function startGeneration() {
+        const imageUrl = document.getElementById('gen-image-url').value;
+        const quality = document.getElementById('gen-quality').value;
+        const format = document.getElementById('gen-format').value;
+
+        if (!imageUrl) {
+            showToast('Please provide an image URL', 'warning');
+            return;
+        }
+
+        document.getElementById('gen-modal').classList.remove('active');
+        showToast('3D generation started. This may take 1-3 minutes...', 'info');
+
+        try {
+            const result = await api.generate3D(imageUrl, { quality, format });
+            if (result.task_id) {
+                pollGeneration(result.task_id);
+            }
+        } catch (e) {
+            showToast(e.message, 'danger');
+        }
+    }
+
+    async function pollGeneration(taskId) {
+        const interval = setInterval(async () => {
+            try {
+                const result = await api.get3DStatus(taskId);
+                if (result.status === 'completed') {
+                    clearInterval(interval);
+                    showToast('3D model generated!', 'success');
+                    if (result.model_url) {
+                        loadGLTF(result.model_url);
+                    }
+                    loadAssets();
+                } else if (result.status === 'failed') {
+                    clearInterval(interval);
+                    showToast('3D generation failed', 'danger');
+                }
+            } catch (e) {
+                clearInterval(interval);
+            }
+        }, 5000);
+    }
+
+    async function renderVideo() {
+        showToast('Video rendering started...', 'info');
+        // This would call the video render API
+    }
+
+    async function loadAssets() {
+        // Load user's 3D asset library
+        try {
+            const result = await api.request('GET', '/3d/assets');
+            if (result && result.assets) {
+                const grid = document.getElementById('asset-grid');
+                document.getElementById('asset-count').textContent = `${result.assets.length} models`;
+                grid.innerHTML = result.assets.map(a => `
+                    <div class="asset-card" onclick="loadGLTF('${a.model_url}')">
+                        <div class="asset-thumb">
+                            ${a.thumbnail_url ? `<img src="${a.thumbnail_url}" style="width: 100%; height: 100%; object-fit: cover;">` : '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>'}
+                        </div>
+                        <div class="asset-info">
+                            <div style="font-weight: 500; font-size: 0.9rem;">${a.name || 'Untitled'}</div>
+                            <div class="text-muted" style="font-size: 0.8rem;">${a.format || 'GLB'} | ${a.created_at ? formatDate(a.created_at) : '-'}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (e) {
+            // No assets yet
+        }
+    }
+
+    initViewer();
+    loadAssets();
+</script>
+{% endblock %}

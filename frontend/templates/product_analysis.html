@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% block title %}Product Analysis{% endblock %}
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+{% endblock %}
+{% block content %}
+<div class="top-bar">
+    <div>
+        <h2 class="page-title">Product Deep Analysis</h2>
+        <p class="page-subtitle" id="product-asin">ASIN: Loading...</p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" onclick="startVisualAnalysis()">Visual Analysis</button>
+        <button class="btn btn-secondary" onclick="startReviewAnalysis()">Review Analysis</button>
+        <a href="#" class="btn btn-primary" id="amazon-link" target="_blank">View on Amazon</a>
+    </div>
+</div>
+
+<!-- Product Overview -->
+<div class="card-grid card-grid-3 mb-lg">
+    <div class="card" style="grid-column: span 2;">
+        <div style="display: flex; gap: 24px;">
+            <img id="product-image" src="" style="width: 200px; height: 200px; object-fit: cover; border-radius: var(--radius-md); background: var(--border);">
+            <div style="flex: 1;">
+                <h3 id="product-title" style="font-size: 1.1rem; margin-bottom: 12px;">Loading...</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div><span class="text-muted">Price:</span> <strong id="p-price">-</strong></div>
+                    <div><span class="text-muted">Rating:</span> <strong id="p-rating">-</strong></div>
+                    <div><span class="text-muted">Reviews:</span> <strong id="p-reviews">-</strong></div>
+                    <div><span class="text-muted">BSR:</span> <strong id="p-bsr">-</strong></div>
+                    <div><span class="text-muted">Monthly Sales:</span> <strong id="p-sales">-</strong></div>
+                    <div><span class="text-muted">Fulfillment:</span> <strong id="p-fulfillment">-</strong></div>
+                    <div><span class="text-muted">Brand:</span> <strong id="p-brand">-</strong></div>
+                    <div><span class="text-muted">Category:</span> <strong id="p-category">-</strong></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <h3 class="card-title mb-md">Risk Score</h3>
+        <div style="text-align: center; padding: 20px 0;">
+            <div id="risk-score" style="font-size: 3rem; font-weight: 700; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">--</div>
+            <div class="text-muted">/ 100</div>
+            <div id="risk-level" class="badge badge-info mt-md">Calculating...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+    <div class="tab active" onclick="switchAnalysisTab('visual')">Visual Analysis</div>
+    <div class="tab" onclick="switchAnalysisTab('reviews')">Review Insights</div>
+    <div class="tab" onclick="switchAnalysisTab('bsr')">BSR Trends</div>
+    <div class="tab" onclick="switchAnalysisTab('competitors')">Competitors</div>
+</div>
+
+<!-- Visual Analysis Tab -->
+<div class="tab-content active" id="tab-visual">
+    <div class="card-grid card-grid-2">
+        <div class="card">
+            <h3 class="card-title mb-md">Listing Quality Score</h3>
+            <canvas id="chart-listing-quality" height="250"></canvas>
+        </div>
+        <div class="card">
+            <h3 class="card-title mb-md">Trust Anchors</h3>
+            <div id="trust-anchors">
+                <div class="text-muted text-center" style="padding: 40px;">Run visual analysis to see results</div>
+            </div>
+        </div>
+    </div>
+    <div class="card mt-lg">
+        <h3 class="card-title mb-md">Image Analysis</h3>
+        <div id="image-analysis" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
+            <div class="text-muted text-center" style="padding: 40px; grid-column: 1 / -1;">Run visual analysis to see image breakdown</div>
+        </div>
+    </div>
+</div>
+
+<!-- Review Insights Tab -->
+<div class="tab-content hidden" id="tab-reviews">
+    <div class="card-grid card-grid-2 mb-lg">
+        <div class="card">
+            <h3 class="card-title mb-md">Sentiment Distribution</h3>
+            <canvas id="chart-sentiment" height="250"></canvas>
+        </div>
+        <div class="card">
+            <h3 class="card-title mb-md">Rating Distribution</h3>
+            <canvas id="chart-ratings" height="250"></canvas>
+        </div>
+    </div>
+    <div class="card-grid card-grid-2">
+        <div class="card">
+            <h3 class="card-title mb-md" style="color: var(--success);">Selling Points (Pros)</h3>
+            <div id="selling-points">
+                <div class="text-muted text-center" style="padding: 40px;">Run review analysis to see results</div>
+            </div>
+        </div>
+        <div class="card">
+            <h3 class="card-title mb-md" style="color: var(--danger);">Pain Points (Cons)</h3>
+            <div id="pain-points">
+                <div class="text-muted text-center" style="padding: 40px;">Run review analysis to see results</div>
+            </div>
+        </div>
+    </div>
+    <div class="card mt-lg">
+        <h3 class="card-title mb-md">Customer Persona</h3>
+        <div id="customer-persona" class="text-muted text-center" style="padding: 40px;">
+            Run review analysis to see customer persona
+        </div>
+    </div>
+</div>
+
+<!-- BSR Trends Tab -->
+<div class="tab-content hidden" id="tab-bsr">
+    <div class="card">
+        <h3 class="card-title mb-md">BSR History (30 Days)</h3>
+        <canvas id="chart-bsr" height="300"></canvas>
+    </div>
+    <div class="card-grid card-grid-2 mt-lg">
+        <div class="card">
+            <h3 class="card-title mb-md">Price History</h3>
+            <canvas id="chart-price-history" height="200"></canvas>
+        </div>
+        <div class="card">
+            <h3 class="card-title mb-md">Review Growth</h3>
+            <canvas id="chart-review-growth" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Competitors Tab -->
+<div class="tab-content hidden" id="tab-competitors">
+    <div class="card">
+        <h3 class="card-title mb-md">Top Competitors</h3>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ASIN</th>
+                        <th>Title</th>
+                        <th>Price</th>
+                        <th>Rating</th>
+                        <th>Reviews</th>
+                        <th>Monthly Sales</th>
+                        <th>FBA</th>
+                    </tr>
+                </thead>
+                <tbody id="competitors-tbody">
+                    <tr><td colspan="7" class="text-center text-muted" style="padding: 40px;">Loading competitors...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const asin = window.location.pathname.split('/')[2];
+    document.getElementById('product-asin').textContent = `ASIN: ${asin}`;
+    document.getElementById('amazon-link').href = `https://www.amazon.com/dp/${asin}`;
+
+    function switchAnalysisTab(tab) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        event.target.classList.add('active');
+        document.getElementById(`tab-${tab}`).classList.remove('hidden');
+    }
+
+    async function startVisualAnalysis() {
+        try {
+            showToast('Starting visual analysis...', 'info');
+            const result = await api.startVisualAnalysis(asin);
+            if (result.task_id) {
+                pollAnalysis(result.task_id, 'visual');
+            }
+        } catch (e) {
+            showToast(e.message, 'danger');
+        }
+    }
+
+    async function startReviewAnalysis() {
+        try {
+            showToast('Starting review analysis...', 'info');
+            const result = await api.startReviewAnalysis(asin);
+            if (result.task_id) {
+                pollAnalysis(result.task_id, 'review');
+            }
+        } catch (e) {
+            showToast(e.message, 'danger');
+        }
+    }
+
+    async function pollAnalysis(taskId, type) {
+        const interval = setInterval(async () => {
+            try {
+                const result = await api.getAnalysisResult(taskId);
+                if (result.status === 'completed') {
+                    clearInterval(interval);
+                    showToast(`${type} analysis completed!`, 'success');
+                    renderAnalysisResults(result, type);
+                } else if (result.status === 'failed') {
+                    clearInterval(interval);
+                    showToast(`${type} analysis failed`, 'danger');
+                }
+            } catch (e) {
+                clearInterval(interval);
+            }
+        }, 3000);
+    }
+
+    function renderAnalysisResults(data, type) {
+        if (type === 'visual' && data.result) {
+            renderListingQualityChart(data.result);
+            renderTrustAnchors(data.result.trust_anchors || []);
+        }
+        if (type === 'review' && data.result) {
+            renderSentimentChart(data.result);
+            renderSellingPoints(data.result.selling_points || []);
+            renderPainPoints(data.result.pain_points || []);
+        }
+    }
+
+    function renderListingQualityChart(data) {
+        const ctx = document.getElementById('chart-listing-quality').getContext('2d');
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Title Quality', 'Image Quality', 'Bullet Points', 'Description', 'A+ Content', 'Keywords'],
+                datasets: [{
+                    label: 'Score',
+                    data: [
+                        data.title_score || 0,
+                        data.image_score || 0,
+                        data.bullet_score || 0,
+                        data.description_score || 0,
+                        data.aplus_score || 0,
+                        data.keyword_score || 0,
+                    ],
+                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                    borderColor: '#6366f1',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#6366f1',
+                }]
+            },
+            options: {
+                scales: { r: { beginAtZero: true, max: 100, grid: { color: '#334155' }, ticks: { display: false } } },
+                plugins: { legend: { display: false } },
+            }
+        });
+    }
+
+    function renderTrustAnchors(anchors) {
+        const container = document.getElementById('trust-anchors');
+        if (!anchors.length) return;
+        container.innerHTML = anchors.map(a => `
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border);">
+                <span class="badge badge-${a.type === 'positive' ? 'success' : 'warning'}">${a.type}</span>
+                <span>${a.description}</span>
+            </div>
+        `).join('');
+    }
+
+    function renderSentimentChart(data) {
+        const ctx = document.getElementById('chart-sentiment').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Positive', 'Neutral', 'Negative'],
+                datasets: [{
+                    data: [data.positive_pct || 0, data.neutral_pct || 0, data.negative_pct || 0],
+                    backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
+                    borderWidth: 0,
+                }]
+            },
+            options: { plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } } }
+        });
+    }
+
+    function renderSellingPoints(points) {
+        const container = document.getElementById('selling-points');
+        container.innerHTML = points.map(p => `
+            <div style="padding: 8px 0; border-bottom: 1px solid var(--border);">
+                <div style="font-weight: 500;">${p.point || p}</div>
+                ${p.frequency ? `<span class="text-muted" style="font-size: 0.8rem;">Mentioned ${p.frequency} times</span>` : ''}
+            </div>
+        `).join('');
+    }
+
+    function renderPainPoints(points) {
+        const container = document.getElementById('pain-points');
+        container.innerHTML = points.map(p => `
+            <div style="padding: 8px 0; border-bottom: 1px solid var(--border);">
+                <div style="font-weight: 500;">${p.point || p}</div>
+                ${p.frequency ? `<span class="text-muted" style="font-size: 0.8rem;">Mentioned ${p.frequency} times</span>` : ''}
+            </div>
+        `).join('');
+    }
+</script>
+{% endblock %}

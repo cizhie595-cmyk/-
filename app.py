@@ -85,34 +85,12 @@ def create_app() -> Flask:
     from api.profit_routes import profit_bp
     app.register_blueprint(profit_bp)
 
-    # === 全局路由 ===
-
-    @app.route("/")
-    def index():
-        """API 根路径 - 系统信息"""
-        return jsonify({
-            "system": "Amazon/Coupang 跨境电商智能选品系统",
-            "version": "1.0.0",
-            "api_docs": "/api/docs",
-            "pages": {
-                "/settings/ai": "AI 模型配置页面",
-                "/settings/api-keys": "第三方 API 密钥配置页面",
-            },
-            "status": "running",
-            "timestamp": datetime.now().isoformat(),
-        })
+    from api.upload_routes import upload_bp
+    app.register_blueprint(upload_bp)
 
     # === 前端页面路由 ===
-
-    @app.route("/settings/ai")
-    def ai_settings_page():
-        """​AI 模型配置页面"""
-        return render_template("ai_settings.html")
-
-    @app.route("/settings/api-keys")
-    def api_keys_page():
-        """第三方 API 密钥配置页面"""
-        return render_template("api_keys_settings.html")
+    from frontend.routes import frontend_bp
+    app.register_blueprint(frontend_bp)
 
     @app.route("/api/health")
     def health_check():

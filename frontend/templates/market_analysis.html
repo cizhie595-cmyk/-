@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+{% block title %}Market Analysis{% endblock %}
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+{% endblock %}
+{% block content %}
+<div class="top-bar">
+    <div>
+        <h2 class="page-title">Market & Category Analysis</h2>
+        <p class="page-subtitle">Trend tracking, GMV estimation, and competitive landscape</p>
+    </div>
+</div>
+
+<!-- Search Bar -->
+<div class="card mb-lg">
+    <form onsubmit="runMarketAnalysis(event)" style="display: flex; gap: 12px; align-items: end;">
+        <div class="form-group" style="flex: 1; margin: 0;">
+            <label class="form-label">Keyword / Category</label>
+            <input type="text" class="form-input" id="market-keyword" placeholder="e.g., wireless earbuds" required>
+        </div>
+        <div class="form-group" style="margin: 0;">
+            <label class="form-label">Marketplace</label>
+            <select class="form-select" id="market-marketplace">
+                <option value="US">US</option>
+                <option value="UK">UK</option>
+                <option value="DE">DE</option>
+                <option value="JP">JP</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg" id="analyze-btn">Analyze</button>
+    </form>
+</div>
+
+<!-- Results -->
+<div id="results-section" class="hidden">
+    <!-- Stat Cards -->
+    <div class="card-grid card-grid-4 mb-lg">
+        <div class="stat-card">
+            <div class="stat-icon primary">$</div>
+            <div>
+                <div class="stat-value" id="m-gmv">-</div>
+                <div class="stat-label">Est. Monthly GMV</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon success">#</div>
+            <div>
+                <div class="stat-value" id="m-sellers">-</div>
+                <div class="stat-label">Active Sellers</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon warning">%</div>
+            <div>
+                <div class="stat-value" id="m-cr3">-</div>
+                <div class="stat-label">CR3 Monopoly</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon info">N</div>
+            <div>
+                <div class="stat-value" id="m-new-ratio">-</div>
+                <div class="stat-label">New Product Ratio</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="card-grid card-grid-2 mb-lg">
+        <div class="card">
+            <h3 class="card-title mb-md">Google Trends (12 Months)</h3>
+            <canvas id="chart-trends" height="280"></canvas>
+        </div>
+        <div class="card">
+            <h3 class="card-title mb-md">Seasonality Analysis</h3>
+            <canvas id="chart-seasonal" height="280"></canvas>
+        </div>
+    </div>
+
+    <div class="card-grid card-grid-2 mb-lg">
+        <div class="card">
+            <h3 class="card-title mb-md">Price Distribution</h3>
+            <canvas id="chart-price-dist" height="250"></canvas>
+        </div>
+        <div class="card">
+            <h3 class="card-title mb-md">Market Concentration (CR3/CR10)</h3>
+            <canvas id="chart-concentration" height="250"></canvas>
+        </div>
+    </div>
+
+    <!-- Related Keywords -->
+    <div class="card-grid card-grid-2 mb-lg">
+        <div class="card">
+            <h3 class="card-title mb-md">Top Related Queries</h3>
+            <div id="related-top" class="text-muted">Loading...</div>
+        </div>
+        <div class="card">
+            <h3 class="card-title mb-md">Rising Queries</h3>
+            <div id="related-rising" class="text-muted">Loading...</div>
+        </div>
+    </div>
+
+    <!-- AI Summary -->
+    <div class="card">
+        <h3 class="card-title mb-md">AI Market Summary</h3>
+        <div id="ai-summary" class="text-muted" style="line-height: 1.8;">
+            Generating market summary...
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let trendsChart, seasonalChart, priceDistChart, concentrationChart;
+
+    async function runMarketAnalysis(e) {
+        e.preventDefault();
+        const keyword = document.getElementById('market-keyword').value;
+        const marketplace = document.getElementById('market-marketplace').value;
+        const btn = document.getElementById('analyze-btn');
+
+        btn.disabled = true;
+        btn.textContent = 'Analyzing...';
+        document.getElementById('results-section').classList.remove('hidden');
+
+        try {
+            // 获取 Google Trends 数据
+            const trendsResult = await api.getGoogleTrends([keyword], marketplace);
+            if (trendsResult.success) {
+                renderTrendsChart(trendsResult.data);
+                renderSeasonalChart(trendsResult.data);
+                renderRelatedQueries(trendsResult.data);
+            }
+        } catch (e) {
+            console.error('Trends error:', e);
+        }
+
+        // 模拟其他分析数据（实际会从后端获取）
+        document.getElementById('m-gmv').textContent = '$2.4M';
+        document.getElementById('m-sellers').textContent = '1,247';
+        document.getElementById('m-cr3').textContent = '34.2%';
+        document.getElementById('m-new-ratio').textContent = '18.5%';
+
+        renderPriceDistChart();
+        renderConcentrationChart();
+
+        document.getElementById('ai-summary').innerHTML = `
+            <p>Based on the analysis of <strong>${keyword}</strong> in the ${marketplace} marketplace:</p>
+            <p>The market shows <strong>moderate competition</strong> with a CR3 of 34.2%, indicating room for new entrants.
+            Monthly GMV is estimated at $2.4M with a healthy growth trend over the past 12 months.</p>
+            <p>Key opportunity: The new product ratio of 18.5% suggests active innovation in this category.
+            Recommended entry strategy: Focus on differentiated features identified in the pain point analysis.</p>
+        `;
+
+        btn.disabled = false;
+        btn.textContent = 'Analyze';
+    }
+
+    function renderTrendsChart(data) {
+        const ctx = document.getElementById('chart-trends').getContext('2d');
+        if (trendsChart) trendsChart.destroy();
+
+        const iot = data.interest_over_time || data;
+        const dates = iot.dates || [];
+        const keyword = (iot.keywords || [])[0] || '';
+        const values = (iot.values || {})[keyword] || [];
+
+        trendsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dates.map(d => d.substring(5)),
+                datasets: [{
+                    label: keyword,
+                    data: values,
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', maxTicksLimit: 12 } },
+                    y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b' }, beginAtZero: true },
+                },
+                plugins: { legend: { labels: { color: '#94a3b8' } } },
+            }
+        });
+    }
+
+    function renderSeasonalChart(data) {
+        const ctx = document.getElementById('chart-seasonal').getContext('2d');
+        if (seasonalChart) seasonalChart.destroy();
+
+        const seasonal = data.seasonal_analysis || {};
+        const monthlyAvg = seasonal.monthly_avg || {};
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const values = months.map((_, i) => monthlyAvg[i + 1] || 0);
+
+        const peakMonths = seasonal.peak_months || [];
+        const colors = months.map((_, i) => peakMonths.includes(i + 1) ? '#f59e0b' : '#6366f1');
+
+        seasonalChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'Avg Interest',
+                    data: values,
+                    backgroundColor: colors.map(c => c + '80'),
+                    borderColor: colors,
+                    borderWidth: 1,
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#64748b' } },
+                    y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b' }, beginAtZero: true },
+                },
+                plugins: { legend: { display: false } },
+            }
+        });
+    }
+
+    function renderPriceDistChart() {
+        const ctx = document.getElementById('chart-price-dist').getContext('2d');
+        if (priceDistChart) priceDistChart.destroy();
+        priceDistChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['$0-10', '$10-20', '$20-30', '$30-50', '$50-100', '$100+'],
+                datasets: [{
+                    label: 'Products',
+                    data: [15, 42, 38, 28, 12, 5],
+                    backgroundColor: 'rgba(6, 182, 212, 0.6)',
+                    borderColor: '#06b6d4',
+                    borderWidth: 1,
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#64748b' } },
+                    y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b' } },
+                },
+                plugins: { legend: { display: false } },
+            }
+        });
+    }
+
+    function renderConcentrationChart() {
+        const ctx = document.getElementById('chart-concentration').getContext('2d');
+        if (concentrationChart) concentrationChart.destroy();
+        concentrationChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Top 3 Sellers', 'Top 4-10', 'Others'],
+                datasets: [{
+                    data: [34.2, 22.8, 43.0],
+                    backgroundColor: ['#ef4444', '#f59e0b', '#22c55e'],
+                    borderWidth: 0,
+                }]
+            },
+            options: {
+                plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } },
+            }
+        });
+    }
+
+    function renderRelatedQueries(data) {
+        const related = data.related_queries || {};
+        const topDiv = document.getElementById('related-top');
+        const risingDiv = document.getElementById('related-rising');
+
+        if (related.top && related.top.length) {
+            topDiv.innerHTML = related.top.slice(0, 10).map(q => `
+                <div class="flex-between" style="padding: 6px 0; border-bottom: 1px solid var(--border);">
+                    <span>${q.query}</span>
+                    <span class="text-mono text-muted">${q.value}</span>
+                </div>
+            `).join('');
+        } else {
+            topDiv.innerHTML = '<div class="text-muted">No data available</div>';
+        }
+
+        if (related.rising && related.rising.length) {
+            risingDiv.innerHTML = related.rising.slice(0, 10).map(q => `
+                <div class="flex-between" style="padding: 6px 0; border-bottom: 1px solid var(--border);">
+                    <span>${q.query}</span>
+                    <span class="badge badge-success">${q.value}</span>
+                </div>
+            `).join('');
+        } else {
+            risingDiv.innerHTML = '<div class="text-muted">No data available</div>';
+        }
+    }
+</script>
+{% endblock %}

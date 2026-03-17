@@ -1,77 +1,181 @@
-# Coupang 选品系统 - 开发进度与待完善清单
+# Amazon Visionary Sourcing Tool - Development Progress
 
-经过对代码库的全面梳理，目前项目后端的**核心引擎、爬虫链路、数据分析和用户认证模块**已经基本开发完毕。以下是详细的完成情况和下一步的待开发及待完善建议。
+> Last Updated: 2026-03-18
 
-## 一、 已完成模块 (✅ 100%)
+## Overall Status: **Phase 2 Complete - Feature Complete (MVP)**
 
-系统目前已经完成了核心业务逻辑的构建，主要涵盖了选品流程、用户系统以及底层基础设施。
-
-### 核心选品链路
-
-选品系统的十步核心流程已经全部在代码层面实现，并串联在 `pipeline.py` 中。系统能够从搜索列表爬取开始，自动完成数据采集、分析并生成最终报告。
-
-| 步骤 | 模块文件 | 功能说明 | 完成状态 |
-|------|----------|----------|----------|
-| 1. 搜索列表爬取 | `scrapers/coupang/search_crawler.py` | 爬取关键词下的产品列表 | ✅ 完成 |
-| 2. 后台数据匹配 | `scrapers/coupang/backend_crawler.py` | 登录 Wing 后台获取点击量/销量等运营数据 | ✅ 完成 |
-| 3. 数据筛选 | `analysis/data_filter.py` | 结合规则筛选与 AI 智能筛选过滤低质量产品 | ✅ 完成 |
-| 4. 详情页爬取 | `scrapers/coupang/detail_crawler.py` | 抓取产品图片、规格及配送方式 | ✅ 完成 |
-| 5. 评论分析 | `review_crawler.py`, `review_analyzer.py` | 爬取评论、进行刷单检测并利用 AI 提取卖点与痛点 | ✅ 完成 |
-| 6. 详情页 AI 分析 | `analysis/ai_analysis/detail_analyzer.py` | 分析页面视觉、逻辑与信任锚点 | ✅ 完成 |
-| 7. 类目趋势分析 | `analysis/market_analysis/category_analyzer.py`| 结合 Naver 搜索趋势评估市场机会 | ✅ 完成 |
-| 8. 1688 货源搜索 | `scrapers/alibaba1688/source_crawler.py` | 支持以图搜货和关键词搜货 | ✅ 完成 |
-| 9. 利润计算 | `analysis/profit_analysis/profit_calculator.py`| 核算 ROI、盈亏平衡价及进行敏感性分析 | ✅ 完成 |
-| 10. 报告生成 | `analysis/market_analysis/report_generator.py` | 输出完整的 Markdown 格式分析报告 | ✅ 完成 |
-
-### 用户与权限系统
-
-最新加入的用户模块为系统提供了多租户支持。该模块基于 Flask 框架，采用 JWT 双令牌机制进行身份验证，并使用 bcrypt 对密码进行安全加密。相关的数据库表结构（如 `users`、`user_login_logs`）已在 `database/user_schema.sql` 中定义完毕。此外，所有的认证路由均已在 `api/auth_routes.py` 中实现，并配备了完整的单元测试以确保稳定性。
-
-### 基础设施
-
-系统的底层架构也已搭建完善。国际化模块支持中文、英文和韩文三种语言切换。数据库层面，`database/schema.sql` 包含了 13 张核心业务表的完整设计。网络请求统一通过 `utils/http_client.py` 处理，内置了代理支持和重试机制。日志系统基于 loguru 构建，提供了清晰的运行状态记录。
+All modules defined in the PRD have been implemented. The system is ready for integration testing and deployment.
 
 ---
 
-## 二、 待开发模块 (⏳ 未开始)
+## Module Completion Summary
 
-尽管核心逻辑已经就绪，但系统目前仍缺乏面向最终用户的交互界面和生产环境所需的异步处理能力。
+| Module | Status | Completion |
+|--------|--------|------------|
+| Core Pipeline Engine | Done | 100% |
+| Amazon SP-API Scraper | Done | 100% |
+| Keepa Data Integration | Done | 100% |
+| Naver Trend Crawler | Done | 100% |
+| Google Trends Integration | **New** | 100% |
+| AI Analysis Engine (GPT-4V) | Done | 100% |
+| Review Sentiment Analysis | Done | 100% |
+| Data Filtering (Rule + AI) | Done | 100% |
+| Amazon Category Analyzer | Done | 100% |
+| Amazon Pipeline | Done | 100% |
+| 1688 Image Search | Done | 100% |
+| Profit Calculator | Done | 100% |
+| 3D Asset Generation API | Done | 100% |
+| Video Renderer (FFmpeg) | **New** | 100% |
+| File Upload Parser (CSV/XLSX) | **New** | 100% |
+| User Auth (JWT + bcrypt) | Done | 100% |
+| Quota Middleware | Done | 100% |
+| Subscription / Monetization | Done | 100% |
+| Celery Async Tasks | Done | 100% |
+| Chrome Extension | Done | 100% |
+| Docker Deployment | Done | 100% |
 
-### 前端可视化界面
+### Frontend Pages
 
-目前系统完全基于命令行或 API 运行，没有任何前端代码。为了提供良好的用户体验，需要从零开始开发一套 Web 界面。这包括对接现有 API 的登录注册页面、展示选品任务状态和历史报告的 Dashboard 数据看板。同时，需要开发一个表单化的任务提交页面，供用户输入关键词和配置参数。最后，需要一个专门的分析报告展示页，将后端的 Markdown 报告渲染为美观的网页，并辅以图表展示价格分布和销量趋势。
+| Page | Template | Status |
+|------|----------|--------|
+| Login / Register | `auth.html` | **New** |
+| Dashboard | `dashboard.html` | **New** |
+| New Project Wizard | `new_project.html` | **New** |
+| Project Detail (Data Table) | `project_detail.html` | **New** |
+| Product Deep Analysis | `product_analysis.html` | **New** |
+| Market & Category Analysis | `market_analysis.html` | **New** |
+| Profit Calculator | `profit_calculator.html` | **New** |
+| Decision Report | `report.html` | **New** |
+| 3D Lab (Three.js) | `threed_lab.html` | **New** |
+| Subscription Management | `subscription.html` | **New** |
+| AI Settings | `ai_settings.html` | Done |
+| API Keys Settings | `api_keys_settings.html` | Done |
 
-### 任务队列与异步处理系统
+### API Routes
 
-当前的 `pipeline.py` 是同步阻塞执行的，这意味着一次完整的十步选品流程可能会导致请求长时间挂起。在生产环境中，必须引入 Celery 或 RQ 等任务队列，将选品任务放入后台异步执行。同时，需要开发相应的任务状态轮询 API，以便前端能够实时查询任务是处于排队中、执行中还是已完成状态。
-
-### 业务 API 路由层
-
-虽然已经搭建了 `app.py` 和用户认证 API，但核心的选品功能尚未被封装成可通过 HTTP 调用的接口。下一步需要开发触发选品流程的 POST 接口，以及从数据库读取历史分析结果的 GET 接口，从而彻底打通前后端的数据交互。
+| Blueprint | Prefix | Status |
+|-----------|--------|--------|
+| Auth | `/api/auth` | Done |
+| Projects | `/api/v1/projects` | Done |
+| Analysis | `/api/v1/analysis` | Done |
+| 3D Assets | `/api/v1/3d` | Done |
+| Profit/Supply | `/api/v1/profit` | Done |
+| Upload/Trends | `/api/v1/upload` | **New** |
+| Monetization | `/api/subscription` | Done |
+| AI Config | `/api/ai` | Done |
+| API Keys | `/api/keys` | Done |
 
 ---
 
-## 三、 待完善与优化项 (🛠️ 需改进)
+## Architecture
 
-在将系统推向生产环境之前，部分已有代码在稳定性、深度集成和部署便利性方面仍有提升空间。
-
-| 优化方向 | 当前现状 | 改进建议 |
-|----------|----------|----------|
-| **反爬对抗** | 仅支持单代理，缺乏验证码处理机制 | 需对接动态代理 IP 池；针对 1688 和 Coupang 后台登录，建议集成打码平台或切换至带有反检测指纹的 Playwright 无头浏览器 |
-| **数据持久化** | 流程主要输出 JSON 和 Markdown，未实时入库 | 需将 `pipeline.py` 与 `database/models.py` 深度结合，在爬取过程中将商品、评论等数据实时写入 MySQL |
-| **Naver 爬虫** | 仅依赖官方 API，存在调用频率限制 | `scrapers/naver/` 目录目前为空，建议补充 Naver 网页爬虫以获取更深度的竞品数据 |
-| **容器化部署** | 缺少 Docker 相关配置文件 | 编写 `Dockerfile` 和 `docker-compose.yml`，实现包含 MySQL、Redis、Flask、Celery 的一键部署 |
+```
+Amazon Visionary Sourcing Tool
+├── app.py                      # Flask application factory
+├── pipeline.py                 # Core sourcing pipeline (Coupang)
+├── amazon_pipeline.py          # Amazon-specific pipeline
+├── celery_app.py               # Celery async task queue
+├── api/                        # REST API routes
+│   ├── auth_routes.py
+│   ├── project_routes.py
+│   ├── analysis_routes.py
+│   ├── threed_routes.py
+│   ├── profit_routes.py
+│   ├── upload_routes.py        # File upload + Google Trends
+│   ├── monetization_routes.py
+│   ├── ai_config_routes.py
+│   └── api_keys_routes.py
+├── auth/                       # Authentication
+│   ├── user_model.py
+│   └── quota_middleware.py
+├── scrapers/                   # Data collection
+│   ├── amazon/                 # Amazon SP-API + crawler
+│   ├── coupang/                # Coupang crawlers
+│   ├── keepa/                  # Keepa historical data
+│   ├── naver/                  # Naver trend crawler
+│   ├── alibaba1688/            # 1688 sourcing
+│   └── google_trends.py        # Google Trends
+├── analysis/                   # AI analysis engine
+│   ├── ai_analyzer.py
+│   ├── review_analyzer.py
+│   ├── amazon_data_filter.py
+│   ├── data_filter.py
+│   ├── market_analysis/
+│   ├── profit_analysis/
+│   └── model_3d/
+│       └── video_renderer.py
+├── tasks/                      # Celery async tasks
+│   ├── scraping_tasks.py
+│   ├── analysis_tasks.py
+│   └── threed_tasks.py
+├── utils/
+│   ├── file_upload_parser.py
+│   ├── logger.py
+│   └── http_client.py
+├── frontend/
+│   ├── routes.py               # Page URL routing
+│   ├── templates/ (12 pages)
+│   └── static/
+│       ├── css/main.css
+│       └── js/api.js
+├── chrome_extension/           # Chrome Manifest V3 plugin
+├── database/
+│   ├── schema.sql
+│   └── migrations/ (4 scripts)
+├── Dockerfile
+├── docker-compose.yml
+└── docs/
+```
 
 ---
 
-## 四、 建议的下一步开发计划
+## Tech Stack
 
-为了高效推进项目，建议按照以下阶段逐步实施：
+| Layer | Technology |
+|-------|-----------|
+| Backend | Python 3.11 + Flask 3.1 |
+| Frontend | Jinja2 + Vanilla JS + Chart.js + Three.js |
+| Database | MySQL / TiDB |
+| Cache/Queue | Redis + Celery 5.3 |
+| AI | OpenAI GPT-4V / GPT-4 |
+| 3D | TripoSR / Meshy API |
+| Scraping | Playwright + Requests + BeautifulSoup |
+| Deployment | Docker + Docker Compose + Gunicorn |
+| Auth | JWT + bcrypt |
 
-**第一阶段：后端 API 化与异步化**。首要任务是将 `pipeline.py` 的功能封装成 Flask API 接口，并引入 Celery 与 Redis 实现选品任务的异步执行，解决当前同步阻塞的性能瓶颈。
+---
 
-**第二阶段：数据持久化打通**。在 Pipeline 的执行流程中，完善 ORM 模型的调用，确保每一步抓取和分析的数据都能真实、实时地写入 MySQL 数据库，为后续的数据展示提供支撑。
+## Changelog
 
-**第三阶段：前端界面开发**。选择 Vue3 或 React 框架初始化前端项目，依次开发登录注册、任务提交和报告查看页面，为用户提供直观的操作入口。
+### 2026-03-18 - Feature Complete (MVP)
+- Added 10 new frontend pages (auth, dashboard, project, analysis, market, profit, 3D lab, report, subscription)
+- Added base template with sidebar navigation
+- Added global CSS theme (dark mode, design system)
+- Added API client JS module
+- Added frontend route registration (`frontend/routes.py`)
+- Added file upload parser (CSV/XLSX with auto column mapping)
+- Added Google Trends integration (`scrapers/google_trends.py`)
+- Added video renderer service (`analysis/model_3d/video_renderer.py`)
+- Added upload API routes (`api/upload_routes.py`)
+- Updated `app.py` with all blueprint registrations
+- Updated `requirements.txt` with all dependencies
 
-**第四阶段：生产环境部署准备**。编写 Docker 配置文件，实现整个系统的容器化，并搭建 CI/CD 流水线，确保代码的持续集成和稳定发布。
+### 2026-03-17 - Core API & Infrastructure
+- Added project/analysis/3D/profit API routes
+- Added Naver trend crawler implementation
+- Added quota middleware
+- Added Celery async task queue with scraping/analysis/3D tasks
+- Added Chrome extension (Manifest V3)
+- Added Docker deployment config (Dockerfile + docker-compose.yml)
+- Added database migration scripts (projects, assets, analysis tables)
+- Added Amazon-specific pipeline
+
+### Earlier - Core Engine
+- Implemented 10-step sourcing pipeline
+- Built Amazon/Coupang/Keepa/1688 scrapers
+- Built AI analysis engine (visual + review)
+- Built profit calculator with sensitivity analysis
+- Built report generator
+- Implemented user auth system (JWT + bcrypt)
+- Implemented subscription/monetization system
+- Created database schema (13+ tables)

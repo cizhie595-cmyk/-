@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% block title %}Project Detail{% endblock %}
+{% block content %}
+<div class="top-bar">
+    <div>
+        <h2 class="page-title" id="project-title">Loading...</h2>
+        <p class="page-subtitle" id="project-meta"></p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" onclick="exportData()">Export CSV</button>
+        <button class="btn btn-primary" id="report-btn" onclick="generateReport()">Generate Report</button>
+    </div>
+</div>
+
+<!-- Project Progress -->
+<div class="card mb-lg" id="progress-card">
+    <div class="flex-between mb-md">
+        <h3 class="card-title">Analysis Progress</h3>
+        <span class="badge badge-warning" id="progress-status">Running</span>
+    </div>
+    <div class="progress-bar" style="height: 8px;">
+        <div class="progress-fill" id="progress-bar" style="width: 0%;"></div>
+    </div>
+    <div class="flex-between mt-sm">
+        <span class="text-muted" id="progress-step">Initializing...</span>
+        <span class="text-muted" id="progress-pct">0%</span>
+    </div>
+</div>
+
+<!-- Stat Summary -->
+<div class="card-grid card-grid-4 mb-lg" id="stat-cards">
+    <div class="stat-card">
+        <div class="stat-icon primary">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>
+        </div>
+        <div>
+            <div class="stat-value" id="total-products">0</div>
+            <div class="stat-label">Total Products</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon success">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div>
+            <div class="stat-value" id="filtered-products">0</div>
+            <div class="stat-label">After Filtering</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon warning">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div>
+            <div class="stat-value" id="avg-price">$0</div>
+            <div class="stat-label">Avg Price</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon info">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div>
+            <div class="stat-value" id="avg-rating">0</div>
+            <div class="stat-label">Avg Rating</div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+    <div class="tab active" onclick="switchTab('products')">Products</div>
+    <div class="tab" onclick="switchTab('analysis')">Analysis</div>
+    <div class="tab" onclick="switchTab('sources')">1688 Sources</div>
+    <div class="tab" onclick="switchTab('profit')">Profit</div>
+</div>
+
+<!-- Products Tab -->
+<div class="tab-content active" id="tab-products">
+    <!-- Filters -->
+    <div class="card mb-lg">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: end;">
+            <div class="form-group" style="margin: 0; flex: 1; min-width: 150px;">
+                <label class="form-label">Search</label>
+                <input type="text" class="form-input" id="search-input" placeholder="Search ASIN, title..." oninput="filterTable()">
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">Sort By</label>
+                <select class="form-select" id="sort-select" onchange="sortTable()">
+                    <option value="sales_desc">Sales (High to Low)</option>
+                    <option value="price_asc">Price (Low to High)</option>
+                    <option value="price_desc">Price (High to Low)</option>
+                    <option value="rating_desc">Rating (High to Low)</option>
+                    <option value="reviews_desc">Reviews (Most)</option>
+                </select>
+            </div>
+            <button class="btn btn-secondary" onclick="applyAIFilter()">AI Filter</button>
+        </div>
+    </div>
+
+    <!-- Products Table -->
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px;"><input type="checkbox" id="select-all" onchange="toggleSelectAll()"></th>
+                    <th>Image</th>
+                    <th>ASIN / Title</th>
+                    <th>Price</th>
+                    <th>Rating</th>
+                    <th>Reviews</th>
+                    <th>Monthly Sales</th>
+                    <th>BSR</th>
+                    <th>FBA</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="products-tbody">
+                <tr><td colspan="10" class="text-center text-muted" style="padding: 40px;">Loading products...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex-between mt-md">
+        <span class="text-muted" id="page-info">Showing 0 of 0</span>
+        <div style="display: flex; gap: 4px;">
+            <button class="btn btn-secondary btn-sm" id="prev-btn" onclick="prevPage()" disabled>Prev</button>
+            <button class="btn btn-secondary btn-sm" id="next-btn" onclick="nextPage()" disabled>Next</button>
+        </div>
+    </div>
+</div>
+
+<!-- Analysis Tab -->
+<div class="tab-content hidden" id="tab-analysis">
+    <div class="card">
+        <h3 class="card-title mb-md">Deep Analysis Results</h3>
+        <div id="analysis-content" class="text-muted text-center" style="padding: 40px;">
+            Select a product to view its deep analysis
+        </div>
+    </div>
+</div>
+
+<!-- Sources Tab -->
+<div class="tab-content hidden" id="tab-sources">
+    <div class="card">
+        <h3 class="card-title mb-md">1688 Sourcing Results</h3>
+        <div id="sources-content" class="text-muted text-center" style="padding: 40px;">
+            1688 sourcing data will appear here after analysis
+        </div>
+    </div>
+</div>
+
+<!-- Profit Tab -->
+<div class="tab-content hidden" id="tab-profit">
+    <div class="card">
+        <h3 class="card-title mb-md">Profit Analysis</h3>
+        <div id="profit-content" class="text-muted text-center" style="padding: 40px;">
+            Profit calculations will appear here after analysis
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const projectId = window.location.pathname.split('/').pop();
+    let allProducts = [];
+    let currentPage = 1;
+    const pageSize = 20;
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        event.target.classList.add('active');
+        document.getElementById(`tab-${tab}`).classList.remove('hidden');
+    }
+
+    function renderProducts(products) {
+        const tbody = document.getElementById('products-tbody');
+        if (!products.length) {
+            tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted" style="padding: 40px;">No products found</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = products.map((p, i) => `
+            <tr>
+                <td><input type="checkbox" class="product-check" data-asin="${p.asin || ''}"></td>
+                <td><img src="${p.image_url || p.main_image || ''}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; background: var(--border);" onerror="this.style.display='none'"></td>
+                <td>
+                    <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--primary-light);">${p.asin || '-'}</div>
+                    <div style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${p.title || ''}">${p.title || 'N/A'}</div>
+                </td>
+                <td class="number">${p.price ? formatCurrency(p.price) : '-'}</td>
+                <td>${p.rating ? '★ ' + p.rating.toFixed(1) : '-'}</td>
+                <td class="number">${p.review_count ? formatNumber(p.review_count) : '-'}</td>
+                <td class="number">${p.monthly_sales ? formatNumber(p.monthly_sales) : '-'}</td>
+                <td class="number">${p.bsr ? '#' + formatNumber(p.bsr) : '-'}</td>
+                <td>${p.fulfillment === 'FBA' ? '<span class="badge badge-success">FBA</span>' : p.fulfillment === 'FBM' ? '<span class="badge badge-warning">FBM</span>' : '-'}</td>
+                <td>
+                    <a href="/products/${p.asin}/analysis" class="btn btn-secondary btn-sm">Analyze</a>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function loadProject() {
+        try {
+            const project = await api.getProject(projectId);
+            if (project) {
+                document.getElementById('project-title').textContent = project.name || 'Untitled Project';
+                document.getElementById('project-meta').textContent =
+                    `Keyword: ${project.keyword || '-'} | Marketplace: ${project.marketplace || 'US'} | Created: ${project.created_at ? formatDate(project.created_at) : '-'}`;
+
+                if (project.status === 'completed') {
+                    document.getElementById('progress-status').className = 'badge badge-success';
+                    document.getElementById('progress-status').textContent = 'Completed';
+                    document.getElementById('progress-bar').style.width = '100%';
+                    document.getElementById('progress-pct').textContent = '100%';
+                    document.getElementById('progress-step').textContent = 'Analysis complete';
+                }
+            }
+
+            const products = await api.getProducts(projectId);
+            if (products && products.products) {
+                allProducts = products.products;
+                document.getElementById('total-products').textContent = allProducts.length;
+
+                const filtered = allProducts.filter(p => !p.is_filtered);
+                document.getElementById('filtered-products').textContent = filtered.length;
+
+                if (filtered.length > 0) {
+                    const avgPrice = filtered.reduce((s, p) => s + (p.price || 0), 0) / filtered.length;
+                    const avgRating = filtered.reduce((s, p) => s + (p.rating || 0), 0) / filtered.length;
+                    document.getElementById('avg-price').textContent = formatCurrency(avgPrice);
+                    document.getElementById('avg-rating').textContent = avgRating.toFixed(1);
+                }
+
+                renderProducts(filtered.slice(0, pageSize));
+                document.getElementById('page-info').textContent = `Showing 1-${Math.min(pageSize, filtered.length)} of ${filtered.length}`;
+            }
+        } catch (e) {
+            console.error('Load project error:', e);
+        }
+    }
+
+    function filterTable() {
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const filtered = allProducts.filter(p =>
+            (p.asin && p.asin.toLowerCase().includes(query)) ||
+            (p.title && p.title.toLowerCase().includes(query))
+        );
+        renderProducts(filtered.slice(0, pageSize));
+    }
+
+    function toggleSelectAll() {
+        const checked = document.getElementById('select-all').checked;
+        document.querySelectorAll('.product-check').forEach(cb => cb.checked = checked);
+    }
+
+    async function generateReport() {
+        const btn = document.getElementById('report-btn');
+        btn.disabled = true;
+        btn.textContent = 'Generating...';
+        try {
+            const result = await api.generateReport(projectId);
+            showToast('Report generated!', 'success');
+            if (result.report_url) {
+                window.open(result.report_url, '_blank');
+            }
+        } catch (e) {
+            showToast(e.message, 'danger');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Generate Report';
+        }
+    }
+
+    loadProject();
+</script>
+{% endblock %}

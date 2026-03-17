@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Subscription{% endblock %}
+{% block content %}
+<div class="top-bar">
+    <div>
+        <h2 class="page-title">Subscription & Billing</h2>
+        <p class="page-subtitle">Manage your plan, usage, and billing information</p>
+    </div>
+</div>
+
+<!-- Current Plan -->
+<div class="card mb-lg" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(6, 182, 212, 0.1));">
+    <div class="flex-between">
+        <div>
+            <div class="text-muted">Current Plan</div>
+            <div style="font-size: 1.8rem; font-weight: 700;" id="current-plan">Free</div>
+        </div>
+        <div style="text-align: right;">
+            <div class="text-muted">Renewal Date</div>
+            <div style="font-size: 1.1rem; font-weight: 600;" id="renewal-date">-</div>
+        </div>
+    </div>
+    <div class="mt-md">
+        <div class="flex-between mb-sm">
+            <span class="text-muted">Usage this month</span>
+            <span id="usage-text">0 / 5 analyses</span>
+        </div>
+        <div class="progress-bar" style="height: 8px;">
+            <div class="progress-fill" id="usage-bar" style="width: 0%;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Plans -->
+<div class="card-grid card-grid-3 mb-lg">
+    <!-- Free Plan -->
+    <div class="card" id="plan-free" style="position: relative;">
+        <div style="text-align: center; padding: 16px 0;">
+            <div class="text-muted" style="text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.8rem;">Free</div>
+            <div style="font-size: 2.5rem; font-weight: 700; margin: 8px 0;">$0</div>
+            <div class="text-muted">/ month</div>
+        </div>
+        <div style="border-top: 1px solid var(--border); padding-top: 16px;">
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--success);">&#10003;</span> 5 product analyses / month
+            </div>
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--success);">&#10003;</span> Basic filtering
+            </div>
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--success);">&#10003;</span> 1 marketplace
+            </div>
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px; color: var(--text-muted);">
+                <span>&#10007;</span> Deep analysis
+            </div>
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px; color: var(--text-muted);">
+                <span>&#10007;</span> 3D generation
+            </div>
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px; color: var(--text-muted);">
+                <span>&#10007;</span> Chrome extension
+            </div>
+        </div>
+        <button class="btn btn-secondary btn-lg" style="width: 100%; margin-top: 16px;" disabled>Current Plan</button>
+    </div>
+
+    <!-- Pro Plan -->
+    <div class="card" id="plan-pro" style="position: relative; border-color: var(--primary);">
+        <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--gradient-primary); color: white; padding: 4px 16px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;">POPULAR</div>
+        <div style="text-align: center; padding: 16px 0;">
+            <div class="text-muted" style="text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.8rem;">Pro</div>
+            <div style="font-size: 2.5rem; font-weight: 700; margin: 8px 0; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">$49</div>
+            <div class="text-muted">/ month</div>
+        </div>
+        <div style="border-top: 1px solid var(--border); padding-top: 16px;">
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--success);">&#10003;</span> 100 product analyses / month
+            </div>
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--success);">&#10003;</span> Advanced AI filtering
+            </div>
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--success);">&#10003;</span> All marketplaces
+            </div>
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--success);">&#10003;</span> Deep visual + review analysis
+            </div>
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--success);">&#10003;</span> 10 3D models / month
+            </div>
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--success);">&#10003;</span> Chrome extension
+            </div>
+        </div>
+        <button class="btn btn-primary btn-lg" style="width: 100%; margin-top: 16px;" onclick="upgradePlan('pro')">Upgrade to Pro</button>
+    </div>
+
+    <!-- Enterprise Plan -->
+    <div class="card" id="plan-enterprise">
+        <div style="text-align: center; padding: 16px 0;">
+            <div class="text-muted" style="text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.8rem;">Enterprise</div>
+            <div style="font-size: 2.5rem; font-weight: 700; margin: 8px 0;">$199</div>
+            <div class="text-muted">/ month</div>
+        </div>
+        <div style="border-top: 1px solid var(--border); padding-top: 16px;">
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--success);">&#10003;</span> Unlimited analyses
+            </div>
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--success);">&#10003;</span> Full AI pipeline
+            </div>
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--success);">&#10003;</span> All marketplaces + Naver
+            </div>
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--success);">&#10003;</span> Unlimited 3D models
+            </div>
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--success);">&#10003;</span> Video rendering
+            </div>
+            <div style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--success);">&#10003;</span> Priority support + API access
+            </div>
+        </div>
+        <button class="btn btn-secondary btn-lg" style="width: 100%; margin-top: 16px;" onclick="upgradePlan('enterprise')">Upgrade to Enterprise</button>
+    </div>
+</div>
+
+<!-- Usage History -->
+<div class="card">
+    <h3 class="card-title mb-md">Usage History</h3>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Action</th>
+                    <th>Credits Used</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody id="usage-table">
+                <tr><td colspan="4" class="text-center text-muted" style="padding: 40px;">No usage history yet</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadSubscription() {
+        try {
+            const sub = await api.getSubscription();
+            if (sub) {
+                document.getElementById('current-plan').textContent = sub.plan || 'Free';
+                document.getElementById('renewal-date').textContent = sub.renewal_date ? formatDate(sub.renewal_date) : '-';
+                const used = sub.used || 0;
+                const total = sub.total || 5;
+                document.getElementById('usage-text').textContent = `${used} / ${total} analyses`;
+                document.getElementById('usage-bar').style.width = `${(used / total) * 100}%`;
+            }
+        } catch (e) {}
+    }
+
+    async function upgradePlan(plan) {
+        try {
+            showToast('Processing upgrade...', 'info');
+            const result = await api.upgradePlan(plan);
+            if (result.success) {
+                showToast(`Upgraded to ${plan}!`, 'success');
+                loadSubscription();
+            }
+        } catch (e) {
+            showToast(e.message, 'danger');
+        }
+    }
+
+    loadSubscription();
+</script>
+{% endblock %}
