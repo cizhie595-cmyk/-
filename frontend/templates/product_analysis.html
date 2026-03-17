@@ -2,6 +2,21 @@
 {% block title %}Product Analysis{% endblock %}
 {% block extra_css %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+    .risk-radar-wrapper { position: relative; max-width: 360px; margin: 0 auto; }
+    .risk-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+    .risk-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+    .risk-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .score-ring { position: relative; width: 120px; height: 120px; margin: 0 auto; }
+    .score-ring canvas { position: absolute; top: 0; left: 0; }
+    .score-ring-value { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; font-weight: 700; }
+    .analysis-action-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .analysis-action-bar .btn { font-size: 0.85rem; padding: 8px 16px; }
+    .insight-card { padding: 12px 16px; border-radius: var(--radius-md); background: rgba(99, 102, 241, 0.05); border: 1px solid var(--border); margin-bottom: 8px; }
+    .insight-card .label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
+    .insight-card .value { font-weight: 600; }
+    .persona-card { padding: 16px; border-radius: var(--radius-md); background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.08)); border: 1px solid var(--border); }
+</style>
 {% endblock %}
 {% block content %}
 <div class="top-bar">
@@ -9,14 +24,15 @@
         <h2 class="page-title">Product Deep Analysis</h2>
         <p class="page-subtitle" id="product-asin">ASIN: Loading...</p>
     </div>
-    <div style="display: flex; gap: 8px;">
+    <div class="analysis-action-bar">
         <button class="btn btn-secondary" onclick="startVisualAnalysis()">Visual Analysis</button>
         <button class="btn btn-secondary" onclick="startReviewAnalysis()">Review Analysis</button>
+        <button class="btn btn-secondary" onclick="api.downloadProductAssets(asin, true, true)">Download Assets</button>
         <a href="#" class="btn btn-primary" id="amazon-link" target="_blank">View on Amazon</a>
     </div>
 </div>
 
-<!-- Product Overview -->
+<!-- Product Overview + Risk Score -->
 <div class="card-grid card-grid-3 mb-lg">
     <div class="card" style="grid-column: span 2;">
         <div style="display: flex; gap: 24px;">
@@ -37,11 +53,53 @@
         </div>
     </div>
     <div class="card">
-        <h3 class="card-title mb-md">Risk Score</h3>
-        <div style="text-align: center; padding: 20px 0;">
+        <h3 class="card-title mb-md">Composite Score</h3>
+        <div style="text-align: center; padding: 10px 0;">
             <div id="risk-score" style="font-size: 3rem; font-weight: 700; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">--</div>
             <div class="text-muted">/ 100</div>
-            <div id="risk-level" class="badge badge-info mt-md">Calculating...</div>
+            <div id="risk-level" class="badge badge-info mt-sm">Calculating...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Five-Dimension Risk Radar (PRD 3.2.3) -->
+<div class="card-grid card-grid-2 mb-lg">
+    <div class="card">
+        <h3 class="card-title mb-md">Five-Dimension Risk Radar</h3>
+        <div class="risk-radar-wrapper">
+            <canvas id="chart-risk-radar" height="320"></canvas>
+        </div>
+        <div class="risk-summary" id="risk-summary">
+            <div class="risk-item"><div class="risk-dot" style="background:#6366f1"></div><span>Competition: <strong id="r-competition">--</strong></span></div>
+            <div class="risk-item"><div class="risk-dot" style="background:#22c55e"></div><span>Demand: <strong id="r-demand">--</strong></span></div>
+            <div class="risk-item"><div class="risk-dot" style="background:#f59e0b"></div><span>Profit: <strong id="r-profit">--</strong></span></div>
+            <div class="risk-item"><div class="risk-dot" style="background:#ef4444"></div><span>IP Risk: <strong id="r-ip">--</strong></span></div>
+            <div class="risk-item"><div class="risk-dot" style="background:#8b5cf6"></div><span>Seasonality: <strong id="r-season">--</strong></span></div>
+        </div>
+    </div>
+    <div class="card">
+        <h3 class="card-title mb-md">AI Risk Assessment</h3>
+        <div id="ai-risk-assessment">
+            <div class="insight-card">
+                <div class="label">Market Saturation</div>
+                <div class="value" id="ai-saturation">Analyzing...</div>
+            </div>
+            <div class="insight-card">
+                <div class="label">Entry Barrier</div>
+                <div class="value" id="ai-barrier">Analyzing...</div>
+            </div>
+            <div class="insight-card">
+                <div class="label">Profit Sustainability</div>
+                <div class="value" id="ai-sustainability">Analyzing...</div>
+            </div>
+            <div class="insight-card">
+                <div class="label">IP / Patent Risk</div>
+                <div class="value" id="ai-ip-risk">Analyzing...</div>
+            </div>
+            <div class="insight-card">
+                <div class="label">Recommendation</div>
+                <div class="value" id="ai-recommendation" style="color: var(--primary);">Analyzing...</div>
+            </div>
         </div>
     </div>
 </div>
@@ -59,7 +117,7 @@
     <div class="card-grid card-grid-2">
         <div class="card">
             <h3 class="card-title mb-md">Listing Quality Score</h3>
-            <canvas id="chart-listing-quality" height="250"></canvas>
+            <canvas id="chart-listing-quality" height="280"></canvas>
         </div>
         <div class="card">
             <h3 class="card-title mb-md">Trust Anchors</h3>
@@ -104,7 +162,7 @@
     </div>
     <div class="card mt-lg">
         <h3 class="card-title mb-md">Customer Persona</h3>
-        <div id="customer-persona" class="text-muted text-center" style="padding: 40px;">
+        <div id="customer-persona" class="persona-card text-muted text-center" style="padding: 40px;">
             Run review analysis to see customer persona
         </div>
     </div>
@@ -143,10 +201,11 @@
                         <th>Reviews</th>
                         <th>Monthly Sales</th>
                         <th>FBA</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="competitors-tbody">
-                    <tr><td colspan="7" class="text-center text-muted" style="padding: 40px;">Loading competitors...</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted" style="padding: 40px;">Loading competitors...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -160,6 +219,9 @@
     document.getElementById('product-asin').textContent = `ASIN: ${asin}`;
     document.getElementById('amazon-link').href = `https://www.amazon.com/dp/${asin}`;
 
+    // ============================================================
+    // Tab switching
+    // ============================================================
     function switchAnalysisTab(tab) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
@@ -167,15 +229,101 @@
         document.getElementById(`tab-${tab}`).classList.remove('hidden');
     }
 
+    // ============================================================
+    // Five-Dimension Risk Radar Chart (PRD 3.2.3)
+    // ============================================================
+    let riskRadarChart = null;
+
+    function initRiskRadar(scores = {}) {
+        const competition = scores.competition || 0;
+        const demand = scores.demand || 0;
+        const profit = scores.profit || 0;
+        const ipRisk = scores.ip_risk || 0;
+        const seasonality = scores.seasonality || 0;
+
+        // Update text values
+        document.getElementById('r-competition').textContent = competition + '/100';
+        document.getElementById('r-demand').textContent = demand + '/100';
+        document.getElementById('r-profit').textContent = profit + '/100';
+        document.getElementById('r-ip').textContent = ipRisk + '/100';
+        document.getElementById('r-season').textContent = seasonality + '/100';
+
+        const ctx = document.getElementById('chart-risk-radar').getContext('2d');
+
+        if (riskRadarChart) riskRadarChart.destroy();
+
+        riskRadarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Competition', 'Demand', 'Profit Margin', 'IP Safety', 'Seasonality'],
+                datasets: [{
+                    label: 'Risk Score',
+                    data: [competition, demand, profit, ipRisk, seasonality],
+                    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                    borderColor: '#6366f1',
+                    borderWidth: 2,
+                    pointBackgroundColor: ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'],
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 1,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                }, {
+                    label: 'Benchmark (Avg)',
+                    data: [50, 50, 50, 50, 50],
+                    backgroundColor: 'rgba(148, 163, 184, 0.05)',
+                    borderColor: 'rgba(148, 163, 184, 0.3)',
+                    borderWidth: 1,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { stepSize: 20, display: false },
+                        grid: { color: 'rgba(148, 163, 184, 0.15)' },
+                        angleLines: { color: 'rgba(148, 163, 184, 0.15)' },
+                        pointLabels: {
+                            color: '#94a3b8',
+                            font: { size: 12, weight: '500' },
+                        },
+                    }
+                },
+                plugins: {
+                    legend: { display: true, position: 'bottom', labels: { color: '#94a3b8', usePointStyle: true } },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.dataset.label}: ${ctx.raw}/100`
+                        }
+                    }
+                },
+            }
+        });
+
+        // Composite score
+        const composite = Math.round((competition + demand + profit + ipRisk + seasonality) / 5);
+        document.getElementById('risk-score').textContent = composite;
+        const level = composite >= 75 ? 'Excellent' : composite >= 55 ? 'Good' : composite >= 35 ? 'Moderate' : 'High Risk';
+        const levelClass = composite >= 75 ? 'success' : composite >= 55 ? 'info' : composite >= 35 ? 'warning' : 'danger';
+        document.getElementById('risk-level').textContent = level;
+        document.getElementById('risk-level').className = `badge badge-${levelClass} mt-sm`;
+    }
+
+    // ============================================================
+    // Analysis actions
+    // ============================================================
     async function startVisualAnalysis() {
         try {
             showToast('Starting visual analysis...', 'info');
             const result = await api.startVisualAnalysis(asin);
-            if (result.task_id) {
+            if (result && result.task_id) {
                 pollAnalysis(result.task_id, 'visual');
             }
         } catch (e) {
-            showToast(e.message, 'danger');
+            showToast(e.message, 'error');
         }
     }
 
@@ -183,11 +331,11 @@
         try {
             showToast('Starting review analysis...', 'info');
             const result = await api.startReviewAnalysis(asin);
-            if (result.task_id) {
+            if (result && result.task_id) {
                 pollAnalysis(result.task_id, 'review');
             }
         } catch (e) {
-            showToast(e.message, 'danger');
+            showToast(e.message, 'error');
         }
     }
 
@@ -201,7 +349,7 @@
                     renderAnalysisResults(result, type);
                 } else if (result.status === 'failed') {
                     clearInterval(interval);
-                    showToast(`${type} analysis failed`, 'danger');
+                    showToast(`${type} analysis failed`, 'error');
                 }
             } catch (e) {
                 clearInterval(interval);
@@ -213,29 +361,35 @@
         if (type === 'visual' && data.result) {
             renderListingQualityChart(data.result);
             renderTrustAnchors(data.result.trust_anchors || []);
+            // Update risk radar if risk scores available
+            if (data.result.risk_scores) {
+                initRiskRadar(data.result.risk_scores);
+            }
         }
         if (type === 'review' && data.result) {
             renderSentimentChart(data.result);
+            renderRatingsChart(data.result);
             renderSellingPoints(data.result.selling_points || []);
             renderPainPoints(data.result.pain_points || []);
+            renderCustomerPersona(data.result.customer_persona);
         }
     }
 
+    // ============================================================
+    // Chart renderers
+    // ============================================================
     function renderListingQualityChart(data) {
         const ctx = document.getElementById('chart-listing-quality').getContext('2d');
         new Chart(ctx, {
             type: 'radar',
             data: {
-                labels: ['Title Quality', 'Image Quality', 'Bullet Points', 'Description', 'A+ Content', 'Keywords'],
+                labels: ['Title', 'Images', 'Bullets', 'Description', 'A+ Content', 'Keywords'],
                 datasets: [{
                     label: 'Score',
                     data: [
-                        data.title_score || 0,
-                        data.image_score || 0,
-                        data.bullet_score || 0,
-                        data.description_score || 0,
-                        data.aplus_score || 0,
-                        data.keyword_score || 0,
+                        data.title_score || 0, data.image_score || 0,
+                        data.bullet_score || 0, data.description_score || 0,
+                        data.aplus_score || 0, data.keyword_score || 0,
                     ],
                     backgroundColor: 'rgba(99, 102, 241, 0.2)',
                     borderColor: '#6366f1',
@@ -244,7 +398,7 @@
                 }]
             },
             options: {
-                scales: { r: { beginAtZero: true, max: 100, grid: { color: '#334155' }, ticks: { display: false } } },
+                scales: { r: { beginAtZero: true, max: 100, grid: { color: 'rgba(148,163,184,0.15)' }, ticks: { display: false }, pointLabels: { color: '#94a3b8' } } },
                 plugins: { legend: { display: false } },
             }
         });
@@ -252,7 +406,7 @@
 
     function renderTrustAnchors(anchors) {
         const container = document.getElementById('trust-anchors');
-        if (!anchors.length) return;
+        if (!anchors.length) { container.innerHTML = '<div class="text-muted text-center" style="padding:20px;">No trust anchors found</div>'; return; }
         container.innerHTML = anchors.map(a => `
             <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border);">
                 <span class="badge badge-${a.type === 'positive' ? 'success' : 'warning'}">${a.type}</span>
@@ -277,8 +431,30 @@
         });
     }
 
+    function renderRatingsChart(data) {
+        const ratings = data.rating_distribution || { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 };
+        const ctx = document.getElementById('chart-ratings').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['5 Star', '4 Star', '3 Star', '2 Star', '1 Star'],
+                datasets: [{
+                    data: [ratings['5'], ratings['4'], ratings['3'], ratings['2'], ratings['1']],
+                    backgroundColor: ['#22c55e', '#84cc16', '#f59e0b', '#f97316', '#ef4444'],
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                scales: { x: { grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#94a3b8' } }, y: { grid: { display: false }, ticks: { color: '#94a3b8' } } },
+                plugins: { legend: { display: false } },
+            }
+        });
+    }
+
     function renderSellingPoints(points) {
         const container = document.getElementById('selling-points');
+        if (!points.length) return;
         container.innerHTML = points.map(p => `
             <div style="padding: 8px 0; border-bottom: 1px solid var(--border);">
                 <div style="font-weight: 500;">${p.point || p}</div>
@@ -289,6 +465,7 @@
 
     function renderPainPoints(points) {
         const container = document.getElementById('pain-points');
+        if (!points.length) return;
         container.innerHTML = points.map(p => `
             <div style="padding: 8px 0; border-bottom: 1px solid var(--border);">
                 <div style="font-weight: 500;">${p.point || p}</div>
@@ -296,5 +473,33 @@
             </div>
         `).join('');
     }
+
+    function renderCustomerPersona(persona) {
+        const container = document.getElementById('customer-persona');
+        if (!persona) return;
+        container.innerHTML = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div><span class="text-muted">Age Group:</span> <strong>${persona.age_group || '-'}</strong></div>
+                <div><span class="text-muted">Gender:</span> <strong>${persona.gender || '-'}</strong></div>
+                <div><span class="text-muted">Use Case:</span> <strong>${persona.use_case || '-'}</strong></div>
+                <div><span class="text-muted">Price Sensitivity:</span> <strong>${persona.price_sensitivity || '-'}</strong></div>
+                <div style="grid-column: span 2;"><span class="text-muted">Key Motivation:</span> <strong>${persona.motivation || '-'}</strong></div>
+            </div>
+        `;
+    }
+
+    // ============================================================
+    // Init: Load demo risk radar on page load
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initialize with placeholder data; real data comes from analysis API
+        initRiskRadar({
+            competition: 0,
+            demand: 0,
+            profit: 0,
+            ip_risk: 0,
+            seasonality: 0,
+        });
+    });
 </script>
 {% endblock %}

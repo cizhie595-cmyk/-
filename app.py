@@ -88,9 +88,37 @@ def create_app() -> Flask:
     from api.upload_routes import upload_bp
     app.register_blueprint(upload_bp)
 
+    from api.asset_download_routes import asset_download_bp
+    app.register_blueprint(asset_download_bp)
+
+    # === WebSocket (Chrome 插件通信) ===
+    try:
+        from api.websocket_handler import register_websocket_routes
+        register_websocket_routes(app)
+    except Exception as ws_err:
+        logger.warning(f"WebSocket 初始化失败 (非必要): {ws_err}")
+
     # === 前端页面路由 ===
     from frontend.routes import frontend_bp
     app.register_blueprint(frontend_bp)
+
+    # PRD 8.1: /api/v1/user/quota 别名路由
+    @app.route("/api/v1/user/quota")
+    def user_quota_alias():
+        """PRD 8.1 兼容路由 -> 转发到 /api/auth/quota"""
+        from api.auth_routes import get_user_quota
+        from auth.middleware import login_required
+        # 手动调用 login_required 逻辑
+        from auth.jwt_handler import verify_access_token
+        from flask import request as req
+        auth_header = req.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return jsonify({"success": False, "message": "未提供认证令牌"}), 401
+        token = auth_header.split(" ", 1)[1]
+        payload = verify_access_token(token)
+        if not payload:
+            return jsonify({"success": False, "message": "令牌无效或已过期"}), 401
+        return get_user_quota(payload)
 
     @app.route("/api/health")
     def health_check():
@@ -109,6 +137,8 @@ def create_app() -> Flask:
                 "POST /api/auth/login": "用户登录",
                 "POST /api/auth/refresh": "刷新Token",
                 "GET  /api/auth/me": "获取当前用户信息（需登录）",
+                "GET  /api/auth/quota": "获取用户额度信息（需登录）",
+                "GET  /api/v1/user/quota": "获取用户额度信息 - PRD别名（需登录）",
                 "PUT  /api/auth/me": "更新当前用户信息（需登录）",
                 "POST /api/auth/change-password": "修改密码（需登录）",
                 "GET  /api/auth/users": "用户列表（需管理员）",

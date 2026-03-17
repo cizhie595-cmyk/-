@@ -154,6 +154,152 @@ function handleSetConfig(config) {
     }
 }
 
+// ============================================================
+// WebSocket 通信 (PRD 3.1.2)
+// Web端通过 WebSocket 向插件发送指令
+// ============================================================
+
+let wsReconnectTimer = null;
+
+function connectWebSocket() {
+    if (wsConnection && wsConnection.readyState === WebSocket.OPEN) return;
+    if (!authToken) return;
+
+    const wsUrl = apiBase.replace(/^http/, 'ws') + '/ws/extension';
+    console.log('[Background] Connecting WebSocket:', wsUrl);
+
+    try {
+        wsConnection = new WebSocket(wsUrl);
+
+        wsConnection.onopen = () => {
+            console.log('[Background] WebSocket connected');
+            // 认证
+            wsConnection.send(JSON.stringify({
+                type: 'AUTH',
+                token: authToken,
+            }));
+            // 清除重连定时器
+            if (wsReconnectTimer) {
+                clearInterval(wsReconnectTimer);
+                wsReconnectTimer = null;
+            }
+        };
+
+        wsConnection.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                handleWebSocketMessage(msg);
+            } catch (e) {
+                console.error('[Background] WS message parse error:', e);
+            }
+        };
+
+        wsConnection.onclose = () => {
+            console.log('[Background] WebSocket disconnected');
+            wsConnection = null;
+            // 自动重连
+            if (!wsReconnectTimer) {
+                wsReconnectTimer = setInterval(() => {
+                    if (authToken) connectWebSocket();
+                }, WS_RECONNECT_INTERVAL);
+            }
+        };
+
+        wsConnection.onerror = (err) => {
+            console.error('[Background] WebSocket error:', err);
+            wsConnection.close();
+        };
+    } catch (e) {
+        console.error('[Background] WebSocket connection failed:', e);
+    }
+}
+
+/**
+ * 处理来自 Web 端的 WebSocket 指令
+ */
+function handleWebSocketMessage(msg) {
+    switch (msg.type) {
+        case 'NAVIGATE':
+            // Web端指示插件打开指定 URL
+            chrome.tabs.create({ url: msg.url, active: msg.active !== false });
+            break;
+
+        case 'SCRAPE_PAGE':
+            // Web端指示插件抽取当前页面数据
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0]) {
+                    chrome.tabs.sendMessage(tabs[0].id, {
+                        type: 'EXTRACT_DATA',
+                        options: msg.options || {},
+                    });
+                }
+            });
+            break;
+
+        case 'SCRAPE_ASIN':
+            // Web端指示插件打开并抽取指定 ASIN
+            const asinUrl = `https://www.amazon.com/dp/${msg.asin}`;
+            chrome.tabs.create({ url: asinUrl, active: false }, (tab) => {
+                // 等待页面加载完成后提取数据
+                chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+                    if (tabId === tab.id && info.status === 'complete') {
+                        chrome.tabs.onUpdated.removeListener(listener);
+                        setTimeout(() => {
+                            chrome.tabs.sendMessage(tab.id, {
+                                type: 'EXTRACT_DATA',
+                                options: { autoClose: true, taskId: msg.taskId },
+                            });
+                        }, 2000);
+                    }
+                });
+            });
+            break;
+
+        case 'BATCH_SCRAPE':
+            // 批量抽取多个 ASIN
+            if (msg.asins && Array.isArray(msg.asins)) {
+                msg.asins.forEach((asin, index) => {
+                    setTimeout(() => {
+                        handleWebSocketMessage({
+                            type: 'SCRAPE_ASIN',
+                            asin: asin,
+                            taskId: msg.taskId,
+                        });
+                    }, index * 3000); // 每个间隔 3 秒
+                });
+            }
+            break;
+
+        case 'PING':
+            if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+                wsConnection.send(JSON.stringify({ type: 'PONG' }));
+            }
+            break;
+
+        default:
+            console.log('[Background] Unknown WS message type:', msg.type);
+    }
+}
+
+// 当认证成功后自动连接 WebSocket
+chrome.storage.onChanged.addListener((changes) => {
+    if (changes.authToken && changes.authToken.newValue) {
+        authToken = changes.authToken.newValue;
+        connectWebSocket();
+    }
+});
+
+// 启动时尝试连接
+chrome.runtime.onStartup.addListener(async () => {
+    const stored = await chrome.storage.local.get(['apiBase', 'authToken']);
+    if (stored.apiBase) apiBase = stored.apiBase;
+    if (stored.authToken) {
+        authToken = stored.authToken;
+        connectWebSocket();
+    }
+});
+
+
 async function handleLogin(credentials) {
     try {
         const response = await fetch(`${apiBase}/api/auth/login`, {

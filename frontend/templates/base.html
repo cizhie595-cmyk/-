@@ -59,6 +59,10 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
                         <span>API Keys</span>
                     </a>
+                    <a href="/settings/ai" class="nav-item {% if active_page == 'ai_settings' %}active{% endif %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1.27c.34-.6.99-1 1.73-1a2 2 0 1 1 0 4c-.74 0-1.39-.4-1.73-1H21a7 7 0 0 1-7 7v1.27c.6.34 1 .99 1 1.73a2 2 0 1 1-4 0c0-.74.4-1.39 1-1.73V23a7 7 0 0 1-7-7H3.73c-.34.6-.99 1-1.73 1a2 2 0 1 1 0-4c.74 0 1.39.4 1.73 1H5a7 7 0 0 1 7-7V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/></svg>
+                        <span>AI Settings</span>
+                    </a>
                     <a href="/settings/subscription" class="nav-item {% if active_page == 'subscription' %}active{% endif %}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 6v6l4 2"/></svg>
                         <span>Subscription</span>
@@ -78,15 +82,89 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            {% block content %}{% endblock %}
-        </main>
+        <!-- Main Content Area -->
+        <div class="main-wrapper">
+            <!-- Top Status Bar (PRD 2.1 & 2.2) -->
+            <header class="top-status-bar">
+                <!-- Sidebar Toggle (Mobile) -->
+                <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+
+                <!-- Global Search -->
+                <div class="global-search">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="global-search-input" placeholder="Search ASIN, keyword, or project..." onkeydown="if(event.key==='Enter') globalSearch(this.value)">
+                </div>
+
+                <!-- Marketplace Selector -->
+                <div class="marketplace-selector">
+                    <select id="marketplace-select" class="form-select" style="min-width: 140px; height: 36px; font-size: 0.85rem; padding: 0 12px;">
+                        <option value="ATVPDKIKX0DER" selected>Amazon US</option>
+                        <option value="A1F83G8C2ARO7P">Amazon UK</option>
+                        <option value="A1PA6795UKMFR9">Amazon DE</option>
+                        <option value="A1VC38T7YXB528">Amazon JP</option>
+                        <option value="A2EUQ1WTGCTBG2">Amazon CA</option>
+                        <option value="A1RKKUPIHCS9HS">Amazon ES</option>
+                        <option value="A13V1IB3VIYZZH">Amazon FR</option>
+                        <option value="APJ6JRA9NG5V4">Amazon IT</option>
+                        <option value="A21TJRUUN4KGV">Amazon IN</option>
+                        <option value="A39IBJ37TRP1C6">Amazon AU</option>
+                    </select>
+                </div>
+
+                <!-- API Status Indicators (PRD 2.2) -->
+                <div class="api-status-group">
+                    <div class="api-status-item" id="status-amazon" title="Amazon SP-API: Checking...">
+                        <span class="status-dot status-checking"></span>
+                        <span class="status-label">SP-API</span>
+                    </div>
+                    <div class="api-status-item" id="status-keepa" title="Keepa API: Checking...">
+                        <span class="status-dot status-checking"></span>
+                        <span class="status-label">Keepa</span>
+                    </div>
+                    <div class="api-status-item" id="status-openai" title="OpenAI: Checking...">
+                        <span class="status-dot status-checking"></span>
+                        <span class="status-label">AI</span>
+                    </div>
+                    <div class="api-status-item" id="status-meshy" title="Meshy 3D: Checking...">
+                        <span class="status-dot status-checking"></span>
+                        <span class="status-label">3D</span>
+                    </div>
+                </div>
+
+                <!-- Quota Badge -->
+                <div class="quota-badge" id="quota-badge" title="Remaining quota">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    <span id="quota-count">--</span>
+                </div>
+
+                <!-- User Avatar -->
+                <div class="user-avatar" id="header-avatar" onclick="window.location.href='/settings/subscription'" title="Account">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="main-content">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Global Loading Overlay -->
+    <div id="global-loading" class="loading-overlay hidden">
+        <div class="spinner" style="width: 48px; height: 48px; border-width: 4px;"></div>
     </div>
 
     <script src="/static/js/api.js"></script>
     <script>
-        // 加载用户信息
+        // ========== Global Functions ==========
+
+        // Load user info
         (async function() {
             try {
                 const profile = await api.getProfile();
@@ -94,14 +172,107 @@
                     document.getElementById('user-name').textContent = profile.user.username || profile.user.email;
                 }
             } catch (e) {
-                // 未登录
+                // Not logged in
             }
         })();
+
+        // Check API status indicators
+        async function checkApiStatus() {
+            const services = ['amazon_sp_api', 'keepa', 'openai', 'meshy'];
+            const domIds = ['status-amazon', 'status-keepa', 'status-openai', 'status-meshy'];
+            const labels = ['Amazon SP-API', 'Keepa API', 'OpenAI', 'Meshy 3D'];
+
+            try {
+                const result = await api.request('GET', '/keys/all');
+                if (result && result.services) {
+                    services.forEach((svc, i) => {
+                        const el = document.getElementById(domIds[i]);
+                        const dot = el.querySelector('.status-dot');
+                        const svcData = result.services[svc];
+
+                        if (svcData && svcData.configured) {
+                            dot.className = 'status-dot status-green';
+                            el.title = `${labels[i]}: Connected`;
+                        } else {
+                            dot.className = 'status-dot status-red';
+                            el.title = `${labels[i]}: Not configured`;
+                        }
+                    });
+                }
+            } catch (e) {
+                // Set all to unknown
+                domIds.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.querySelector('.status-dot').className = 'status-dot status-yellow';
+                });
+            }
+        }
+
+        // Check quota
+        async function checkQuota() {
+            try {
+                const result = await api.request('GET', '/v1/user/quota');
+                if (result && result.success) {
+                    const total = (result.scrape_remaining || 0) + (result.analysis_remaining || 0);
+                    document.getElementById('quota-count').textContent = total;
+                }
+            } catch (e) {
+                document.getElementById('quota-count').textContent = '--';
+            }
+        }
+
+        // Global search
+        function globalSearch(query) {
+            if (!query.trim()) return;
+            // ASIN pattern: 10 alphanumeric starting with B0
+            if (/^B0[A-Z0-9]{8}$/i.test(query.trim())) {
+                window.location.href = `/products/${query.trim()}/analysis`;
+            } else {
+                window.location.href = `/market?keyword=${encodeURIComponent(query.trim())}`;
+            }
+        }
 
         function logout() {
             api.clearToken();
             window.location.href = '/auth/login';
         }
+
+        // Toast notification
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.add('toast-show'); }, 10);
+            setTimeout(() => {
+                toast.classList.remove('toast-show');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // Format helpers
+        function formatNumber(n) {
+            if (n == null) return '-';
+            return new Intl.NumberFormat('en-US').format(n);
+        }
+        function formatCurrency(n) {
+            if (n == null) return '-';
+            return '$' + new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+        }
+        function formatDate(d) {
+            if (!d) return '-';
+            return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+        function formatPercent(n) {
+            if (n == null) return '-';
+            return n.toFixed(1) + '%';
+        }
+
+        // Init status checks
+        checkApiStatus();
+        checkQuota();
     </script>
     {% block extra_js %}{% endblock %}
 </body>

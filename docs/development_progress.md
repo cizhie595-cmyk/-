@@ -2,9 +2,9 @@
 
 > Last Updated: 2026-03-18
 
-## Overall Status: **Phase 2 Complete - Feature Complete (MVP)**
+## Overall Status: **MVP Feature Complete (All PRD Modules Implemented)**
 
-All modules defined in the PRD have been implemented. The system is ready for integration testing and deployment.
+All modules defined in the PRD have been implemented, including all P0 and P1 refinements. The system is ready for integration testing and deployment.
 
 ---
 
@@ -16,7 +16,7 @@ All modules defined in the PRD have been implemented. The system is ready for in
 | Amazon SP-API Scraper | Done | 100% |
 | Keepa Data Integration | Done | 100% |
 | Naver Trend Crawler | Done | 100% |
-| Google Trends Integration | **New** | 100% |
+| Google Trends Integration | Done | 100% |
 | AI Analysis Engine (GPT-4V) | Done | 100% |
 | Review Sentiment Analysis | Done | 100% |
 | Data Filtering (Rule + AI) | Done | 100% |
@@ -25,42 +25,47 @@ All modules defined in the PRD have been implemented. The system is ready for in
 | 1688 Image Search | Done | 100% |
 | Profit Calculator | Done | 100% |
 | 3D Asset Generation API | Done | 100% |
-| Video Renderer (FFmpeg) | **New** | 100% |
-| File Upload Parser (CSV/XLSX) | **New** | 100% |
+| Video Renderer (FFmpeg) | Done | 100% |
+| File Upload Parser (CSV/XLSX) | Done | 100% |
 | User Auth (JWT + bcrypt) | Done | 100% |
-| Quota Middleware | Done | 100% |
+| API Key Encryption (AES-256-GCM) | Done | 100% |
+| Quota Middleware + API | Done | 100% |
 | Subscription / Monetization | Done | 100% |
 | Celery Async Tasks | Done | 100% |
-| Chrome Extension | Done | 100% |
+| Chrome Extension + WebSocket | Done | 100% |
+| Asset Download (ZIP) | Done | 100% |
 | Docker Deployment | Done | 100% |
 
 ### Frontend Pages
 
-| Page | Template | Status |
-|------|----------|--------|
-| Login / Register | `auth.html` | **New** |
-| Dashboard | `dashboard.html` | **New** |
-| New Project Wizard | `new_project.html` | **New** |
-| Project Detail (Data Table) | `project_detail.html` | **New** |
-| Product Deep Analysis | `product_analysis.html` | **New** |
-| Market & Category Analysis | `market_analysis.html` | **New** |
-| Profit Calculator | `profit_calculator.html` | **New** |
-| Decision Report | `report.html` | **New** |
-| 3D Lab (Three.js) | `threed_lab.html` | **New** |
-| Subscription Management | `subscription.html` | **New** |
-| AI Settings | `ai_settings.html` | Done |
-| API Keys Settings | `api_keys_settings.html` | Done |
+| Page | Template | Route | Status |
+|------|----------|-------|--------|
+| Login / Register | `auth.html` | `/auth` | Done |
+| Dashboard | `dashboard.html` | `/dashboard` | Done |
+| New Project Wizard | `new_project.html` | `/projects/new` | Done |
+| Project Detail (Data Table) | `project_detail.html` | `/projects/{id}` | Done |
+| Product Deep Analysis (5D Radar) | `product_analysis.html` | `/products/{asin}/analysis` | Done |
+| Market & Category Analysis | `market_analysis.html` | `/market/{keyword}` | Done |
+| Profit Calculator | `profit_calculator.html` | `/profit/{asin}` | Done |
+| Decision Report | `report.html` | `/reports/{id}` | Done |
+| 3D Lab (Three.js) | `threed_lab.html` | `/3d-lab` | Done |
+| Subscription Management | `subscription.html` | `/settings/subscription` | Done |
+| AI Settings | `ai_settings.html` | `/settings/ai` | Done |
+| API Keys Settings | `api_keys_settings.html` | `/settings/api-keys` | Done |
 
 ### API Routes
 
 | Blueprint | Prefix | Status |
 |-----------|--------|--------|
 | Auth | `/api/auth` | Done |
+| User Quota | `/api/v1/user/quota` | Done |
 | Projects | `/api/v1/projects` | Done |
 | Analysis | `/api/v1/analysis` | Done |
 | 3D Assets | `/api/v1/3d` | Done |
-| Profit/Supply | `/api/v1/profit` | Done |
-| Upload/Trends | `/api/v1/upload` | **New** |
+| Profit/Supply | `/api/v1/profit`, `/api/v1/supply` | Done |
+| Upload/Trends | `/api/v1/upload` | Done |
+| Asset Download | `/api/v1/assets` | Done |
+| WebSocket | `/ws/extension` | Done |
 | Monetization | `/api/subscription` | Done |
 | AI Config | `/api/ai` | Done |
 | API Keys | `/api/keys` | Done |
@@ -76,17 +81,20 @@ Amazon Visionary Sourcing Tool
 ├── amazon_pipeline.py          # Amazon-specific pipeline
 ├── celery_app.py               # Celery async task queue
 ├── api/                        # REST API routes
-│   ├── auth_routes.py
+│   ├── auth_routes.py          # Auth + quota endpoint
 │   ├── project_routes.py
 │   ├── analysis_routes.py
 │   ├── threed_routes.py
 │   ├── profit_routes.py
 │   ├── upload_routes.py        # File upload + Google Trends
+│   ├── asset_download_routes.py # ZIP download
+│   ├── websocket_handler.py    # Chrome extension WebSocket
 │   ├── monetization_routes.py
 │   ├── ai_config_routes.py
 │   └── api_keys_routes.py
 ├── auth/                       # Authentication
 │   ├── user_model.py
+│   ├── api_keys_config.py      # AES-256-GCM encryption
 │   └── quota_middleware.py
 ├── scrapers/                   # Data collection
 │   ├── amazon/                 # Amazon SP-API + crawler
@@ -100,6 +108,7 @@ Amazon Visionary Sourcing Tool
 │   ├── review_analyzer.py
 │   ├── amazon_data_filter.py
 │   ├── data_filter.py
+│   ├── risk_scoring.py         # 5-dimension risk radar
 │   ├── market_analysis/
 │   ├── profit_analysis/
 │   └── model_3d/
@@ -113,12 +122,12 @@ Amazon Visionary Sourcing Tool
 │   ├── logger.py
 │   └── http_client.py
 ├── frontend/
-│   ├── routes.py               # Page URL routing
+│   ├── routes.py               # Page URL routing (PRD-aligned)
 │   ├── templates/ (12 pages)
 │   └── static/
-│       ├── css/main.css
-│       └── js/api.js
-├── chrome_extension/           # Chrome Manifest V3 plugin
+│       ├── css/main.css        # Dark theme + skeleton + toast
+│       └── js/api.js           # API client + quota interception
+├── chrome_extension/           # Chrome Manifest V3 plugin + WebSocket
 ├── database/
 │   ├── schema.sql
 │   └── migrations/ (4 scripts)
@@ -141,13 +150,29 @@ Amazon Visionary Sourcing Tool
 | 3D | TripoSR / Meshy API |
 | Scraping | Playwright + Requests + BeautifulSoup |
 | Deployment | Docker + Docker Compose + Gunicorn |
-| Auth | JWT + bcrypt |
+| Auth | JWT + bcrypt + AES-256-GCM |
+| WebSocket | flask-sock |
 
 ---
 
 ## Changelog
 
-### 2026-03-18 - Feature Complete (MVP)
+### 2026-03-18 (Phase 3) - P0/P1 Refinements Complete
+- **P0-1**: Upgraded API key encryption from Base64 to AES-256-GCM (PRD 2.2)
+- **P0-2**: Added top status bar with API health indicator, global search, site selector, user avatar
+- **P0-2**: Added skeleton loading screens and toast notification system
+- **P0-3**: Added `/api/auth/quota` and `/api/v1/user/quota` endpoints (PRD 8.1)
+- **P0-4**: Aligned frontend routes with PRD (`/market/{keyword}`, `/profit/{asin}`)
+- **P0-5**: Added asset download ZIP API (`/api/v1/assets/download/`)
+- **P0-6**: Added frontend quota interception in API client
+- **P1-7**: Enhanced sidebar navigation with all PRD pages
+- **P1-9**: Added global skeleton screens and loading states
+- **P1-10**: Added Chrome extension WebSocket communication (bidirectional)
+- **P1-11**: Added five-dimension risk radar chart (Competition/Demand/Profit/IP/Seasonality)
+- Added WebSocket server handler (`api/websocket_handler.py`)
+- Updated `requirements.txt` with `flask-sock`
+
+### 2026-03-18 (Phase 2) - Feature Complete (MVP)
 - Added 10 new frontend pages (auth, dashboard, project, analysis, market, profit, 3D lab, report, subscription)
 - Added base template with sidebar navigation
 - Added global CSS theme (dark mode, design system)

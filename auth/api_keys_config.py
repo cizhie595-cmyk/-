@@ -14,7 +14,10 @@
 """
 
 import json
+import os
 import base64
+import hashlib
+import secrets
 from typing import Optional
 from datetime import datetime
 
@@ -398,20 +401,90 @@ class APIKeysConfigManager:
 # 加密/解密/脱敏工具函数
 # ============================================================
 
+# AES-256-GCM 加密密钥：从环境变量读取，若不存在则自动生成并警告
+_ENCRYPTION_KEY_ENV = "API_KEYS_ENCRYPTION_KEY"
+_encryption_key: Optional[bytes] = None
+
+
+def _get_encryption_key() -> bytes:
+    """
+    获取 AES-256 加密密钥（32 字节）。
+    优先从环境变量 API_KEYS_ENCRYPTION_KEY 读取（Hex 编码的 64 字符字符串）。
+    若未配置，则使用 FLASK_SECRET_KEY 派生；若都没有，使用固定 fallback 并警告。
+    """
+    global _encryption_key
+    if _encryption_key is not None:
+        return _encryption_key
+
+    env_key = os.environ.get(_ENCRYPTION_KEY_ENV)
+    if env_key and len(env_key) >= 32:
+        # 使用 SHA-256 确保恰好 32 字节
+        _encryption_key = hashlib.sha256(env_key.encode("utf-8")).digest()
+        logger.info("[Crypto] AES-256-GCM 密钥已从环境变量加载")
+    else:
+        flask_secret = os.environ.get("FLASK_SECRET_KEY", "")
+        if flask_secret:
+            _encryption_key = hashlib.sha256(flask_secret.encode("utf-8")).digest()
+            logger.warning("[Crypto] 未配置 API_KEYS_ENCRYPTION_KEY，已从 FLASK_SECRET_KEY 派生加密密钥")
+        else:
+            _encryption_key = hashlib.sha256(b"coupang-selection-default-key-change-me").digest()
+            logger.warning("[Crypto] 未配置加密密钥环境变量，使用默认 fallback，请尽快配置 API_KEYS_ENCRYPTION_KEY")
+
+    return _encryption_key
+
+
 def _encrypt(value: str) -> str:
-    """Base64 加密（生产环境应使用 AES-256）"""
+    """
+    使用 AES-256-GCM 加密字符串。
+    返回格式: base64(nonce + ciphertext + tag)
+    - nonce: 12 字节
+    - tag: 16 字节
+    - ciphertext: 变长
+    """
     if not value:
         return ""
-    return base64.b64encode(value.encode("utf-8")).decode("utf-8")
+    try:
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+        key = _get_encryption_key()
+        nonce = secrets.token_bytes(12)  # 96-bit nonce (NIST recommended)
+        aesgcm = AESGCM(key)
+        ciphertext = aesgcm.encrypt(nonce, value.encode("utf-8"), None)
+        # ciphertext 已包含 16 字节 tag（cryptography 库自动附加）
+        encrypted_blob = nonce + ciphertext
+        return "aes256gcm:" + base64.b64encode(encrypted_blob).decode("utf-8")
+    except ImportError:
+        logger.warning("[Crypto] cryptography 库未安装，降级使用 Base64 编码")
+        return base64.b64encode(value.encode("utf-8")).decode("utf-8")
+    except Exception as e:
+        logger.error(f"[Crypto] 加密失败: {e}")
+        return base64.b64encode(value.encode("utf-8")).decode("utf-8")
 
 
 def _decrypt(encrypted: str) -> str:
-    """Base64 解密"""
+    """
+    解密 AES-256-GCM 加密的字符串。
+    兼容旧版 Base64 编码的数据（无 aes256gcm: 前缀）。
+    """
     if not encrypted:
         return ""
     try:
-        return base64.b64decode(encrypted.encode("utf-8")).decode("utf-8")
-    except Exception:
+        if encrypted.startswith("aes256gcm:"):
+            # AES-256-GCM 解密
+            from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+            raw = base64.b64decode(encrypted[len("aes256gcm:"):])
+            nonce = raw[:12]
+            ciphertext = raw[12:]  # 包含 16 字节 tag
+            key = _get_encryption_key()
+            aesgcm = AESGCM(key)
+            plaintext = aesgcm.decrypt(nonce, ciphertext, None)
+            return plaintext.decode("utf-8")
+        else:
+            # 兼容旧版 Base64 编码
+            return base64.b64decode(encrypted.encode("utf-8")).decode("utf-8")
+    except Exception as e:
+        logger.error(f"[Crypto] 解密失败: {e}")
         return encrypted
 
 

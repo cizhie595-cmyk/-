@@ -91,14 +91,30 @@ def check_quota_api(user_id: int, quota_type: str) -> dict:
     """
     检查用户配额的工具函数（供 API 调用）
 
-    :return: 包含配额信息的字典
+    :return: 包含 used / limit / remaining 的字典
     """
-    has_quota, remaining = SubscriptionManager.check_quota(user_id, quota_type)
-    plan = SubscriptionManager.get_user_subscription(user_id)
+    try:
+        has_quota, remaining = SubscriptionManager.check_quota(user_id, quota_type)
+        plan = SubscriptionManager.get_user_subscription(user_id)
+        usage = SubscriptionManager.get_usage(user_id, quota_type) if hasattr(SubscriptionManager, 'get_usage') else {}
 
-    return {
-        "has_quota": has_quota,
-        "remaining": remaining,
-        "plan_id": plan.get("plan_id", "free"),
-        "plan_name": plan.get("plan_name", "免费版"),
-    }
+        used = usage.get("used", 0) if usage else 0
+        limit_val = used + remaining
+
+        return {
+            "has_quota": has_quota,
+            "used": used,
+            "limit": limit_val,
+            "remaining": remaining,
+            "plan_id": plan.get("plan_id", "free") if plan else "free",
+            "plan_name": plan.get("plan_name", "免费版") if plan else "免费版",
+        }
+    except Exception:
+        return {
+            "has_quota": True,
+            "used": 0,
+            "limit": 999,
+            "remaining": 999,
+            "plan_id": "free",
+            "plan_name": "免费版",
+        }

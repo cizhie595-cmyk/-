@@ -386,3 +386,70 @@ def set_user_role(user_id):
         return jsonify({"success": True, "message": f"用户角色已设为 {role}"}), 200
     else:
         return jsonify({"success": False, "message": "操作失败"}), 400
+
+
+# ============================================================
+# GET /api/auth/quota - 获取当前用户额度信息 (PRD 8.1)
+# 同时注册为 /api/v1/user/quota 以符合 PRD 规范
+# ============================================================
+@auth_bp.route("/quota", methods=["GET"])
+@login_required
+def get_user_quota(current_user):
+    """
+    获取当前用户的各类操作剩余额度
+
+    响应体 (JSON):
+    {
+        "success": true,
+        "user_id": 1,
+        "plan": "pro",
+        "scrape_remaining": 500,
+        "analysis_remaining": 100,
+        "3d_remaining": 20,
+        "render_remaining": 10,
+        "quotas": {
+            "scrape": {"used": 50, "limit": 500, "remaining": 450},
+            "analysis": {"used": 10, "limit": 100, "remaining": 90},
+            "3d_generate": {"used": 5, "limit": 20, "remaining": 15},
+            "render_video": {"used": 2, "limit": 10, "remaining": 8}
+        }
+    }
+    """
+    user_id = current_user.get("user_id") or current_user.get("id")
+
+    try:
+        from monetization.subscription import SubscriptionManager
+        from auth.quota_middleware import check_quota_api
+
+        # 获取用户订阅信息
+        sub_info = SubscriptionManager.get_user_subscription(user_id)
+        plan = sub_info.get("plan", "free") if sub_info else "free"
+
+        # 获取各类额度
+        quota_types = ["scrape", "analysis", "3d_generate", "render_video"]
+        quotas = {}
+        for qt in quota_types:
+            quota_detail = check_quota_api(user_id, qt)
+            quotas[qt] = {
+                "used": quota_detail.get("used", 0),
+                "limit": quota_detail.get("limit", 0),
+                "remaining": quota_detail.get("remaining", 0),
+            }
+
+        return jsonify({
+            "success": True,
+            "user_id": user_id,
+            "plan": plan,
+            "scrape_remaining": quotas.get("scrape", {}).get("remaining", 0),
+            "analysis_remaining": quotas.get("analysis", {}).get("remaining", 0),
+            "3d_remaining": quotas.get("3d_generate", {}).get("remaining", 0),
+            "render_remaining": quotas.get("render_video", {}).get("remaining", 0),
+            "quotas": quotas,
+        }), 200
+
+    except Exception as e:
+        logger.error(f"[Auth] 获取额度信息失败: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"获取额度信息失败: {str(e)}"
+        }), 500
