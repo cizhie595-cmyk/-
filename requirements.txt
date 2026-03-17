@@ -1,0 +1,32 @@
+# ============================================================
+# Coupang 选品系统 - Python 依赖
+# 安装方式: pip install -r requirements.txt
+# ============================================================
+
+# 数据库
+pymysql==1.1.0
+cryptography==42.0.0
+
+# 爬虫
+playwright==1.41.0
+requests==2.31.0
+beautifulsoup4==4.12.3
+lxml==5.1.0
+
+# 数据处理
+pandas==2.2.0
+openpyxl==3.1.2
+numpy==1.26.3
+
+# AI分析
+openai==1.12.0
+
+# OCR图片文字识别
+Pillow==10.2.0
+
+# 环境变量管理
+python-dotenv==1.0.1
+
+# 工具
+tqdm==4.66.1
+loguru==0.7.2
