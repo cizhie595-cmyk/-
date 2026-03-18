@@ -5,7 +5,7 @@
 
 import os
 from flask import Blueprint, request, jsonify
-from auth.user_model import token_required
+from auth.middleware import login_required as token_required
 from utils.file_upload_parser import FileUploadParser, FileUploadAPI
 from utils.logger import get_logger
 

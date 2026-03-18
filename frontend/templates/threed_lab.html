@@ -62,6 +62,22 @@
         justify-content: center;
     }
     .asset-info { padding: 12px; }
+    .render-options {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .status-badge.completed { background: rgba(34,197,94,0.2); color: #22c55e; }
+    .status-badge.processing { background: rgba(99,102,241,0.2); color: #6366f1; }
+    .status-badge.pending { background: rgba(234,179,8,0.2); color: #eab308; }
+    .status-badge.failed { background: rgba(239,68,68,0.2); color: #ef4444; }
 </style>
 {% endblock %}
 {% block content %}
@@ -71,7 +87,7 @@
         <p class="page-subtitle">Generate, preview, and render 3D product models</p>
     </div>
     <div style="display: flex; gap: 8px;">
-        <button class="btn btn-secondary" onclick="renderVideo()">Render Video</button>
+        <button class="btn btn-secondary" onclick="openRenderModal()">Render Video</button>
         <button class="btn btn-primary" onclick="document.getElementById('gen-modal').classList.add('active')">Generate 3D Model</button>
     </div>
 </div>
@@ -95,7 +111,7 @@
     </div>
 </div>
 
-<!-- Model Info + Assets -->
+<!-- Model Info + Quick Actions -->
 <div class="card-grid card-grid-3 mb-lg">
     <div class="card" style="grid-column: span 2;">
         <h3 class="card-title mb-md">Model Information</h3>
@@ -146,13 +162,18 @@
             <label class="form-label">Or Upload Image</label>
             <input type="file" class="form-input" id="gen-image-file" accept="image/*">
         </div>
+        <div class="form-group">
+            <label class="form-label">ASIN (optional)</label>
+            <input type="text" class="form-input" id="gen-asin" placeholder="B0XXXXXXXXX">
+        </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             <div class="form-group">
-                <label class="form-label">Quality</label>
-                <select class="form-select" id="gen-quality">
-                    <option value="draft">Draft (Fast)</option>
-                    <option value="standard" selected>Standard</option>
-                    <option value="high">High Quality</option>
+                <label class="form-label">Art Style</label>
+                <select class="form-select" id="gen-style">
+                    <option value="realistic" selected>Realistic</option>
+                    <option value="cartoon">Cartoon</option>
+                    <option value="low-poly">Low Poly</option>
+                    <option value="sculpture">Sculpture</option>
                 </select>
             </div>
             <div class="form-group">
@@ -169,7 +190,51 @@
                 <input type="checkbox" id="gen-texture" checked> Generate PBR Textures
             </label>
         </div>
-        <button class="btn btn-primary btn-lg" style="width: 100;" onclick="startGeneration()">Start Generation</button>
+        <button class="btn btn-primary btn-lg" style="width: 100%;" onclick="startGeneration()">Start Generation</button>
+    </div>
+</div>
+
+<!-- Render Video Modal -->
+<div class="modal-overlay" id="render-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Render Product Video</h3>
+            <button class="modal-close" onclick="document.getElementById('render-modal').classList.remove('active')">&times;</button>
+        </div>
+        <div id="render-no-model" style="text-align: center; padding: 20px;" class="text-muted">
+            Please select a completed 3D model first.
+        </div>
+        <div id="render-options" style="display: none;">
+            <div class="render-options">
+                <div class="form-group">
+                    <label class="form-label">Camera Template</label>
+                    <select class="form-select" id="render-template">
+                        <option value="turntable" selected>360 Turntable (12s)</option>
+                        <option value="zoom">Zoom In & Pan (10s)</option>
+                        <option value="orbit">Dynamic Orbit (15s)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Resolution</label>
+                    <select class="form-select" id="render-resolution">
+                        <option value="720p">720p (1280x720)</option>
+                        <option value="1080p" selected>1080p (1920x1080)</option>
+                        <option value="4k">4K (3840x2160)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Environment</label>
+                    <select class="form-select" id="render-environment">
+                        <option value="studio" selected>Studio Light</option>
+                        <option value="daylight">Daylight</option>
+                        <option value="warm">Warm Tone</option>
+                        <option value="dark">Dark Mood</option>
+                        <option value="gradient">Gradient</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-lg" style="width: 100%; margin-top: 16px;" onclick="startRender()">Start Rendering</button>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -178,6 +243,7 @@
 <script>
     let scene, camera, renderer, controls, currentModel;
     let isWireframe = false;
+    let currentAssetId = null;
 
     function initViewer() {
         const container = document.getElementById('viewer-container');
@@ -297,20 +363,23 @@
             currentModel.position.sub(center.multiplyScalar(scale));
 
             // Update info
-            let vertices = 0, faces = 0;
+            let vertices = 0, faces = 0, textures = 0;
             currentModel.traverse(child => {
                 if (child.isMesh && child.geometry) {
                     vertices += child.geometry.attributes.position.count;
                     faces += child.geometry.index ? child.geometry.index.count / 3 : child.geometry.attributes.position.count / 3;
+                    if (child.material && child.material.map) textures++;
                 }
             });
             document.getElementById('info-vertices').textContent = formatNumber(vertices);
             document.getElementById('info-faces').textContent = formatNumber(Math.floor(faces));
             document.getElementById('info-format').textContent = 'GLTF/GLB';
+            document.getElementById('info-textures').textContent = textures || '-';
             document.getElementById('info-status').textContent = 'Loaded';
             document.getElementById('info-status').className = 'badge badge-success';
 
             loading.classList.add('hidden');
+            showToast('Model loaded successfully', 'success');
         }, undefined, (error) => {
             console.error('Model load error:', error);
             loading.classList.add('hidden');
@@ -319,8 +388,9 @@
     }
 
     async function startGeneration() {
-        const imageUrl = document.getElementById('gen-image-url').value;
-        const quality = document.getElementById('gen-quality').value;
+        const imageUrl = document.getElementById('gen-image-url').value.trim();
+        const asin = document.getElementById('gen-asin').value.trim();
+        const artStyle = document.getElementById('gen-style').value;
         const format = document.getElementById('gen-format').value;
 
         if (!imageUrl) {
@@ -332,29 +402,116 @@
         showToast('3D generation started. This may take 1-3 minutes...', 'info');
 
         try {
-            const result = await api.generate3D(imageUrl, { quality, format });
-            if (result.task_id) {
-                pollGeneration(result.task_id);
+            // 传递数组格式的 image_urls，与后端 API 契约一致
+            const result = await api.generate3D([imageUrl], {
+                asin: asin || undefined,
+                art_style: artStyle,
+                output_format: format,
+            });
+            if (result && result.data && result.data.asset_id) {
+                currentAssetId = result.data.asset_id;
+                pollGeneration(result.data.asset_id);
+            } else if (result && result.asset_id) {
+                currentAssetId = result.asset_id;
+                pollGeneration(result.asset_id);
             }
         } catch (e) {
-            showToast(e.message, 'danger');
+            showToast(e.message || 'Generation failed', 'danger');
         }
     }
 
-    async function pollGeneration(taskId) {
+    async function pollGeneration(assetId) {
         const interval = setInterval(async () => {
             try {
-                const result = await api.get3DStatus(taskId);
+                const resp = await api.get3DStatus(assetId);
+                const result = resp.data || resp;
+
                 if (result.status === 'completed') {
                     clearInterval(interval);
                     showToast('3D model generated!', 'success');
-                    if (result.model_url) {
-                        loadGLTF(result.model_url);
+                    currentAssetId = assetId;
+                    // 使用 glb_file_url 或 model_url（兼容字段）
+                    const modelUrl = result.glb_file_url || result.model_url;
+                    if (modelUrl) {
+                        loadGLTF(modelUrl);
                     }
                     loadAssets();
                 } else if (result.status === 'failed') {
                     clearInterval(interval);
-                    showToast('3D generation failed', 'danger');
+                    showToast(`3D generation failed: ${result.error || 'Unknown error'}`, 'danger');
+                } else {
+                    // 仍在处理中，显示进度
+                    const pct = result.progress_pct || 0;
+                    if (pct > 0) {
+                        showToast(`Generating... ${pct}%`, 'info');
+                    }
+                }
+            } catch (e) {
+                clearInterval(interval);
+                showToast('Failed to check generation status', 'danger');
+            }
+        }, 5000);
+    }
+
+    function openRenderModal() {
+        const modal = document.getElementById('render-modal');
+        const noModel = document.getElementById('render-no-model');
+        const options = document.getElementById('render-options');
+
+        if (currentAssetId) {
+            noModel.style.display = 'none';
+            options.style.display = 'block';
+        } else {
+            noModel.style.display = 'block';
+            options.style.display = 'none';
+        }
+        modal.classList.add('active');
+    }
+
+    async function startRender() {
+        if (!currentAssetId) {
+            showToast('No model selected for rendering', 'warning');
+            return;
+        }
+
+        const template = document.getElementById('render-template').value;
+        const resolution = document.getElementById('render-resolution').value;
+        const environment = document.getElementById('render-environment').value;
+
+        document.getElementById('render-modal').classList.remove('active');
+        showToast('Video rendering started. This may take a few minutes...', 'info');
+
+        try {
+            const result = await api.render3DVideo(currentAssetId, {
+                template,
+                resolution,
+                environment,
+            });
+
+            if (result && (result.data || result.render_status)) {
+                pollRender(currentAssetId);
+            }
+        } catch (e) {
+            showToast(e.message || 'Render failed', 'danger');
+        }
+    }
+
+    async function pollRender(assetId) {
+        const interval = setInterval(async () => {
+            try {
+                const resp = await api.get3DVideo(assetId);
+                const result = resp.data || resp;
+
+                if (result.render_status === 'completed') {
+                    clearInterval(interval);
+                    showToast('Video rendered successfully!', 'success');
+                    if (result.video_url) {
+                        window.open(result.video_url, '_blank');
+                    }
+                    loadAssets();
+                } else if (result.render_status === 'failed') {
+                    clearInterval(interval);
+                    showToast(`Render failed: ${result.error || 'Unknown error'}`, 'danger');
                 }
             } catch (e) {
                 clearInterval(interval);
@@ -362,33 +519,67 @@
         }, 5000);
     }
 
-    async function renderVideo() {
-        showToast('Video rendering started...', 'info');
-        // This would call the video render API
+    function downloadModel(format) {
+        if (!currentAssetId) {
+            showToast('No model loaded', 'warning');
+            return;
+        }
+        showToast(`Download .${format.toUpperCase()} - Feature coming soon`, 'info');
     }
 
     async function loadAssets() {
-        // Load user's 3D asset library
         try {
-            const result = await api.request('GET', '/3d/assets');
-            if (result && result.assets) {
-                const grid = document.getElementById('asset-grid');
-                document.getElementById('asset-count').textContent = `${result.assets.length} models`;
-                grid.innerHTML = result.assets.map(a => `
-                    <div class="asset-card" onclick="loadGLTF('${a.model_url}')">
-                        <div class="asset-thumb">
-                            ${a.thumbnail_url ? `<img src="${a.thumbnail_url}" style="width: 100%; height: 100%; object-fit: cover;">` : '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>'}
-                        </div>
-                        <div class="asset-info">
+            const resp = await api.get3DAssets();
+            const result = resp.data || resp;
+            const assets = result.assets || [];
+            const grid = document.getElementById('asset-grid');
+            document.getElementById('asset-count').textContent = `${assets.length} models`;
+
+            if (assets.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px;" class="text-muted">
+                        No 3D models yet. Click "Generate 3D Model" to create one.
+                    </div>`;
+                return;
+            }
+
+            grid.innerHTML = assets.map(a => {
+                const modelUrl = a.glb_file_url || a.model_url || '';
+                const statusClass = a.status || 'pending';
+                return `
+                <div class="asset-card ${a.id === currentAssetId ? 'selected' : ''}"
+                     onclick="selectAsset(${a.id}, '${modelUrl.replace(/'/g, "\\'")}')">
+                    <div class="asset-thumb">
+                        ${a.thumbnail_url
+                            ? `<img src="${a.thumbnail_url}" style="width: 100%; height: 100%; object-fit: cover;">`
+                            : '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>'
+                        }
+                    </div>
+                    <div class="asset-info">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div style="font-weight: 500; font-size: 0.9rem;">${a.name || 'Untitled'}</div>
-                            <div class="text-muted" style="font-size: 0.8rem;">${a.format || 'GLB'} | ${a.created_at ? formatDate(a.created_at) : '-'}</div>
+                            <span class="status-badge ${statusClass}">${statusClass}</span>
+                        </div>
+                        <div class="text-muted" style="font-size: 0.8rem; margin-top: 4px;">
+                            ${a.format || 'GLB'} | ${a.created_at ? formatDate(a.created_at) : '-'}
+                            ${a.render_status === 'completed' ? ' | <span style="color: #22c55e;">Video Ready</span>' : ''}
                         </div>
                     </div>
-                `).join('');
-            }
+                </div>`;
+            }).join('');
         } catch (e) {
             // No assets yet
         }
+    }
+
+    function selectAsset(assetId, modelUrl) {
+        currentAssetId = assetId;
+        if (modelUrl) {
+            loadGLTF(modelUrl);
+        }
+        // 更新选中状态
+        document.querySelectorAll('.asset-card').forEach(card => card.classList.remove('selected'));
+        event.currentTarget.classList.add('selected');
     }
 
     initViewer();

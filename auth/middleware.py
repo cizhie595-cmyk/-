@@ -44,7 +44,10 @@ def login_required(f):
 
         # 将用户信息存入 Flask 的 g 对象，供后续使用
         g.current_user = user_info
-        return f(*args, **kwargs)
+        # 同时设置 g.user_id 供 quota_middleware 使用
+        g.user_id = user_info.get("user_id") or user_info.get("sub")
+        # 将 current_user 作为第一个参数传递给被装饰函数
+        return f(user_info, *args, **kwargs)
 
     return decorated
 

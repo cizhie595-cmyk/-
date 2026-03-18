@@ -16,10 +16,24 @@ def quota_required(quota_type: str, count: int = 1):
     :param quota_type: 配额类型，如 'scrape', 'analysis', '3d_generate', 'render_video'
     :param count: 本次操作消耗的额度数量
     """
+    # quota_type 到 features 键名的映射
+    QUOTA_TO_FEATURE = {
+        "scrape": "keyword_searches_per_day",
+        "analysis": "ai_analyses_per_day",
+        "3d_generate": "model_3d_generations_per_month",
+        "render_video": "model_3d_generations_per_month",
+        "report": "report_exports_per_month",
+    }
+
     def decorator(f):
         @functools.wraps(f)
         def decorated(*args, **kwargs):
             user_id = getattr(g, "user_id", None)
+            if not user_id:
+                # 尝试从 g.current_user 获取
+                current_user = getattr(g, "current_user", None)
+                if current_user:
+                    user_id = current_user.get("user_id") or current_user.get("sub")
             if not user_id:
                 return jsonify({
                     "success": False,
@@ -27,8 +41,11 @@ def quota_required(quota_type: str, count: int = 1):
                     "message": "请先登录",
                 }), 401
 
+            # 将 quota_type 映射到 features 键名
+            feature_key = QUOTA_TO_FEATURE.get(quota_type, quota_type)
+
             # 检查额度
-            has_quota, remaining = SubscriptionManager.check_quota(user_id, quota_type)
+            has_quota, remaining = SubscriptionManager.check_quota(user_id, feature_key)
             if not has_quota:
                 plan = SubscriptionManager.get_user_subscription(user_id)
                 return jsonify({
@@ -44,11 +61,13 @@ def quota_required(quota_type: str, count: int = 1):
                 }), 403
 
             # 检查模块访问权限
+            # 模块名与 subscription.py 中 SUBSCRIPTION_PLANS.modules 一致
             module_map = {
-                "scrape": "scraping",
-                "analysis": "ai_analysis",
-                "3d_generate": "3d_generation",
-                "render_video": "video_render",
+                "scrape": "search_crawler",
+                "analysis": "ai_review_analysis",
+                "3d_generate": "model_3d",
+                "render_video": "model_3d",
+                "report": "report_generator",
             }
             module_name = module_map.get(quota_type)
             if module_name:
@@ -77,7 +96,7 @@ def quota_required(quota_type: str, count: int = 1):
 
             if 200 <= status_code < 300:
                 try:
-                    SubscriptionManager.record_usage(user_id, quota_type, count)
+                    SubscriptionManager.record_usage(user_id, feature_key, count)
                 except Exception:
                     pass  # 记录失败不影响主流程
 

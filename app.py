@@ -51,6 +51,34 @@ def create_app() -> Flask:
         "FLASK_SECRET_KEY", "coupang-selection-flask-secret"
     )
 
+    # === 生产环境安全检查 ===
+    _unsafe_defaults = [
+        "coupang-selection-flask-secret",
+        "coupang-selection-system-secret-key-change-in-production",
+        "your-random-secret-key-change-this-in-production",
+        "your-flask-secret-key",
+        "your-flask-secret-key-change-this-in-production",
+    ]
+    flask_env = os.getenv("FLASK_ENV", "development")
+    if flask_env == "production":
+        if app.config["SECRET_KEY"] in _unsafe_defaults:
+            logger.warning(
+                "[SECURITY] FLASK_SECRET_KEY 使用默认值！"
+                "请在生产环境中设置安全的随机密钥。"
+            )
+        jwt_key = os.getenv("JWT_SECRET_KEY", "")
+        if not jwt_key or jwt_key in _unsafe_defaults:
+            logger.warning(
+                "[SECURITY] JWT_SECRET_KEY 未配置或使用默认值！"
+                "请在生产环境中设置安全的随机密钥。"
+            )
+        enc_key = os.getenv("API_KEYS_ENCRYPTION_KEY", "")
+        if not enc_key or len(enc_key) < 32:
+            logger.warning(
+                "[SECURITY] API_KEYS_ENCRYPTION_KEY 未配置或长度不足！"
+                "请配置 64 位十六进制字符串以启用 AES-256-GCM 加密。"
+            )
+
     # === 跨域配置 ===
     CORS(app, resources={
         r"/api/*": {
@@ -90,6 +118,9 @@ def create_app() -> Flask:
 
     from api.asset_download_routes import asset_download_bp
     app.register_blueprint(asset_download_bp)
+
+    from api.dashboard_routes import dashboard_bp
+    app.register_blueprint(dashboard_bp)
 
     # === WebSocket (Chrome 插件通信) ===
     try:
@@ -189,6 +220,10 @@ def create_app() -> Flask:
                 "POST /api/v1/3d/<asset_id>/render-video": "发起视频渲染",
                 "GET  /api/v1/3d/<asset_id>/video": "获取渲染视频",
                 "GET  /api/v1/3d/assets": "获取 3D 资产列表",
+            },
+            "dashboard": {
+                "GET  /api/v1/dashboard/stats": "获取仪表盘统计数据（需登录）",
+                "GET  /api/v1/dashboard/activity-chart": "获取最近7天活动图表数据（需登录）",
             },
             "profit_supply": {
                 "POST /api/v1/profit/calculate": "计算单品利润",
