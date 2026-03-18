@@ -1,214 +1,406 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 模型配置 - Coupang 选品系统</title>
-    <link rel="stylesheet" href="/static/css/ai_settings.css">
-</head>
-<body>
-    <div class="app-container">
-        <!-- 侧边栏 -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>Coupang 选品系统</h2>
-            </div>
-            <nav class="sidebar-nav">
-                <a href="#" class="nav-item">Dashboard</a>
-                <a href="#" class="nav-item">任务管理</a>
-                <a href="#" class="nav-item active">系统设置</a>
-                <a href="#" class="nav-item sub-item active">AI 模型配置</a>
-                <a href="#" class="nav-item sub-item">Coupang 账号</a>
-                <a href="#" class="nav-item sub-item">Naver API</a>
-                <a href="#" class="nav-item">个人中心</a>
-            </nav>
-        </aside>
+{% extends "base.html" %}
 
-        <!-- 主内容区 -->
-        <main class="main-content">
-            <header class="page-header">
-                <h1>AI 模型配置</h1>
-                <p class="page-desc">配置用于评论分析和详情页解析的 AI 模型。系统支持 OpenAI 及兼容的第三方服务商。</p>
-            </header>
+{% block title %}AI Settings{% endblock %}
 
-            <!-- 当前状态卡片 -->
-            <div class="status-card" id="statusCard">
-                <div class="status-indicator" id="statusIndicator">
-                    <span class="status-dot unconfigured"></span>
-                    <span class="status-text">未配置</span>
-                </div>
-                <div class="status-details" id="statusDetails">
-                    <p>尚未配置 AI 模型，请在下方填写您的 API Key 并保存。</p>
-                </div>
-            </div>
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/ai_settings.css">
+<style>
+    /* 覆盖独立页面的样式，适配 base.html 布局 */
+    .ai-settings-page .status-card {
+        background: var(--card-bg, #1e293b);
+        border: 1px solid var(--border, #334155);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .ai-settings-page .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 120px;
+    }
+    .ai-settings-page .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .ai-settings-page .status-dot.unconfigured { background: #94a3b8; }
+    .ai-settings-page .status-dot.success { background: #22c55e; }
+    .ai-settings-page .status-dot.failed { background: #ef4444; }
+    .ai-settings-page .status-text {
+        font-weight: 600;
+        color: var(--text-primary, #f1f5f9);
+    }
+    .ai-settings-page .status-details p {
+        margin: 0;
+        color: var(--text-secondary, #94a3b8);
+        font-size: 0.9rem;
+    }
+    .ai-settings-page .config-form-card {
+        background: var(--card-bg, #1e293b);
+        border: 1px solid var(--border, #334155);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+    .ai-settings-page .form-group {
+        margin-bottom: 20px;
+    }
+    .ai-settings-page .form-group label {
+        display: block;
+        font-weight: 600;
+        color: var(--text-primary, #f1f5f9);
+        margin-bottom: 6px;
+        font-size: 0.9rem;
+    }
+    .ai-settings-page .form-hint {
+        font-size: 0.8rem;
+        color: var(--text-secondary, #94a3b8);
+        margin-top: 4px;
+    }
+    .ai-settings-page select,
+    .ai-settings-page input[type="text"],
+    .ai-settings-page input[type="password"],
+    .ai-settings-page input[type="number"] {
+        width: 100%;
+        padding: 10px 12px;
+        background: var(--bg, #0f172a);
+        border: 1px solid var(--border, #334155);
+        border-radius: 8px;
+        color: var(--text-primary, #f1f5f9);
+        font-size: 0.9rem;
+    }
+    .ai-settings-page select:focus,
+    .ai-settings-page input:focus {
+        outline: none;
+        border-color: #6366f1;
+    }
+    .ai-settings-page .input-with-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .ai-settings-page .input-with-actions input {
+        flex: 1;
+    }
+    .ai-settings-page .btn-icon {
+        background: var(--bg, #0f172a);
+        border: 1px solid var(--border, #334155);
+        border-radius: 8px;
+        padding: 8px;
+        cursor: pointer;
+        color: var(--text-secondary, #94a3b8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+    .ai-settings-page .btn-icon:hover {
+        border-color: #6366f1;
+        color: #6366f1;
+    }
+    .ai-settings-page .btn-icon .icon {
+        width: 18px;
+        height: 18px;
+        fill: currentColor;
+    }
+    .ai-settings-page .advanced-section {
+        margin-bottom: 20px;
+    }
+    .ai-settings-page .advanced-section summary {
+        cursor: pointer;
+        font-weight: 600;
+        color: var(--text-primary, #f1f5f9);
+        padding: 8px 0;
+    }
+    .ai-settings-page .advanced-content {
+        padding-top: 12px;
+    }
+    .ai-settings-page .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+    .ai-settings-page .range-input {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+    .ai-settings-page .range-input input[type="range"] {
+        flex: 1;
+        accent-color: #6366f1;
+    }
+    .ai-settings-page .range-input input[type="number"] {
+        width: 70px;
+        flex: none;
+    }
+    .ai-settings-page .form-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        padding-top: 16px;
+        border-top: 1px solid var(--border, #334155);
+    }
+    .ai-settings-page .btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: none;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+    .ai-settings-page .btn .icon {
+        width: 18px;
+        height: 18px;
+        fill: currentColor;
+    }
+    .ai-settings-page .btn-primary {
+        background: linear-gradient(135deg, #6366f1, #06b6d4);
+        color: white;
+    }
+    .ai-settings-page .btn-primary:hover { opacity: 0.9; }
+    .ai-settings-page .btn-secondary {
+        background: var(--bg, #0f172a);
+        border: 1px solid var(--border, #334155);
+        color: var(--text-primary, #f1f5f9);
+    }
+    .ai-settings-page .btn-secondary:hover { border-color: #6366f1; }
+    .ai-settings-page .btn.loading { opacity: 0.6; pointer-events: none; }
+    .ai-settings-page .test-result-card {
+        background: var(--card-bg, #1e293b);
+        border: 1px solid var(--border, #334155);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+    }
+    .ai-settings-page .test-result-card h3 {
+        margin: 0 0 12px 0;
+        color: var(--text-primary, #f1f5f9);
+    }
+    .ai-settings-page .test-result-content {
+        padding: 12px;
+        border-radius: 8px;
+        background: var(--bg, #0f172a);
+        color: var(--text-secondary, #94a3b8);
+    }
+    .ai-settings-page .test-result-content.success { border-left: 3px solid #22c55e; color: #22c55e; }
+    .ai-settings-page .test-result-content.failed { border-left: 3px solid #ef4444; color: #ef4444; }
+    .ai-settings-page .info-card {
+        background: var(--card-bg, #1e293b);
+        border: 1px solid var(--border, #334155);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+    .ai-settings-page .info-card h3 {
+        margin: 0 0 16px 0;
+        color: var(--text-primary, #f1f5f9);
+    }
+    .ai-settings-page .price-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .ai-settings-page .price-table th,
+    .ai-settings-page .price-table td {
+        padding: 10px 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--border, #334155);
+        color: var(--text-secondary, #94a3b8);
+        font-size: 0.85rem;
+    }
+    .ai-settings-page .price-table th {
+        color: var(--text-primary, #f1f5f9);
+        font-weight: 600;
+    }
+    @media (max-width: 768px) {
+        .ai-settings-page .form-row { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
 
-            <!-- 配置表单 -->
-            <div class="config-form-card">
-                <form id="aiConfigForm" autocomplete="off">
-                    <!-- 服务商选择 -->
-                    <div class="form-group">
-                        <label for="provider">AI 服务商</label>
-                        <div class="select-wrapper">
-                            <select id="provider" name="provider">
-                                <option value="">加载中...</option>
-                            </select>
-                        </div>
-                        <p class="form-hint">选择 AI 服务商后，Base URL 和模型列表会自动填充。</p>
-                    </div>
-
-                    <!-- API Key -->
-                    <div class="form-group">
-                        <label for="apiKey">API Key</label>
-                        <div class="input-with-actions">
-                            <input type="password" id="apiKey" name="api_key"
-                                   placeholder="请输入您的 API Key（如 sk-...）"
-                                   autocomplete="new-password">
-                            <button type="button" class="btn-icon" id="toggleKeyVisibility" title="显示/隐藏">
-                                <svg class="icon eye-icon" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
-                            </button>
-                            <button type="button" class="btn-icon" id="pasteKey" title="从剪贴板粘贴">
-                                <svg class="icon" viewBox="0 0 24 24"><path d="M19 2h-4.18C14.4.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>
-                            </button>
-                            <button type="button" class="btn-icon" id="copyKey" title="复制到剪贴板">
-                                <svg class="icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-                            </button>
-                        </div>
-                        <p class="form-hint">您的 API Key 将加密存储在服务器端，前端仅展示脱敏后的版本。</p>
-                    </div>
-
-                    <!-- Base URL -->
-                    <div class="form-group">
-                        <label for="baseUrl">Base URL</label>
-                        <div class="input-with-actions">
-                            <input type="text" id="baseUrl" name="base_url"
-                                   placeholder="留空则使用服务商默认地址">
-                            <button type="button" class="btn-icon paste-btn" data-target="baseUrl" title="从剪贴板粘贴">
-                                <svg class="icon" viewBox="0 0 24 24"><path d="M19 2h-4.18C14.4.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>
-                            </button>
-                            <button type="button" class="btn-icon copy-btn" data-target="baseUrl" title="复制到剪贴板">
-                                <svg class="icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-                            </button>
-                        </div>
-                        <p class="form-hint" id="baseUrlHint">如使用代理或自建服务，请填写完整的 API 地址。</p>
-                    </div>
-
-                    <!-- 模型选择 -->
-                    <div class="form-group">
-                        <label for="model">模型名称</label>
-                        <div class="input-with-actions">
-                            <input type="text" id="model" name="model" list="modelList"
-                                   placeholder="选择或输入模型名称">
-                            <datalist id="modelList"></datalist>
-                            <button type="button" class="btn-icon paste-btn" data-target="model" title="从剪贴板粘贴">
-                                <svg class="icon" viewBox="0 0 24 24"><path d="M19 2h-4.18C14.4.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>
-                            </button>
-                        </div>
-                        <p class="form-hint">可从下拉列表选择，也可手动输入自定义模型名称。</p>
-                    </div>
-
-                    <!-- 高级参数（折叠） -->
-                    <details class="advanced-section">
-                        <summary>高级参数</summary>
-                        <div class="advanced-content">
-                            <div class="form-row">
-                                <div class="form-group half">
-                                    <label for="temperature">Temperature</label>
-                                    <div class="range-input">
-                                        <input type="range" id="temperatureRange" min="0" max="2" step="0.1" value="0.3">
-                                        <input type="number" id="temperature" name="temperature"
-                                               min="0" max="2" step="0.1" value="0.3">
-                                    </div>
-                                    <p class="form-hint">值越低回答越稳定，推荐 0.2-0.5。</p>
-                                </div>
-                                <div class="form-group half">
-                                    <label for="maxTokens">Max Tokens</label>
-                                    <input type="number" id="maxTokens" name="max_tokens"
-                                           min="100" max="128000" value="4000">
-                                    <p class="form-hint">单次回复的最大 Token 数。</p>
-                                </div>
-                            </div>
-                        </div>
-                    </details>
-
-                    <!-- 操作按钮 -->
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" id="btnTestDirect">
-                            <svg class="icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-                            测试连接
-                        </button>
-                        <button type="submit" class="btn btn-primary" id="btnSave">
-                            <svg class="icon" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
-                            保存配置
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- 测试结果区域 -->
-            <div class="test-result-card" id="testResultCard" style="display: none;">
-                <h3>测试结果</h3>
-                <div class="test-result-content" id="testResultContent"></div>
-            </div>
-
-            <!-- 服务商价格参考 -->
-            <div class="info-card">
-                <h3>服务商价格参考</h3>
-                <table class="price-table">
-                    <thead>
-                        <tr>
-                            <th>服务商</th>
-                            <th>推荐模型</th>
-                            <th>输入价格</th>
-                            <th>输出价格</th>
-                            <th>特点</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>OpenAI</td>
-                            <td>gpt-4o</td>
-                            <td>$2.5 / 1M tokens</td>
-                            <td>$10 / 1M tokens</td>
-                            <td>综合能力最强</td>
-                        </tr>
-                        <tr>
-                            <td>OpenAI</td>
-                            <td>gpt-4o-mini</td>
-                            <td>$0.15 / 1M tokens</td>
-                            <td>$0.6 / 1M tokens</td>
-                            <td>性价比之选</td>
-                        </tr>
-                        <tr>
-                            <td>DeepSeek</td>
-                            <td>deepseek-chat</td>
-                            <td>&#165;1 / 1M tokens</td>
-                            <td>&#165;2 / 1M tokens</td>
-                            <td>国内直连，价格极低</td>
-                        </tr>
-                        <tr>
-                            <td>硅基流动</td>
-                            <td>DeepSeek-V3</td>
-                            <td>&#165;1.33 / 1M tokens</td>
-                            <td>&#165;5.33 / 1M tokens</td>
-                            <td>国内多模型聚合</td>
-                        </tr>
-                        <tr>
-                            <td>智谱AI</td>
-                            <td>glm-4-flash</td>
-                            <td>免费</td>
-                            <td>免费</td>
-                            <td>免费额度可试用</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </main>
+{% block content %}
+<div class="ai-settings-page">
+    <!-- Page Header -->
+    <div class="page-header" style="margin-bottom: 24px;">
+        <h2 style="margin: 0; color: var(--text-primary, #f1f5f9);">AI Model Settings</h2>
+        <p style="margin: 4px 0 0; color: var(--text-secondary, #94a3b8);">Configure AI models for review analysis and product detail parsing. Supports OpenAI and compatible third-party providers.</p>
     </div>
 
-    <!-- Toast 通知 -->
-    <div class="toast-container" id="toastContainer"></div>
+    <!-- Status Card -->
+    <div class="status-card" id="statusCard">
+        <div class="status-indicator" id="statusIndicator">
+            <span class="status-dot unconfigured"></span>
+            <span class="status-text">Not Configured</span>
+        </div>
+        <div class="status-details" id="statusDetails">
+            <p>AI model not configured yet. Please enter your API Key below and save.</p>
+        </div>
+    </div>
 
-    <script src="/static/js/clipboard.js"></script>
-    <script src="/static/js/ai_settings.js"></script>
-</body>
-</html>
+    <!-- Config Form -->
+    <div class="config-form-card">
+        <form id="aiConfigForm" autocomplete="off">
+            <!-- Provider -->
+            <div class="form-group">
+                <label for="provider">AI Provider</label>
+                <select id="provider" name="provider">
+                    <option value="">Loading...</option>
+                </select>
+                <p class="form-hint">Select a provider to auto-fill Base URL and model list.</p>
+            </div>
+
+            <!-- API Key -->
+            <div class="form-group">
+                <label for="apiKey">API Key</label>
+                <div class="input-with-actions">
+                    <input type="password" id="apiKey" name="api_key"
+                           placeholder="Enter your API Key (e.g., sk-...)"
+                           autocomplete="new-password">
+                    <button type="button" class="btn-icon" id="toggleKeyVisibility" title="Show/Hide">
+                        <svg class="icon eye-icon" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                    </button>
+                    <button type="button" class="btn-icon" id="pasteKey" title="Paste from clipboard">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M19 2h-4.18C14.4.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>
+                    </button>
+                    <button type="button" class="btn-icon" id="copyKey" title="Copy to clipboard">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                    </button>
+                </div>
+                <p class="form-hint">Your API Key is encrypted server-side. Only a masked version is displayed.</p>
+            </div>
+
+            <!-- Base URL -->
+            <div class="form-group">
+                <label for="baseUrl">Base URL</label>
+                <div class="input-with-actions">
+                    <input type="text" id="baseUrl" name="base_url"
+                           placeholder="Leave empty to use provider default">
+                    <button type="button" class="btn-icon" id="pasteBaseUrl" title="Paste from clipboard">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M19 2h-4.18C14.4.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>
+                    </button>
+                </div>
+                <p class="form-hint" id="baseUrlHint">For proxy or self-hosted services, enter the full API address.</p>
+            </div>
+
+            <!-- Model -->
+            <div class="form-group">
+                <label for="model">Model Name</label>
+                <div class="input-with-actions">
+                    <input type="text" id="model" name="model" list="modelList"
+                           placeholder="Select or enter model name">
+                    <datalist id="modelList"></datalist>
+                </div>
+                <p class="form-hint">Choose from the dropdown or manually enter a custom model name.</p>
+            </div>
+
+            <!-- Advanced Parameters -->
+            <details class="advanced-section">
+                <summary>Advanced Parameters</summary>
+                <div class="advanced-content">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="temperature">Temperature</label>
+                            <div class="range-input">
+                                <input type="range" id="temperatureRange" min="0" max="2" step="0.1" value="0.3">
+                                <input type="number" id="temperature" name="temperature"
+                                       min="0" max="2" step="0.1" value="0.3">
+                            </div>
+                            <p class="form-hint">Lower values = more stable responses. Recommended: 0.2-0.5.</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="maxTokens">Max Tokens</label>
+                            <input type="number" id="maxTokens" name="max_tokens"
+                                   min="100" max="128000" value="4000">
+                            <p class="form-hint">Maximum tokens per response.</p>
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <!-- Action Buttons -->
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="btnTestDirect">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                    Test Connection
+                </button>
+                <button type="submit" class="btn btn-primary" id="btnSave">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+                    Save Settings
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Test Result -->
+    <div class="test-result-card" id="testResultCard" style="display: none;">
+        <h3>Test Result</h3>
+        <div class="test-result-content" id="testResultContent"></div>
+    </div>
+
+    <!-- Provider Price Reference -->
+    <div class="info-card">
+        <h3>Provider Price Reference</h3>
+        <table class="price-table">
+            <thead>
+                <tr>
+                    <th>Provider</th>
+                    <th>Recommended Model</th>
+                    <th>Input Price</th>
+                    <th>Output Price</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>OpenAI</td>
+                    <td>gpt-4o</td>
+                    <td>$2.5 / 1M tokens</td>
+                    <td>$10 / 1M tokens</td>
+                    <td>Best overall capability</td>
+                </tr>
+                <tr>
+                    <td>OpenAI</td>
+                    <td>gpt-4o-mini</td>
+                    <td>$0.15 / 1M tokens</td>
+                    <td>$0.6 / 1M tokens</td>
+                    <td>Best value for money</td>
+                </tr>
+                <tr>
+                    <td>DeepSeek</td>
+                    <td>deepseek-chat</td>
+                    <td>&#165;1 / 1M tokens</td>
+                    <td>&#165;2 / 1M tokens</td>
+                    <td>Direct CN access, very cheap</td>
+                </tr>
+                <tr>
+                    <td>SiliconFlow</td>
+                    <td>DeepSeek-V3</td>
+                    <td>&#165;1.33 / 1M tokens</td>
+                    <td>&#165;5.33 / 1M tokens</td>
+                    <td>Multi-model aggregation</td>
+                </tr>
+                <tr>
+                    <td>Zhipu AI</td>
+                    <td>glm-4-flash</td>
+                    <td>Free</td>
+                    <td>Free</td>
+                    <td>Free tier available</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/clipboard.js"></script>
+<script src="/static/js/ai_settings.js"></script>
+{% endblock %}

@@ -4,7 +4,7 @@
 
 ## Overall Status: **MVP Feature Complete (All PRD Modules Implemented)**
 
-All modules defined in the PRD have been implemented, including all P0 and P1 refinements. The system is ready for integration testing and deployment.
+All modules defined in the PRD have been implemented, including all P0 and P1 refinements. All frontend pages inherit the base template with consistent navigation. All API routes use database persistence with graceful degradation. The system is ready for integration testing and deployment.
 
 ---
 
@@ -156,6 +156,45 @@ Amazon Visionary Sourcing Tool
 ---
 
 ## Changelog
+
+### 2026-03-18 (Phase 8) - Page Refactoring & Backend Integration
+- Refactored `ai_settings.html` to inherit `base.html` template (consistent sidebar/nav)
+- Refactored `api_keys_settings.html` to inherit `base.html` template
+- Enhanced `profit_calculator.html`: added backend API calculation (precise FBA fees), save/history, 1688 keyword search, return rate, image preview
+- Added `POST /api/v1/profit/save` and `GET /api/v1/profit/history` endpoints for calculation persistence
+- Fixed `api.js` `batchCalculateProfit` parameter name mismatch (`items` -> `products`)
+- Fixed `ai_settings.js` token key inconsistency (`auth_token` alignment)
+
+### 2026-03-18 (Phase 7) - Frontend-Backend Route Alignment
+- Fixed `api.js` `createProject` path (`/v1/projects` -> `/v1/projects/create`)
+- Fixed `api.js` `filterProducts` path (`/v1/projects/{id}/filter` -> `/v1/projects/{id}/filter/rules`)
+- Added `POST /projects/{id}/filter/rules` rule-based filtering endpoint
+- Added `GET /analysis/product/{asin}` single product detail + risk radar API
+- Added `GET /dashboard/activities` aggregated activity list API
+- Fixed `product_analysis.html` auto-load product data and risk scores
+- Fixed `dashboard.html` activity list to call real API
+
+### 2026-03-18 (Phase 6) - Core API Persistence & Data Integration
+- Rewrote `project_routes.py`: memory storage -> database persistence + Celery async tasks
+- Rewrote `analysis_routes.py`: memory storage -> database persistence + Celery async tasks
+- Added `/api/v1/analysis/market` market aggregation API (GMV, CR3, price distribution)
+- Added `/api/v1/analysis/report/{project_id}` report generation API
+- Rewrote `market_analysis.html`: hardcoded data -> backend API integration
+- Rewrote `report.html`: hardcoded scores -> backend API integration
+- Added 11 new integration tests (Project API + Analysis API)
+
+### 2026-03-18 (Phase 5) - Quality Hardening & Security Audit
+- Fixed `login_required` decorator: added `g.user_id` + `current_user` parameter passing
+- Fixed `quota_middleware`: corrected quota_type to features key mapping
+- Fixed `upload_routes.py`: `token_required` -> `login_required` import
+- Added `dashboard_routes.py` with stats + activity chart APIs
+- Rewrote `threed_routes.py`: memory -> database persistence
+- Rewrote `threed_tasks.py`: placeholder -> real VideoRenderer
+- Fixed `threed_lab.html` field name mismatches
+- Fixed `dashboard.html` activity chart to use real API data
+- Added 31 API integration tests (total 51 tests)
+- Security: production key detection, Docker port restrictions, enhanced .gitignore
+- Rewrote README.md with complete feature documentation
 
 ### 2026-03-18 (Phase 4) - Code Quality & Module Refinements
 - Added independent Keepa client module (`scrapers/keepa/keepa_client.py`) with BSR history, price tracking, sales estimation, deal detection

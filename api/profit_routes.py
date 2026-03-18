@@ -225,3 +225,106 @@ def keyword_search_1688(current_user):
     except Exception as e:
         logger.error(f"关键词搜货失败: {e}")
         return jsonify({"success": False, "error": f"搜索失败: {str(e)}"}), 500
+
+
+# ============================================================
+# 利润计算历史
+# ============================================================
+
+@profit_bp.route("/profit/save", methods=["POST"])
+@login_required
+def save_profit_calculation(current_user):
+    """
+    保存利润计算结果
+
+    请求体:
+        asin: str (optional) - ASIN
+        selling_price: float - 售价
+        sourcing_cost: float - 采购成本 (RMB)
+        marketplace: str - 站点
+        category: str - 类目
+        weight_kg: float - 重量
+        exchange_rate: float - 汇率
+        net_profit: float - 净利润
+        net_margin: float - 利润率
+        roi: float - ROI
+    """
+    data = request.get_json() or {}
+
+    user_id = current_user.get("user_id") if isinstance(current_user, dict) else getattr(current_user, "user_id", None)
+
+    record = {
+        "user_id": user_id,
+        "asin": data.get("asin"),
+        "selling_price": data.get("selling_price", 0),
+        "sourcing_cost": data.get("sourcing_cost", 0),
+        "marketplace": data.get("marketplace", "US"),
+        "category": data.get("category", "general"),
+        "weight_kg": data.get("weight_kg", 0.5),
+        "exchange_rate": data.get("exchange_rate", 7.25),
+        "net_profit": data.get("net_profit", 0),
+        "net_margin": data.get("net_margin", 0),
+        "roi": data.get("roi", 0),
+    }
+
+    try:
+        from database.connection import get_db_connection
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO profit_calculations
+            (user_id, asin, selling_price, sourcing_cost, net_profit, net_margin, roi)
+            VALUES (%(user_id)s, %(asin)s, %(selling_price)s, %(sourcing_cost)s,
+                    %(net_profit)s, %(net_margin)s, %(roi)s)
+        """, record)
+        conn.commit()
+        calc_id = cursor.lastrowid
+        cursor.close()
+        conn.close()
+
+        return jsonify({"success": True, "id": calc_id, "message": "Saved successfully"})
+
+    except Exception as e:
+        logger.warning(f"数据库保存失败，使用本地存储: {e}")
+        # 降级: 返回成功让前端用 localStorage
+        return jsonify({"success": True, "id": None, "message": "Saved (local mode)", "fallback": True})
+
+
+@profit_bp.route("/profit/history", methods=["GET"])
+@login_required
+def get_profit_history(current_user):
+    """
+    获取利润计算历史
+
+    查询参数:
+        limit: int - 返回数量 (默认 50)
+    """
+    user_id = current_user.get("user_id") if isinstance(current_user, dict) else getattr(current_user, "user_id", None)
+    limit = request.args.get("limit", 50, type=int)
+
+    try:
+        from database.connection import get_db_connection
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT id, asin, selling_price, sourcing_cost,
+                   net_profit, net_margin, roi, created_at
+            FROM profit_calculations
+            WHERE user_id = %s
+            ORDER BY created_at DESC
+            LIMIT %s
+        """, (user_id, limit))
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        # 序列化 datetime
+        for row in rows:
+            if row.get("created_at"):
+                row["created_at"] = row["created_at"].isoformat()
+
+        return jsonify({"success": True, "data": rows})
+
+    except Exception as e:
+        logger.warning(f"获取历史记录失败: {e}")
+        return jsonify({"success": True, "data": []})

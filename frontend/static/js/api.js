@@ -294,7 +294,7 @@ class APIClient {
     }
 
     async batchCalculateProfit(items) {
-        return await this.request('POST', '/v1/profit/batch', { items });
+        return await this.request('POST', '/v1/profit/batch', { products: items });
     }
 
     async imageSearch(imageUrl) {
