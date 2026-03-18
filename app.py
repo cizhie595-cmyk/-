@@ -88,6 +88,16 @@ def create_app() -> Flask:
         }
     })
 
+    # === API 限流中间件 ===
+    try:
+        from auth.rate_limiter import init_rate_limiter
+        limiter = init_rate_limiter(app)
+        if limiter:
+            app.extensions["limiter"] = limiter
+            logger.info("[App] API 限流中间件已启用")
+    except Exception as rl_err:
+        logger.warning(f"API 限流初始化失败 (非必要): {rl_err}")
+
     # === 注册蓝图 (路由模块) ===
     from api.auth_routes import auth_bp
     app.register_blueprint(auth_bp)
