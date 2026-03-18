@@ -164,6 +164,10 @@ def create_app() -> Flask:
     from api.cleanup_routes import cleanup_bp
     app.register_blueprint(cleanup_bp)
 
+    # API 文档 (Swagger UI)
+    from api.swagger_routes import swagger_bp
+    app.register_blueprint(swagger_bp)
+
     # === WebSocket (Chrome 插件通信) ===
     try:
         from api.websocket_handler import register_websocket_routes
