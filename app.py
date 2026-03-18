@@ -144,6 +144,10 @@ def create_app() -> Flask:
     from api.sse_routes import sse_bp
     app.register_blueprint(sse_bp)
 
+    # OAuth 第三方登录路由
+    from api.oauth_routes import oauth_bp
+    app.register_blueprint(oauth_bp)
+
     # === WebSocket (Chrome 插件通信) ===
     try:
         from api.websocket_handler import register_websocket_routes
