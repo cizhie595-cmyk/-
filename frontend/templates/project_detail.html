@@ -206,7 +206,9 @@
 
     async function loadProject() {
         try {
-            const project = await api.getProject(projectId);
+            const resp = await api.getProject(projectId);
+            // 后端返回 {success, data: project}
+            const project = resp && resp.data ? resp.data : resp;
             if (project) {
                 document.getElementById('project-title').textContent = project.name || 'Untitled Project';
                 document.getElementById('project-meta').textContent =
@@ -218,12 +220,19 @@
                     document.getElementById('progress-bar').style.width = '100%';
                     document.getElementById('progress-pct').textContent = '100%';
                     document.getElementById('progress-step').textContent = 'Analysis complete';
+                } else if (project.status === 'running' || project.status === 'scraping') {
+                    const pct = project.progress || 0;
+                    document.getElementById('progress-bar').style.width = pct + '%';
+                    document.getElementById('progress-pct').textContent = pct + '%';
+                    document.getElementById('progress-step').textContent = project.current_step || 'Processing...';
                 }
             }
 
-            const products = await api.getProducts(projectId);
-            if (products && products.products) {
-                allProducts = products.products;
+            const prodResp = await api.getProducts(projectId);
+            // 后端返回 {success, data: {products, total_count, page, page_size}}
+            const prodData = prodResp && prodResp.data ? prodResp.data : prodResp;
+            if (prodData && prodData.products) {
+                allProducts = prodData.products;
                 document.getElementById('total-products').textContent = allProducts.length;
 
                 const filtered = allProducts.filter(p => !p.is_filtered);
@@ -236,8 +245,8 @@
                     document.getElementById('avg-rating').textContent = avgRating.toFixed(1);
                 }
 
-                renderProducts(filtered.slice(0, pageSize));
-                document.getElementById('page-info').textContent = `Showing 1-${Math.min(pageSize, filtered.length)} of ${filtered.length}`;
+                currentPage = 1;
+                updatePagination();
             }
         } catch (e) {
             console.error('Load project error:', e);
@@ -245,17 +254,138 @@
     }
 
     function filterTable() {
-        const query = document.getElementById('search-input').value.toLowerCase();
-        const filtered = allProducts.filter(p =>
-            (p.asin && p.asin.toLowerCase().includes(query)) ||
-            (p.title && p.title.toLowerCase().includes(query))
-        );
-        renderProducts(filtered.slice(0, pageSize));
+        currentPage = 1;
+        updatePagination();
     }
 
     function toggleSelectAll() {
         const checked = document.getElementById('select-all').checked;
         document.querySelectorAll('.product-check').forEach(cb => cb.checked = checked);
+    }
+
+    // ========== 获取当前过滤后的产品列表 ==========
+    function getFilteredProducts() {
+        const query = document.getElementById('search-input').value.toLowerCase();
+        return allProducts.filter(p =>
+            (!p.is_filtered) &&
+            (!query || (p.asin && p.asin.toLowerCase().includes(query)) || (p.title && p.title.toLowerCase().includes(query)))
+        );
+    }
+
+    // ========== 更新分页信息 ==========
+    function updatePagination() {
+        const filtered = getFilteredProducts();
+        const totalPages = Math.ceil(filtered.length / pageSize);
+        const start = (currentPage - 1) * pageSize;
+        const end = Math.min(start + pageSize, filtered.length);
+
+        renderProducts(filtered.slice(start, end));
+        document.getElementById('page-info').textContent = filtered.length > 0
+            ? `Showing ${start + 1}-${end} of ${filtered.length}`
+            : 'Showing 0 of 0';
+        document.getElementById('prev-btn').disabled = currentPage <= 1;
+        document.getElementById('next-btn').disabled = currentPage >= totalPages;
+    }
+
+    // ========== 排序 ==========
+    function sortTable() {
+        const sortBy = document.getElementById('sort-select').value;
+        const [field, order] = sortBy.split('_');
+        const dir = order === 'desc' ? -1 : 1;
+
+        const keyMap = {
+            sales: 'monthly_sales',
+            price: 'price',
+            rating: 'rating',
+            reviews: 'review_count',
+        };
+        const key = keyMap[field] || field;
+
+        allProducts.sort((a, b) => {
+            const va = a[key] || 0;
+            const vb = b[key] || 0;
+            return (va - vb) * dir;
+        });
+
+        currentPage = 1;
+        updatePagination();
+    }
+
+    // ========== 导出 CSV ==========
+    function exportData() {
+        const filtered = getFilteredProducts();
+        if (!filtered.length) {
+            showToast('No data to export', 'warning');
+            return;
+        }
+
+        const headers = ['ASIN', 'Title', 'Price', 'Rating', 'Reviews', 'Monthly Sales', 'BSR', 'Fulfillment'];
+        const rows = filtered.map(p => [
+            p.asin || '',
+            '"' + (p.title || '').replace(/"/g, '""') + '"',
+            p.price || '',
+            p.rating || '',
+            p.review_count || '',
+            p.monthly_sales || '',
+            p.bsr || '',
+            p.fulfillment || '',
+        ]);
+
+        const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `project_${projectId}_products.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('CSV exported successfully', 'success');
+    }
+
+    // ========== AI 过滤 ==========
+    async function applyAIFilter() {
+        const description = prompt('Describe the products you are looking for (e.g., "lightweight, under $30, high rating"):');
+        if (!description) return;
+
+        showToast('Running AI filter...', 'info');
+        try {
+            const result = await api.aiFilter(projectId, description);
+            // 后端返回 {success, data: {filtered_asin_list, total_before, total_after}}
+            const data = result && result.data ? result.data : result;
+            if (data && data.filtered_asin_list) {
+                // 根据返回的保留 ASIN 列表过滤本地数据
+                const keptAsins = new Set(data.filtered_asin_list);
+                allProducts.forEach(p => {
+                    if (p.asin && !keptAsins.has(p.asin)) {
+                        p.is_filtered = true;
+                    }
+                });
+                currentPage = 1;
+                updatePagination();
+                showToast(`AI filter applied: ${data.total_after} of ${data.total_before} products kept`, 'success');
+            } else if (result && result.message) {
+                showToast(result.message, 'info');
+            }
+        } catch (e) {
+            showToast('AI filter failed: ' + e.message, 'danger');
+        }
+    }
+
+    // ========== 分页 ==========
+    function prevPage() {
+        if (currentPage > 1) {
+            currentPage--;
+            updatePagination();
+        }
+    }
+
+    function nextPage() {
+        const filtered = getFilteredProducts();
+        const totalPages = Math.ceil(filtered.length / pageSize);
+        if (currentPage < totalPages) {
+            currentPage++;
+            updatePagination();
+        }
     }
 
     async function generateReport() {
@@ -265,8 +395,11 @@
         try {
             const result = await api.generateReport(projectId);
             showToast('Report generated!', 'success');
-            if (result.report_url) {
-                window.open(result.report_url, '_blank');
+            // 后端返回 {success, data: {task_id, status}}
+            const reportData = result && result.data ? result.data : result;
+            if (reportData && reportData.task_id) {
+                // 跳转到报告页面
+                window.location.href = `/reports/${projectId}`;
             }
         } catch (e) {
             showToast(e.message, 'danger');

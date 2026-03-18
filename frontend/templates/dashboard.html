@@ -250,8 +250,10 @@ async function loadDashboard() {
         }
 
         // ── 项目统计 ──
-        if (projects && projects.projects) {
-            const list = projects.projects;
+        // 后端返回 {success, data: {projects: [...]}}
+        const projData = projects && projects.data ? projects.data : projects;
+        if (projData && projData.projects) {
+            const list = projData.projects;
             document.getElementById('stat-projects').textContent = list.length;
 
             let totalProducts = 0;

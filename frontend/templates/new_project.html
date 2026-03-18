@@ -265,8 +265,10 @@
             };
 
             const result = await api.createProject(data);
+            // 后端返回 {success, data: {project_id}}
+            const resData = result && result.data ? result.data : result;
             showToast('Project created! Analysis starting...', 'success');
-            window.location.href = `/projects/${result.project_id}`;
+            window.location.href = `/projects/${resData.project_id}`;
         } catch (e) {
             showToast(e.message, 'danger');
         } finally {

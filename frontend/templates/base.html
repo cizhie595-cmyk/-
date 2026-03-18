@@ -168,8 +168,10 @@
         (async function() {
             try {
                 const profile = await api.getProfile();
-                if (profile && profile.user) {
-                    document.getElementById('user-name').textContent = profile.user.username || profile.user.email;
+                // 后端返回 {success, data: {username, email, ...}}
+                const user = profile && profile.data ? profile.data : (profile && profile.user ? profile.user : null);
+                if (user) {
+                    document.getElementById('user-name').textContent = user.username || user.email;
                 }
             } catch (e) {
                 // Not logged in

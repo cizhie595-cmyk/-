@@ -169,9 +169,17 @@ class APIClient {
     // Auth API
     // ================================================================
 
-    async login(email, password) {
-        const result = await this.request('POST', '/auth/login', { email, password });
-        if (result && result.token) {
+    async login(loginId, password) {
+        const result = await this.request('POST', '/auth/login', { login_id: loginId, password });
+        // 后端返回 {success, data: {access_token, refresh_token, ...}}
+        if (result && result.data && result.data.access_token) {
+            this.setToken(result.data.access_token);
+            // 保存 refresh_token
+            if (result.data.refresh_token) {
+                localStorage.setItem('refresh_token', result.data.refresh_token);
+            }
+        } else if (result && result.token) {
+            // 兼容旧格式
             this.setToken(result.token);
         }
         return result;
