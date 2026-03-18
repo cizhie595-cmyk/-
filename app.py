@@ -140,6 +140,10 @@ def create_app() -> Flask:
     from api.audit_routes import audit_bp
     app.register_blueprint(audit_bp)
 
+    # SSE 任务状态推送路由
+    from api.sse_routes import sse_bp
+    app.register_blueprint(sse_bp)
+
     # === WebSocket (Chrome 插件通信) ===
     try:
         from api.websocket_handler import register_websocket_routes
