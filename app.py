@@ -172,6 +172,12 @@ def create_app() -> Flask:
     from api.i18n_routes import i18n_bp
     app.register_blueprint(i18n_bp)
 
+    # APM 性能监控
+    from api.apm_routes import apm_bp
+    app.register_blueprint(apm_bp)
+    from utils.apm_monitor import init_apm
+    init_apm(app)
+
     # === WebSocket (Chrome 插件通信) ===
     try:
         from api.websocket_handler import register_websocket_routes
