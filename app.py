@@ -207,6 +207,16 @@ def create_app() -> Flask:
             return jsonify({"success": False, "message": "令牌无效或已过期"}), 401
         return get_user_quota(payload)
 
+    @app.route("/robots.txt")
+    def robots_txt():
+        """robots.txt"""
+        return send_from_directory(app.static_folder, 'robots.txt', mimetype='text/plain')
+
+    @app.route("/favicon.svg")
+    def favicon_svg():
+        """SVG Favicon"""
+        return send_from_directory(app.static_folder, 'favicon.svg', mimetype='image/svg+xml')
+
     @app.route("/api/health")
     def health_check():
         """健康检查接口"""

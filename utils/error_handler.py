@@ -4,7 +4,7 @@ Coupang 选品系统 - 统一错误处理与全局异常中间件
 """
 
 import traceback
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from utils.logger import get_logger
 
 logger = get_logger()
@@ -101,10 +101,17 @@ class ServiceUnavailableError(AppException):
 # 全局异常处理注册
 # ============================================================
 
+def _wants_json():
+    """判断客户端是否期望 JSON 响应（API 请求返回 JSON，浏览器请求返回 HTML）"""
+    if request.path.startswith('/api/'):
+        return True
+    best = request.accept_mimetypes.best_match(['application/json', 'text/html'])
+    return best == 'application/json'
+
+
 def register_error_handlers(app: Flask):
     """
     注册全局异常处理器
-
     :param app: Flask 应用实例
     """
 
@@ -140,19 +147,23 @@ def register_error_handlers(app: Flask):
 
     @app.errorhandler(403)
     def handle_403(error):
-        return jsonify({
-            "success": False,
-            "error": "forbidden",
-            "message": "没有权限访问此资源",
-        }), 403
+        if _wants_json():
+            return jsonify({
+                "success": False,
+                "error": "forbidden",
+                "message": "没有权限访问此资源",
+            }), 403
+        return render_template('errors/403.html'), 403
 
     @app.errorhandler(404)
     def handle_404(error):
-        return jsonify({
-            "success": False,
-            "error": "not_found",
-            "message": "请求的接口不存在",
-        }), 404
+        if _wants_json():
+            return jsonify({
+                "success": False,
+                "error": "not_found",
+                "message": "请求的接口不存在",
+            }), 404
+        return render_template('errors/404.html'), 404
 
     @app.errorhandler(405)
     def handle_405(error):
@@ -193,11 +204,13 @@ def register_error_handlers(app: Flask):
                      f"Path: {request.path}\n"
                      f"Method: {request.method}\n"
                      f"Traceback:\n{traceback.format_exc()}")
-        return jsonify({
-            "success": False,
-            "error": "internal_error",
-            "message": "服务器内部错误，请稍后重试",
-        }), 500
+        if _wants_json():
+            return jsonify({
+                "success": False,
+                "error": "internal_error",
+                "message": "服务器内部错误，请稍后重试",
+            }), 500
+        return render_template('errors/500.html'), 500
 
     @app.errorhandler(502)
     def handle_502(error):

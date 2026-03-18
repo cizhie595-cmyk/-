@@ -1,0 +1,10 @@
+User-agent: *
+Disallow: /api/
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /projects/
+Disallow: /reports/
+Disallow: /settings/
+Allow: /
+
+Sitemap: /sitemap.xml
