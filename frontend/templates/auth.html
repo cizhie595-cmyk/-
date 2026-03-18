@@ -17,21 +17,14 @@
                 radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
                 radial-gradient(ellipse at 80% 20%, rgba(6, 182, 212, 0.06) 0%, transparent 50%);
         }
-        .auth-container {
-            width: 100%;
-            max-width: 420px;
-            padding: 20px;
-        }
+        .auth-container { width: 100%; max-width: 420px; padding: 20px; }
         .auth-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: var(--radius-lg);
             padding: 40px 32px;
         }
-        .auth-logo {
-            text-align: center;
-            margin-bottom: 32px;
-        }
+        .auth-logo { text-align: center; margin-bottom: 32px; }
         .auth-logo h1 {
             font-size: 1.8rem;
             background: var(--gradient-primary);
@@ -39,69 +32,54 @@
             -webkit-text-fill-color: transparent;
             margin-top: 12px;
         }
-        .auth-logo p {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-top: 4px;
-        }
-        .auth-tabs {
-            display: flex;
-            margin-bottom: 24px;
-            border-bottom: 1px solid var(--border);
-        }
+        .auth-logo p { color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px; }
+        .auth-tabs { display: flex; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
         .auth-tab {
-            flex: 1;
-            text-align: center;
-            padding: 10px;
-            cursor: pointer;
-            color: var(--text-secondary);
-            font-weight: 500;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
+            flex: 1; text-align: center; padding: 10px; cursor: pointer;
+            color: var(--text-secondary); font-weight: 500;
+            border-bottom: 2px solid transparent; transition: all 0.2s;
         }
-        .auth-tab.active {
-            color: var(--primary-light);
-            border-bottom-color: var(--primary);
-        }
+        .auth-tab.active { color: var(--primary-light); border-bottom-color: var(--primary); }
         .auth-form { display: none; }
         .auth-form.active { display: block; }
         .auth-divider {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 20px 0;
-            color: var(--text-muted);
-            font-size: 0.8rem;
+            display: flex; align-items: center; gap: 12px; margin: 20px 0;
+            color: var(--text-muted); font-size: 0.8rem;
         }
         .auth-divider::before, .auth-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
+            content: ''; flex: 1; height: 1px; background: var(--border);
         }
         .auth-error {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: var(--danger);
-            padding: 10px 14px;
-            border-radius: var(--radius-sm);
-            font-size: 0.85rem;
-            margin-bottom: 16px;
-            display: none;
+            background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--danger); padding: 10px 14px; border-radius: var(--radius-sm);
+            font-size: 0.85rem; margin-bottom: 16px; display: none;
         }
+        .auth-success {
+            background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--success); padding: 10px 14px; border-radius: var(--radius-sm);
+            font-size: 0.85rem; margin-bottom: 16px; display: none;
+        }
+        .form-group-password { position: relative; }
         .password-toggle {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: var(--text-muted); cursor: pointer;
         }
-        .form-group-password {
-            position: relative;
+        .link-btn {
+            background: none; border: none; color: var(--primary-light);
+            cursor: pointer; font-size: 0.85rem; padding: 0; text-decoration: underline;
         }
+        .link-btn:hover { opacity: 0.8; }
+        .oauth-buttons { display: flex; gap: 12px; margin-bottom: 16px; }
+        .oauth-btn {
+            flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 10px 16px; border-radius: var(--radius-md); border: 1px solid var(--border);
+            background: var(--bg); color: var(--text-primary); cursor: pointer;
+            font-size: 0.85rem; font-weight: 500; transition: all 0.2s;
+        }
+        .oauth-btn:hover { border-color: var(--primary); background: rgba(99,102,241,.05); }
+        .oauth-btn svg { width: 18px; height: 18px; }
+        .panel { display: none; }
+        .panel.active { display: block; }
     </style>
 </head>
 <body>
@@ -117,62 +95,145 @@
                 <p>AI-Powered Product Sourcing Tool</p>
             </div>
 
-            <div class="auth-tabs">
-                <div class="auth-tab active" onclick="switchTab('login')">Login</div>
-                <div class="auth-tab" onclick="switchTab('register')">Register</div>
+            <!-- ========== Main Auth Panel ========== -->
+            <div class="panel active" id="panel-auth">
+                <div class="auth-tabs">
+                    <div class="auth-tab active" onclick="switchTab('login')">Login</div>
+                    <div class="auth-tab" onclick="switchTab('register')">Register</div>
+                </div>
+
+                <div class="auth-error" id="auth-error"></div>
+                <div class="auth-success" id="auth-success"></div>
+
+                <!-- Login Form -->
+                <form class="auth-form active" id="login-form" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label class="form-label">Username or Email</label>
+                        <input type="text" class="form-input" id="login-email" placeholder="username or email" required>
+                    </div>
+                    <div class="form-group form-group-password">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-input" id="login-password" placeholder="Enter password" required>
+                    </div>
+                    <div style="text-align:right;margin-bottom:12px;">
+                        <button type="button" class="link-btn" onclick="showPanel('forgot')">Forgot password?</button>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width:100%;" id="login-btn">Login</button>
+                </form>
+
+                <!-- Register Form -->
+                <form class="auth-form" id="register-form" onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-input" id="reg-username" placeholder="Your username" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" id="reg-email" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group form-group-password">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-input" id="reg-password" placeholder="At least 8 characters" required minlength="8">
+                    </div>
+                    <div class="form-group form-group-password">
+                        <label class="form-label">Confirm Password</label>
+                        <input type="password" class="form-input" id="reg-confirm" placeholder="Confirm password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width:100%;margin-top:8px;" id="reg-btn">Create Account</button>
+                </form>
+
+                <!-- OAuth Divider -->
+                <div class="auth-divider">or continue with</div>
+
+                <!-- OAuth Buttons -->
+                <div class="oauth-buttons">
+                    <button class="oauth-btn" onclick="oauthLogin('google')">
+                        <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                        Google
+                    </button>
+                    <button class="oauth-btn" onclick="oauthLogin('github')">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                        GitHub
+                    </button>
+                </div>
+
+                <div style="text-align:center;font-size:0.8rem;color:var(--text-muted);">Free tier includes 5 analyses per month</div>
             </div>
 
-            <div class="auth-error" id="auth-error"></div>
+            <!-- ========== Forgot Password Panel ========== -->
+            <div class="panel" id="panel-forgot">
+                <h3 style="margin-bottom:8px;">Forgot Password</h3>
+                <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;">Enter your email and we'll send you a reset link.</p>
+                <div class="auth-error" id="forgot-error"></div>
+                <div class="auth-success" id="forgot-success"></div>
+                <form onsubmit="handleForgot(event)">
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-input" id="forgot-email" placeholder="your@email.com" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width:100%;" id="forgot-btn">Send Reset Link</button>
+                </form>
+                <div style="text-align:center;margin-top:16px;">
+                    <button class="link-btn" onclick="showPanel('auth')">Back to Login</button>
+                </div>
+            </div>
 
-            <!-- Login Form -->
-            <form class="auth-form active" id="login-form" onsubmit="handleLogin(event)">
-                <div class="form-group">
-                    <label class="form-label">Username or Email</label>
-                    <input type="text" class="form-input" id="login-email" placeholder="username or email" required>
+            <!-- ========== Reset Password Panel ========== -->
+            <div class="panel" id="panel-reset">
+                <h3 style="margin-bottom:8px;">Reset Password</h3>
+                <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;">Enter your new password below.</p>
+                <div class="auth-error" id="reset-error"></div>
+                <div class="auth-success" id="reset-success"></div>
+                <form onsubmit="handleReset(event)">
+                    <div class="form-group form-group-password">
+                        <label class="form-label">New Password</label>
+                        <input type="password" class="form-input" id="reset-password" placeholder="At least 8 characters" required minlength="8">
+                    </div>
+                    <div class="form-group form-group-password">
+                        <label class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-input" id="reset-confirm" placeholder="Confirm password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width:100%;" id="reset-btn">Reset Password</button>
+                </form>
+                <div style="text-align:center;margin-top:16px;">
+                    <button class="link-btn" onclick="showPanel('auth')">Back to Login</button>
                 </div>
-                <div class="form-group form-group-password">
-                    <label class="form-label">Password</label>
-                    <input type="password" class="form-input" id="login-password" placeholder="Enter password" required>
-                </div>
-                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 8px;" id="login-btn">
-                    Login
-                </button>
-            </form>
+            </div>
 
-            <!-- Register Form -->
-            <form class="auth-form" id="register-form" onsubmit="handleRegister(event)">
-                <div class="form-group">
-                    <label class="form-label">Username</label>
-                    <input type="text" class="form-input" id="reg-username" placeholder="Your username" required>
+            <!-- ========== Email Verification Panel ========== -->
+            <div class="panel" id="panel-verify">
+                <div style="text-align:center;padding:20px 0;">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" style="margin-bottom:16px;">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                    <h3 id="verify-title">Verifying Email...</h3>
+                    <p id="verify-message" style="color:var(--text-muted);font-size:0.9rem;margin-top:8px;">Please wait...</p>
+                    <div id="verify-actions" style="margin-top:20px;display:none;">
+                        <button class="btn btn-primary" onclick="showPanel('auth')">Go to Login</button>
+                    </div>
+                    <div id="resend-section" style="margin-top:16px;display:none;">
+                        <p style="color:var(--text-muted);font-size:0.85rem;">Didn't receive the email?</p>
+                        <button class="link-btn" onclick="resendVerification()" id="resend-btn">Resend verification email</button>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Email</label>
-                    <input type="email" class="form-input" id="reg-email" placeholder="your@email.com" required>
-                </div>
-                <div class="form-group form-group-password">
-                    <label class="form-label">Password</label>
-                    <input type="password" class="form-input" id="reg-password" placeholder="At least 8 characters" required minlength="8">
-                </div>
-                <div class="form-group form-group-password">
-                    <label class="form-label">Confirm Password</label>
-                    <input type="password" class="form-input" id="reg-confirm" placeholder="Confirm password" required>
-                </div>
-                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 8px;" id="reg-btn">
-                    Create Account
-                </button>
-            </form>
-
-            <div class="auth-divider">Free tier includes 5 analyses per month</div>
+            </div>
         </div>
     </div>
 
     <script src="/static/js/api.js"></script>
     <script>
+        // ========== Panel Management ==========
+        function showPanel(name) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + name).classList.add('active');
+            // Clear errors
+            document.querySelectorAll('.auth-error, .auth-success').forEach(e => e.style.display = 'none');
+        }
+
         function switchTab(tab) {
             document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-            document.getElementById('auth-error').style.display = 'none';
-
+            document.querySelectorAll('.auth-error, .auth-success').forEach(e => e.style.display = 'none');
             if (tab === 'login') {
                 document.querySelector('.auth-tab:first-child').classList.add('active');
                 document.getElementById('login-form').classList.add('active');
@@ -182,65 +243,173 @@
             }
         }
 
-        function showError(msg) {
-            const el = document.getElementById('auth-error');
+        function showError(id, msg) {
+            const el = document.getElementById(id);
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+        function showSuccess(id, msg) {
+            const el = document.getElementById(id);
             el.textContent = msg;
             el.style.display = 'block';
         }
 
+        // ========== Login ==========
         async function handleLogin(e) {
             e.preventDefault();
             const btn = document.getElementById('login-btn');
-            btn.disabled = true;
-            btn.textContent = 'Logging in...';
-
+            btn.disabled = true; btn.textContent = 'Logging in...';
             try {
-                const email = document.getElementById('login-email').value;
+                const loginId = document.getElementById('login-email').value;
                 const password = document.getElementById('login-password').value;
-                await api.login(email, password);
+                await api.login(loginId, password);
                 window.location.href = '/dashboard';
             } catch (err) {
-                showError(err.message || 'Login failed');
+                showError('auth-error', err.message || 'Login failed');
             } finally {
-                btn.disabled = false;
-                btn.textContent = 'Login';
+                btn.disabled = false; btn.textContent = 'Login';
             }
         }
 
+        // ========== Register ==========
         async function handleRegister(e) {
             e.preventDefault();
             const password = document.getElementById('reg-password').value;
             const confirm = document.getElementById('reg-confirm').value;
-
-            if (password !== confirm) {
-                showError('Passwords do not match');
-                return;
-            }
+            if (password !== confirm) { showError('auth-error', 'Passwords do not match'); return; }
 
             const btn = document.getElementById('reg-btn');
-            btn.disabled = true;
-            btn.textContent = 'Creating...';
-
+            btn.disabled = true; btn.textContent = 'Creating...';
             try {
-                await api.register({
+                const res = await api.register({
                     username: document.getElementById('reg-username').value,
                     email: document.getElementById('reg-email').value,
                     password: password,
                 });
-                showToast('Account created! Please login.', 'success');
+                showSuccess('auth-success', 'Account created! Please check your email to verify your account, then login.');
                 switchTab('login');
             } catch (err) {
-                showError(err.message || 'Registration failed');
+                showError('auth-error', err.message || 'Registration failed');
             } finally {
-                btn.disabled = false;
-                btn.textContent = 'Create Account';
+                btn.disabled = false; btn.textContent = 'Create Account';
             }
         }
 
-        // 已登录则跳转
-        if (localStorage.getItem('auth_token')) {
-            window.location.href = '/dashboard';
+        // ========== Forgot Password ==========
+        async function handleForgot(e) {
+            e.preventDefault();
+            const btn = document.getElementById('forgot-btn');
+            btn.disabled = true; btn.textContent = 'Sending...';
+            try {
+                const email = document.getElementById('forgot-email').value;
+                const res = await api.request('POST', '/auth/forgot-password', { email });
+                showSuccess('forgot-success', 'If an account exists with that email, a reset link has been sent. Please check your inbox.');
+            } catch (err) {
+                // Always show success to prevent email enumeration
+                showSuccess('forgot-success', 'If an account exists with that email, a reset link has been sent. Please check your inbox.');
+            } finally {
+                btn.disabled = false; btn.textContent = 'Send Reset Link';
+            }
         }
+
+        // ========== Reset Password ==========
+        async function handleReset(e) {
+            e.preventDefault();
+            const password = document.getElementById('reset-password').value;
+            const confirm = document.getElementById('reset-confirm').value;
+            if (password !== confirm) { showError('reset-error', 'Passwords do not match'); return; }
+
+            const btn = document.getElementById('reset-btn');
+            btn.disabled = true; btn.textContent = 'Resetting...';
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const token = params.get('reset_token') || params.get('token');
+                const res = await api.request('POST', '/auth/reset-password', {
+                    token: token,
+                    new_password: password,
+                });
+                showSuccess('reset-success', 'Password reset successfully! You can now login with your new password.');
+                setTimeout(() => showPanel('auth'), 2000);
+            } catch (err) {
+                showError('reset-error', err.message || 'Reset failed. The link may have expired.');
+            } finally {
+                btn.disabled = false; btn.textContent = 'Reset Password';
+            }
+        }
+
+        // ========== Email Verification ==========
+        async function verifyEmail(token) {
+            try {
+                const res = await fetch(`/api/auth/verify-email?token=${encodeURIComponent(token)}`);
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('verify-title').textContent = 'Email Verified!';
+                    document.getElementById('verify-message').textContent = 'Your email has been verified successfully. You can now login.';
+                    document.getElementById('verify-message').style.color = 'var(--success)';
+                } else {
+                    document.getElementById('verify-title').textContent = 'Verification Failed';
+                    document.getElementById('verify-message').textContent = data.message || 'The verification link is invalid or expired.';
+                    document.getElementById('verify-message').style.color = 'var(--danger)';
+                    document.getElementById('resend-section').style.display = 'block';
+                }
+            } catch (e) {
+                document.getElementById('verify-title').textContent = 'Verification Error';
+                document.getElementById('verify-message').textContent = 'Unable to verify. Please try again later.';
+                document.getElementById('verify-message').style.color = 'var(--danger)';
+            }
+            document.getElementById('verify-actions').style.display = 'block';
+        }
+
+        async function resendVerification() {
+            const btn = document.getElementById('resend-btn');
+            btn.disabled = true; btn.textContent = 'Sending...';
+            try {
+                const token = localStorage.getItem('auth_token');
+                await api.request('POST', '/auth/resend-verification');
+                btn.textContent = 'Sent! Check your inbox.';
+            } catch (e) {
+                btn.textContent = 'Failed to send. Try again.';
+                btn.disabled = false;
+            }
+        }
+
+        // ========== OAuth ==========
+        function oauthLogin(provider) {
+            window.location.href = `/api/auth/oauth/${provider}`;
+        }
+
+        // ========== Route Detection ==========
+        (function() {
+            const params = new URLSearchParams(window.location.search);
+
+            // Email verification
+            const verifyToken = params.get('verify_token') || params.get('verification_token');
+            if (verifyToken) {
+                showPanel('verify');
+                verifyEmail(verifyToken);
+                return;
+            }
+
+            // Password reset
+            const resetToken = params.get('reset_token') || params.get('token');
+            if (resetToken && window.location.pathname.includes('reset')) {
+                showPanel('reset');
+                return;
+            }
+
+            // OAuth callback
+            const oauthToken = params.get('access_token');
+            if (oauthToken) {
+                localStorage.setItem('auth_token', oauthToken);
+                window.location.href = '/dashboard';
+                return;
+            }
+
+            // Already logged in
+            if (localStorage.getItem('auth_token')) {
+                window.location.href = '/dashboard';
+            }
+        })();
     </script>
 </body>
 </html>

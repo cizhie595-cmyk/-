@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <h2>Notification Center</h2>
+            <p class="text-muted">Task updates, quota alerts, and system messages</p>
+        </div>
+        <div style="display:flex;gap:12px;">
+            <button class="btn" onclick="markAllAsRead()">Mark All Read</button>
+            <select id="notif-filter" class="form-select" onchange="loadNotifications()" style="width:160px;">
+                <option value="all">All</option>
+                <option value="unread">Unread Only</option>
+                <option value="task">Task Updates</option>
+                <option value="quota">Quota Alerts</option>
+                <option value="system">System</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
+    <div class="card" style="text-align:center;padding:20px;">
+        <div class="text-muted" style="font-size:0.8rem;margin-bottom:4px;">Total</div>
+        <div id="stat-total" style="font-size:1.5rem;font-weight:700;">0</div>
+    </div>
+    <div class="card" style="text-align:center;padding:20px;">
+        <div class="text-muted" style="font-size:0.8rem;margin-bottom:4px;">Unread</div>
+        <div id="stat-unread" style="font-size:1.5rem;font-weight:700;color:var(--primary);">0</div>
+    </div>
+    <div class="card" style="text-align:center;padding:20px;">
+        <div class="text-muted" style="font-size:0.8rem;margin-bottom:4px;">Task Alerts</div>
+        <div id="stat-task" style="font-size:1.5rem;font-weight:700;color:var(--success);">0</div>
+    </div>
+    <div class="card" style="text-align:center;padding:20px;">
+        <div class="text-muted" style="font-size:0.8rem;margin-bottom:4px;">Quota Warnings</div>
+        <div id="stat-quota" style="font-size:1.5rem;font-weight:700;color:var(--warning);">0</div>
+    </div>
+</div>
+
+<!-- Notification Preferences -->
+<div class="card" style="margin-bottom:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="togglePrefs()">
+        <h3 style="margin:0;">Notification Preferences</h3>
+        <svg id="pref-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform .2s;"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div id="prefs-panel" style="display:none;margin-top:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" id="pref-task-complete" checked onchange="savePrefs()"> Task completion
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" id="pref-task-failed" checked onchange="savePrefs()"> Task failure
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" id="pref-quota-warning" checked onchange="savePrefs()"> Quota warnings (20%)
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" id="pref-subscription" checked onchange="savePrefs()"> Subscription expiry
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" id="pref-email" onchange="savePrefs()"> Email notifications
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Notifications List -->
+<div class="card">
+    <div id="notif-list-full">
+        <div class="skeleton" style="height:60px;border-radius:8px;margin-bottom:8px;"></div>
+        <div class="skeleton" style="height:60px;border-radius:8px;margin-bottom:8px;"></div>
+        <div class="skeleton" style="height:60px;border-radius:8px;margin-bottom:8px;"></div>
+    </div>
+    <div id="notif-pagination" style="display:flex;justify-content:center;gap:8px;margin-top:16px;"></div>
+</div>
+
+<script>
+let allNotifications = [];
+let currentPage = 1;
+const pageSize = 15;
+
+function togglePrefs() {
+    const panel = document.getElementById('prefs-panel');
+    const arrow = document.getElementById('pref-arrow');
+    const show = panel.style.display === 'none';
+    panel.style.display = show ? 'block' : 'none';
+    arrow.style.transform = show ? 'rotate(180deg)' : '';
+}
+
+async function loadNotifications() {
+    const filter = document.getElementById('notif-filter').value;
+    try {
+        let url = '/v1/notifications?limit=100';
+        if (filter === 'unread') url += '&unread_only=true';
+        else if (filter !== 'all') url += `&type=${filter}`;
+
+        const res = await api.request('GET', url);
+        allNotifications = (res && res.data && res.data.notifications) || [];
+
+        // Update stats
+        const total = allNotifications.length;
+        const unread = allNotifications.filter(n => !n.is_read).length;
+        const taskCount = allNotifications.filter(n => (n.type || '').includes('task')).length;
+        const quotaCount = allNotifications.filter(n => (n.type || '').includes('quota')).length;
+        document.getElementById('stat-total').textContent = total;
+        document.getElementById('stat-unread').textContent = unread;
+        document.getElementById('stat-task').textContent = taskCount;
+        document.getElementById('stat-quota').textContent = quotaCount;
+
+        currentPage = 1;
+        renderPage();
+    } catch (e) {
+        document.getElementById('notif-list-full').innerHTML =
+            '<div class="text-muted" style="text-align:center;padding:40px;">Unable to load notifications</div>';
+    }
+}
+
+function renderPage() {
+    const start = (currentPage - 1) * pageSize;
+    const items = allNotifications.slice(start, start + pageSize);
+    const container = document.getElementById('notif-list-full');
+
+    if (!items.length) {
+        container.innerHTML = '<div class="text-muted" style="text-align:center;padding:40px;">No notifications</div>';
+        document.getElementById('notif-pagination').innerHTML = '';
+        return;
+    }
+
+    const iconMap = {
+        'task_complete': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+        'task_failed': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+        'quota_warning': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+        'default': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
+    };
+
+    container.innerHTML = items.map(n => {
+        const icon = iconMap[n.type] || iconMap['default'];
+        return `
+        <div style="display:flex;gap:12px;padding:14px 16px;border-radius:10px;margin-bottom:6px;background:${n.is_read ? 'transparent' : 'rgba(99,102,241,.06)'};border:1px solid ${n.is_read ? 'var(--border)' : 'rgba(99,102,241,.15)'};cursor:pointer;transition:background .15s;" onclick="markRead('${n.id}',this)" onmouseover="this.style.background='rgba(99,102,241,.04)'" onmouseout="this.style.background='${n.is_read ? 'transparent' : 'rgba(99,102,241,.06)}'">
+            <div style="flex-shrink:0;margin-top:2px;">${icon}</div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:${n.is_read ? '400' : '600'};font-size:0.9rem;">${n.title || n.type || 'Notification'}</div>
+                <div style="font-size:0.82rem;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${n.message || ''}</div>
+            </div>
+            <div style="flex-shrink:0;font-size:0.75rem;color:var(--text-muted);white-space:nowrap;">${formatDate(n.created_at)}</div>
+        </div>`;
+    }).join('');
+
+    // Pagination
+    const totalPages = Math.ceil(allNotifications.length / pageSize);
+    if (totalPages > 1) {
+        let pag = '';
+        for (let i = 1; i <= totalPages; i++) {
+            pag += `<button class="btn btn-sm ${i === currentPage ? 'btn-primary' : ''}" onclick="currentPage=${i};renderPage()">${i}</button>`;
+        }
+        document.getElementById('notif-pagination').innerHTML = pag;
+    } else {
+        document.getElementById('notif-pagination').innerHTML = '';
+    }
+}
+
+async function markRead(id, el) {
+    try {
+        await api.request('PUT', `/v1/notifications/${id}/read`);
+        if (el) {
+            el.style.background = 'transparent';
+            el.style.borderColor = 'var(--border)';
+            el.querySelector('div > div:first-child').style.fontWeight = '400';
+        }
+    } catch(e) {}
+}
+
+async function markAllAsRead() {
+    try {
+        await api.request('PUT', '/v1/notifications/read-all');
+        showToast('All notifications marked as read', 'success');
+        loadNotifications();
+    } catch(e) {
+        showToast('Failed', 'error');
+    }
+}
+
+async function savePrefs() {
+    const prefs = {
+        task_complete: document.getElementById('pref-task-complete').checked,
+        task_failed: document.getElementById('pref-task-failed').checked,
+        quota_warning: document.getElementById('pref-quota-warning').checked,
+        subscription: document.getElementById('pref-subscription').checked,
+        email_enabled: document.getElementById('pref-email').checked,
+    };
+    try {
+        await api.request('PUT', '/v1/notifications/preferences', prefs);
+        showToast('Preferences saved', 'success');
+    } catch(e) {}
+}
+
+// Init
+loadNotifications();
+</script>
+{% endblock %}

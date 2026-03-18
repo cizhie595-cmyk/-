@@ -300,8 +300,11 @@
     }
 
     function exportReport() {
+        const fmt = prompt('Export format: pdf or md', 'pdf');
+        if (!fmt || !['pdf','md'].includes(fmt.toLowerCase())) return;
         showToast('Generating export...', 'info');
-        window.print();
+        const token = localStorage.getItem('auth_token');
+        window.open(`/api/v1/export/report/${projectId}?format=${fmt.toLowerCase()}&token=${token}`, '_blank');
     }
 
     loadReport();

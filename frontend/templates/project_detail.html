@@ -8,6 +8,8 @@
     </div>
     <div style="display: flex; gap: 8px;">
         <button class="btn btn-secondary" onclick="exportData()">Export CSV</button>
+        <button class="btn btn-secondary" onclick="exportBackend('xlsx')">Export Excel</button>
+        <button class="btn btn-secondary" onclick="exportBackend('pdf')">Export PDF</button>
         <button class="btn btn-primary" id="report-btn" onclick="generateReport()">Generate Report</button>
     </div>
 </div>
@@ -342,7 +344,13 @@
         showToast('CSV exported successfully', 'success');
     }
 
-    // ========== AI 过滤 ==========
+    function exportBackend(fmt) {
+        showToast('Generating ' + fmt.toUpperCase() + ' export...', 'info');
+        const token = localStorage.getItem('auth_token');
+        window.open(`/api/v1/export/products/${projectId}?format=${fmt}&token=${token}`, '_blank');
+    }
+
+    // ========== AI 过滤 ===========
     async function applyAIFilter() {
         const description = prompt('Describe the products you are looking for (e.g., "lightweight, under $30, high rating"):');
         if (!description) return;

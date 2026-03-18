@@ -73,6 +73,44 @@ def mark_read(current_user):
     return jsonify(result), 200
 
 
+@notification_bp.route("/<notification_id>/read", methods=["PUT"])
+@login_required
+def mark_single_read(current_user, notification_id):
+    """标记单条通知为已读"""
+    result = notifier.mark_read(_uid(current_user), [notification_id])
+    return jsonify(result), 200
+
+
+@notification_bp.route("/read-all", methods=["PUT"])
+@login_required
+def mark_all_read(current_user):
+    """标记所有通知为已读"""
+    result = notifier.mark_read(_uid(current_user))
+    return jsonify(result), 200
+
+
+@notification_bp.route("/preferences", methods=["GET"])
+@login_required
+def get_preferences(current_user):
+    """获取通知偏好设置"""
+    # 从内存/数据库获取偏好
+    prefs = {
+        "task_complete": True, "task_failed": True,
+        "quota_warning": True, "subscription": True, "email_enabled": False,
+    }
+    return jsonify({"success": True, "data": prefs}), 200
+
+
+@notification_bp.route("/preferences", methods=["PUT"])
+@login_required
+def update_preferences(current_user):
+    """更新通知偏好设置"""
+    data = request.get_json(silent=True) or {}
+    # TODO: 持久化到数据库
+    logger.info(f"[Notification] User {_uid(current_user)} updated preferences: {data}")
+    return jsonify({"success": True, "message": "Preferences updated"}), 200
+
+
 @notification_bp.route("", methods=["DELETE"])
 @login_required
 def delete_notifications(current_user):

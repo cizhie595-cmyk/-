@@ -27,8 +27,11 @@ def index():
 @frontend_bp.route("/auth")
 @frontend_bp.route("/auth/login")
 @frontend_bp.route("/auth/register")
+@frontend_bp.route("/auth/forgot-password")
+@frontend_bp.route("/auth/reset-password")
+@frontend_bp.route("/auth/verify-email")
 def auth_page():
-    """登录/注册页面"""
+    """登录/注册/密码重置/邮箱验证页面"""
     return render_template("auth.html")
 
 
@@ -136,3 +139,30 @@ def subscription_settings():
 def ai_settings():
     """AI 设置"""
     return render_template("ai_settings.html", active_page="ai_settings")
+
+
+# ============================================================
+# P-12 团队管理  /settings/team
+# ============================================================
+@frontend_bp.route("/settings/team")
+def team_settings():
+    """团队管理"""
+    return render_template("team.html", active_page="team")
+
+
+# ============================================================
+# P-13 通知中心  /notifications
+# ============================================================
+@frontend_bp.route("/notifications")
+def notifications_page():
+    """通知中心"""
+    return render_template("notifications.html", active_page="notifications")
+
+
+# ============================================================
+# P-14 APM 监控面板  /admin/apm
+# ============================================================
+@frontend_bp.route("/admin/apm")
+def apm_dashboard():
+    """APM 性能监控面板"""
+    return render_template("apm_dashboard.html", active_page="apm")

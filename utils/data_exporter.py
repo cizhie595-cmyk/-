@@ -226,6 +226,89 @@ class DataExporter:
         return buf
 
 
+    @staticmethod
+    def export_report_pdf(md_content: str, title: str = "Sourcing Report") -> io.BytesIO:
+        """
+        将 Markdown 报告导出为 PDF
+
+        :param md_content: Markdown 格式的报告内容
+        :param title: 报告标题
+        :return: BytesIO 对象
+        """
+        try:
+            from fpdf import FPDF
+        except ImportError:
+            logger.error("[Export] fpdf2 未安装，无法导出 PDF")
+            return None
+
+        pdf = FPDF(orientation="P", unit="mm", format="A4")
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+
+        # 尝试加载中文字体
+        font_loaded = False
+        font_paths = [
+            "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+            "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        ]
+        for fp in font_paths:
+            if os.path.exists(fp):
+                try:
+                    pdf.add_font("CJK", "", fp, uni=True)
+                    pdf.set_font("CJK", size=10)
+                    font_loaded = True
+                    break
+                except Exception:
+                    continue
+        if not font_loaded:
+            pdf.set_font("Helvetica", size=10)
+
+        # 解析 Markdown 并渲染
+        for line in md_content.split("\n"):
+            stripped = line.strip()
+            if stripped.startswith("# "):
+                pdf.set_font_size(18)
+                pdf.cell(0, 12, stripped[2:], ln=True)
+                pdf.ln(2)
+            elif stripped.startswith("## "):
+                pdf.set_font_size(14)
+                pdf.cell(0, 10, stripped[3:], ln=True)
+                pdf.ln(1)
+            elif stripped.startswith("---"):
+                pdf.ln(2)
+                y = pdf.get_y()
+                pdf.line(pdf.l_margin, y, pdf.w - pdf.r_margin, y)
+                pdf.ln(3)
+            elif stripped.startswith("|") and "---" not in stripped:
+                # Table row
+                pdf.set_font_size(7)
+                cells = [c.strip() for c in stripped.split("|")[1:-1]]
+                if cells:
+                    page_w = pdf.w - 2 * pdf.l_margin
+                    cw = page_w / len(cells)
+                    for c in cells:
+                        pdf.cell(cw, 6, str(c)[:25], border=1, align="C")
+                    pdf.ln()
+            elif stripped.startswith("**"):
+                pdf.set_font_size(10)
+                pdf.cell(0, 6, stripped.replace("**", "").replace("  ", ""), ln=True)
+            elif stripped:
+                pdf.set_font_size(10)
+                pdf.multi_cell(0, 6, stripped)
+
+        # 页脚
+        pdf.ln(5)
+        pdf.set_font_size(8)
+        pdf.set_text_color(128, 128, 128)
+        pdf.cell(0, 5, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')} | Amazon Visionary Sourcing Tool", align="C")
+
+        buf = io.BytesIO()
+        pdf.output(buf)
+        buf.seek(0)
+        return buf
+
+
 # ============================================================
 # 预定义导出模板
 # ============================================================

@@ -33,11 +33,11 @@
                     <div class="nav-section-title">Main</div>
                     <a href="/dashboard" class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-                        <span>Dashboard</span>
+                        <span data-i18n="nav.dashboard">Dashboard</span>
                     </a>
                     <a href="/projects/new" class="nav-item {% if active_page == 'new_project' %}active{% endif %}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                        <span>New Project</span>
+                        <span data-i18n="nav.new_project">New Project</span>
                     </a>
                 </div>
 
@@ -45,15 +45,15 @@
                     <div class="nav-section-title">Analysis</div>
                     <a href="/market" class="nav-item {% if active_page == 'market' %}active{% endif %}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                        <span>Market Analysis</span>
+                        <span data-i18n="nav.market_analysis">Market Analysis</span>
                     </a>
                     <a href="/profit" class="nav-item {% if active_page == 'profit' %}active{% endif %}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                        <span>Profit Calculator</span>
+                        <span data-i18n="nav.profit_calculator">Profit Calculator</span>
                     </a>
                     <a href="/3d-lab" class="nav-item {% if active_page == '3d_lab' %}active{% endif %}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-                        <span>3D Lab</span>
+                        <span data-i18n="nav.threed_lab">3D Lab</span>
                     </a>
                 </div>
 
@@ -61,15 +61,23 @@
                     <div class="nav-section-title">Settings</div>
                     <a href="/settings/api-keys" class="nav-item {% if active_page == 'api_keys' %}active{% endif %}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
-                        <span>API Keys</span>
+                        <span data-i18n="nav.api_keys">API Keys</span>
                     </a>
                     <a href="/settings/ai" class="nav-item {% if active_page == 'ai_settings' %}active{% endif %}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1.27c.34-.6.99-1 1.73-1a2 2 0 1 1 0 4c-.74 0-1.39-.4-1.73-1H21a7 7 0 0 1-7 7v1.27c.6.34 1 .99 1 1.73a2 2 0 1 1-4 0c0-.74.4-1.39 1-1.73V23a7 7 0 0 1-7-7H3.73c-.34.6-.99 1-1.73 1a2 2 0 1 1 0-4c.74 0 1.39.4 1.73 1H5a7 7 0 0 1 7-7V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/></svg>
-                        <span>AI Settings</span>
+                        <span data-i18n="nav.ai_settings">AI Settings</span>
                     </a>
                     <a href="/settings/subscription" class="nav-item {% if active_page == 'subscription' %}active{% endif %}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 6v6l4 2"/></svg>
-                        <span>Subscription</span>
+                        <span data-i18n="nav.subscription">Subscription</span>
+                    </a>
+                    <a href="/settings/team" class="nav-item {% if active_page == 'team' %}active{% endif %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        <span data-i18n="nav.team">Team</span>
+                    </a>
+                    <a href="/notifications" class="nav-item {% if active_page == 'notifications' %}active{% endif %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        <span data-i18n="nav.notifications">Notifications</span>
                     </a>
                 </div>
             </nav>
@@ -143,6 +151,29 @@
                 <div class="quota-badge" id="quota-badge" title="Remaining quota">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                     <span id="quota-count">--</span>
+                </div>
+
+                <!-- Notification Bell -->
+                <div class="notification-bell" id="notification-bell" onclick="toggleNotificationPanel()" title="Notifications" style="position:relative;cursor:pointer;padding:6px;border-radius:8px;display:flex;align-items:center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    <span id="notif-badge" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;background:var(--danger);border-radius:50%;"></span>
+                </div>
+                <!-- Notification Dropdown -->
+                <div id="notif-panel" style="display:none;position:absolute;top:56px;right:100px;width:360px;max-height:420px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.3);z-index:999;padding:0;">
+                    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-weight:600;">Notifications</span>
+                        <button onclick="markAllRead()" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:0.8rem;">Mark all read</button>
+                    </div>
+                    <div id="notif-list" style="padding:8px;"><div class="text-muted" style="text-align:center;padding:24px;">No notifications</div></div>
+                </div>
+
+                <!-- Language Selector -->
+                <div class="lang-selector" style="position:relative;">
+                    <select id="lang-select" onchange="switchLanguage(this.value)" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:0.8rem;cursor:pointer;">
+                        <option value="en_US">EN</option>
+                        <option value="zh_CN">中文</option>
+                        <option value="ko_KR">한국어</option>
+                    </select>
                 </div>
 
                 <!-- User Avatar -->
@@ -295,6 +326,73 @@
             if (n == null) return '-';
             return n.toFixed(1) + '%';
         }
+
+        // ========== Notification Panel ==========
+        let notifOpen = false;
+        function toggleNotificationPanel() {
+            notifOpen = !notifOpen;
+            document.getElementById('notif-panel').style.display = notifOpen ? 'block' : 'none';
+            if (notifOpen) loadNotifications();
+        }
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#notification-bell') && !e.target.closest('#notif-panel')) {
+                notifOpen = false;
+                document.getElementById('notif-panel').style.display = 'none';
+            }
+        });
+        async function loadNotifications() {
+            try {
+                const res = await api.request('GET', '/v1/notifications');
+                const items = (res && res.data && res.data.notifications) || [];
+                const list = document.getElementById('notif-list');
+                if (!items.length) {
+                    list.innerHTML = '<div class="text-muted" style="text-align:center;padding:24px;">No notifications</div>';
+                    document.getElementById('notif-badge').style.display = 'none';
+                    return;
+                }
+                const unread = items.filter(n => !n.is_read).length;
+                document.getElementById('notif-badge').style.display = unread > 0 ? 'block' : 'none';
+                list.innerHTML = items.slice(0, 20).map(n => `
+                    <div style="padding:10px 12px;border-radius:8px;margin-bottom:4px;background:${n.is_read ? 'transparent' : 'rgba(99,102,241,.08)'};cursor:pointer;" onclick="readNotif('${n.id}')">
+                        <div style="font-size:0.85rem;font-weight:${n.is_read ? '400' : '600'};">${n.title || n.type}</div>
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${n.message || ''}</div>
+                        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;">${formatDate(n.created_at)}</div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                // silent
+            }
+        }
+        async function readNotif(id) {
+            try { await api.request('PUT', `/v1/notifications/${id}/read`); } catch(e) {}
+            loadNotifications();
+        }
+        async function markAllRead() {
+            try { await api.request('PUT', '/v1/notifications/read-all'); } catch(e) {}
+            loadNotifications();
+        }
+        // Check unread count on load
+        (async function() {
+            try {
+                const res = await api.request('GET', '/v1/notifications?unread_only=true');
+                const items = (res && res.data && res.data.notifications) || [];
+                if (items.length > 0) document.getElementById('notif-badge').style.display = 'block';
+            } catch(e) {}
+        })();
+
+        // ========== Language Selector ==========
+        function switchLanguage(locale) {
+            localStorage.setItem('app_locale', locale);
+            if (typeof i18nManager !== 'undefined') i18nManager.setLocale(locale);
+            // Also update server-side preference
+            try { api.request('PUT', '/auth/language', { language: locale }); } catch(e) {}
+        }
+        // Restore saved locale
+        (function() {
+            const saved = localStorage.getItem('app_locale') || 'en_US';
+            const sel = document.getElementById('lang-select');
+            if (sel) sel.value = saved;
+        })();
 
         // Init status checks
         checkApiStatus();

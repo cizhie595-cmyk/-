@@ -843,21 +843,41 @@ a:hover { color: var(--primary); }
         display: none;
         position: fixed;
         z-index: 200;
+        width: 260px;
     }
     .sidebar.open {
         display: flex;
     }
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.5);
+        z-index: 199;
+    }
+    .sidebar-overlay.open { display: block; }
     .main-wrapper { margin-left: 0; }
-    .sidebar-toggle { display: block; }
+    .sidebar-toggle { display: flex !important; }
     .global-search { max-width: 200px; }
     .api-status-group { display: none; }
     .marketplace-selector { display: none; }
     .card-grid-4, .card-grid-3, .card-grid-2 { grid-template-columns: 1fr; }
+    .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .data-table { min-width: 600px; }
+    .page-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+    .top-bar { flex-direction: column; gap: 12px; align-items: flex-start; }
+    .card { padding: 16px; }
+    .form-input, .form-select { font-size: 16px; /* prevents zoom on iOS */ }
+    #notif-panel { right: 8px !important; width: calc(100vw - 16px) !important; max-width: 380px !important; }
 }
 
 @media (max-width: 480px) {
     .top-status-bar { padding: 8px var(--spacing-md); gap: var(--spacing-sm); }
     .quota-badge { display: none; }
+    .auth-container { padding: 12px; }
+    .auth-card { padding: 24px 16px; }
+    .oauth-buttons { flex-direction: column; }
+    .score-ring { width: 80px; height: 80px; font-size: 1.4rem; }
 }
 
 /* ---------- Utilities ---------- */

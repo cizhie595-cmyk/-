@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+{% set active_page = 'apm' %}
+{% block title %}APM Dashboard{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .metric-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; text-align: center; }
+    .metric-value { font-size: 2rem; font-weight: 700; color: var(--text-primary); }
+    .metric-label { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
+    .metric-value.success { color: var(--success); }
+    .metric-value.warning { color: var(--warning); }
+    .metric-value.danger { color: var(--danger); }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .status-dot.healthy { background: var(--success); }
+    .status-dot.degraded { background: var(--warning); }
+    .status-dot.down { background: var(--danger); }
+    .slow-row { transition: background 0.2s; }
+    .slow-row:hover { background: rgba(99,102,241,.05); }
+    .chart-container { position: relative; height: 280px; }
+    .refresh-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .auto-refresh { font-size: 0.8rem; color: var(--text-muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="top-bar">
+    <div>
+        <h2 class="page-title">APM Dashboard</h2>
+        <p class="page-subtitle">Application Performance Monitoring & Health Status</p>
+    </div>
+    <div class="refresh-bar">
+        <span class="auto-refresh" id="last-refresh">Last refresh: -</span>
+        <button class="btn btn-secondary" onclick="refreshAll()">Refresh</button>
+    </div>
+</div>
+
+<!-- Health Status -->
+<div class="card mb-lg">
+    <div class="card-header">
+        <h3 class="card-title">System Health</h3>
+        <span class="badge" id="health-badge">Checking...</span>
+    </div>
+    <div class="metric-grid" id="health-grid" style="margin-top: 16px;">
+        <div class="metric-box">
+            <div class="metric-label">Application</div>
+            <div id="health-app"><span class="status-dot"></span>Checking...</div>
+        </div>
+        <div class="metric-box">
+            <div class="metric-label">Database</div>
+            <div id="health-db"><span class="status-dot"></span>Checking...</div>
+        </div>
+        <div class="metric-box">
+            <div class="metric-label">Redis</div>
+            <div id="health-redis"><span class="status-dot"></span>Checking...</div>
+        </div>
+        <div class="metric-box">
+            <div class="metric-label">Uptime</div>
+            <div id="health-uptime">-</div>
+        </div>
+    </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="metric-grid">
+    <div class="metric-box">
+        <div class="metric-value" id="m-total-req">-</div>
+        <div class="metric-label">Total Requests</div>
+    </div>
+    <div class="metric-box">
+        <div class="metric-value" id="m-avg-latency">-</div>
+        <div class="metric-label">Avg Latency (ms)</div>
+    </div>
+    <div class="metric-box">
+        <div class="metric-value" id="m-error-rate">-</div>
+        <div class="metric-label">Error Rate</div>
+    </div>
+    <div class="metric-box">
+        <div class="metric-value" id="m-active-conn">-</div>
+        <div class="metric-label">Active Connections</div>
+    </div>
+    <div class="metric-box">
+        <div class="metric-value" id="m-db-queries">-</div>
+        <div class="metric-label">DB Queries</div>
+    </div>
+    <div class="metric-box">
+        <div class="metric-value" id="m-celery-tasks">-</div>
+        <div class="metric-label">Celery Tasks</div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="card-grid card-grid-2 mb-lg">
+    <div class="card">
+        <h3 class="card-title">Response Time Distribution</h3>
+        <div class="chart-container">
+            <canvas id="latencyChart"></canvas>
+        </div>
+    </div>
+    <div class="card">
+        <h3 class="card-title">Status Code Distribution</h3>
+        <div class="chart-container">
+            <canvas id="statusChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Top Endpoints -->
+<div class="card mb-lg">
+    <div class="card-header">
+        <h3 class="card-title">Top Endpoints by Request Count</h3>
+    </div>
+    <div class="table-container">
+        <table class="data-table" id="endpoints-table">
+            <thead>
+                <tr>
+                    <th>Endpoint</th>
+                    <th>Method</th>
+                    <th>Count</th>
+                    <th>Avg (ms)</th>
+                    <th>P95 (ms)</th>
+                    <th>Errors</th>
+                </tr>
+            </thead>
+            <tbody id="endpoints-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Slow Queries -->
+<div class="card mb-lg">
+    <div class="card-header">
+        <h3 class="card-title">Slow DB Queries</h3>
+        <span class="badge badge-warning" id="slow-count">0</span>
+    </div>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Query (truncated)</th>
+                    <th>Duration (ms)</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody id="slow-body"></tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let latencyChart, statusChart;
+
+    function initCharts() {
+        const chartOpts = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#94a3b8' } } },
+            scales: {
+                x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(100,116,139,.1)' } },
+                y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(100,116,139,.1)' } }
+            }
+        };
+
+        latencyChart = new Chart(document.getElementById('latencyChart'), {
+            type: 'bar',
+            data: {
+                labels: ['<50ms', '50-100ms', '100-200ms', '200-500ms', '500ms-1s', '>1s'],
+                datasets: [{ label: 'Requests', data: [0,0,0,0,0,0], backgroundColor: 'rgba(99,102,241,.6)', borderRadius: 4 }]
+            },
+            options: { ...chartOpts, plugins: { ...chartOpts.plugins, legend: { display: false } } }
+        });
+
+        statusChart = new Chart(document.getElementById('statusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['2xx', '3xx', '4xx', '5xx'],
+                datasets: [{ data: [0,0,0,0], backgroundColor: ['#22c55e','#3b82f6','#f59e0b','#ef4444'] }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } } }
+        });
+    }
+
+    async function loadHealth() {
+        try {
+            const res = await fetch('/api/health');
+            const data = await res.json();
+            const setStatus = (id, ok) => {
+                const el = document.getElementById(id);
+                const dot = ok ? 'healthy' : 'down';
+                const text = ok ? 'Healthy' : 'Down';
+                el.innerHTML = `<span class="status-dot ${dot}"></span>${text}`;
+            };
+            setStatus('health-app', data.status === 'healthy');
+            setStatus('health-db', data.components?.database !== 'down');
+            setStatus('health-redis', data.components?.redis !== 'down');
+            document.getElementById('health-uptime').textContent = data.uptime || '-';
+            const badge = document.getElementById('health-badge');
+            if (data.status === 'healthy') {
+                badge.className = 'badge badge-success'; badge.textContent = 'Healthy';
+            } else {
+                badge.className = 'badge badge-danger'; badge.textContent = 'Degraded';
+            }
+        } catch (e) {
+            document.getElementById('health-badge').className = 'badge badge-danger';
+            document.getElementById('health-badge').textContent = 'Unreachable';
+        }
+    }
+
+    async function loadMetrics() {
+        try {
+            const token = localStorage.getItem('auth_token');
+            const res = await fetch('/api/v1/admin/apm', { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!res.ok) return;
+            const result = await res.json();
+            const m = result.data || result;
+
+            document.getElementById('m-total-req').textContent = (m.total_requests || 0).toLocaleString();
+            const avgMs = m.avg_response_time ? (m.avg_response_time * 1000).toFixed(1) : '-';
+            document.getElementById('m-avg-latency').textContent = avgMs;
+            const el = document.getElementById('m-avg-latency');
+            el.className = 'metric-value ' + (parseFloat(avgMs) > 500 ? 'danger' : parseFloat(avgMs) > 200 ? 'warning' : 'success');
+
+            const errRate = m.error_rate ? (m.error_rate * 100).toFixed(2) + '%' : '0%';
+            document.getElementById('m-error-rate').textContent = errRate;
+            document.getElementById('m-error-rate').className = 'metric-value ' + (parseFloat(errRate) > 5 ? 'danger' : parseFloat(errRate) > 1 ? 'warning' : 'success');
+
+            document.getElementById('m-active-conn').textContent = m.active_connections || 0;
+            document.getElementById('m-db-queries').textContent = (m.db_queries || 0).toLocaleString();
+            document.getElementById('m-celery-tasks').textContent = (m.celery_tasks || 0).toLocaleString();
+
+            // Update charts
+            if (m.latency_distribution && latencyChart) {
+                latencyChart.data.datasets[0].data = m.latency_distribution;
+                latencyChart.update();
+            }
+            if (m.status_codes && statusChart) {
+                const sc = m.status_codes;
+                statusChart.data.datasets[0].data = [sc['2xx'] || 0, sc['3xx'] || 0, sc['4xx'] || 0, sc['5xx'] || 0];
+                statusChart.update();
+            }
+
+            // Endpoints table
+            const tbody = document.getElementById('endpoints-body');
+            if (m.endpoints && m.endpoints.length) {
+                tbody.innerHTML = m.endpoints.slice(0, 15).map(ep => `
+                    <tr>
+                        <td><code>${ep.endpoint || ep.path || '-'}</code></td>
+                        <td>${ep.method || 'GET'}</td>
+                        <td>${ep.count || 0}</td>
+                        <td>${ep.avg_ms ? ep.avg_ms.toFixed(1) : '-'}</td>
+                        <td>${ep.p95_ms ? ep.p95_ms.toFixed(1) : '-'}</td>
+                        <td>${ep.errors || 0}</td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No data yet</td></tr>';
+            }
+        } catch (e) {
+            console.error('Failed to load APM metrics:', e);
+        }
+    }
+
+    async function loadSlowQueries() {
+        try {
+            const token = localStorage.getItem('auth_token');
+            const res = await fetch('/api/v1/admin/apm/slow', { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!res.ok) return;
+            const result = await res.json();
+            const queries = result.data || result.slow_queries || [];
+            document.getElementById('slow-count').textContent = queries.length;
+            const tbody = document.getElementById('slow-body');
+            if (queries.length) {
+                tbody.innerHTML = queries.slice(0, 20).map(q => `
+                    <tr class="slow-row">
+                        <td><code style="font-size:0.8rem;">${(q.query || '').substring(0, 80)}${(q.query || '').length > 80 ? '...' : ''}</code></td>
+                        <td>${q.duration_ms ? q.duration_ms.toFixed(1) : (q.duration ? (q.duration * 1000).toFixed(1) : '-')}</td>
+                        <td>${q.timestamp || q.time || '-'}</td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No slow queries detected</td></tr>';
+            }
+        } catch (e) {
+            console.error('Failed to load slow queries:', e);
+        }
+    }
+
+    async function refreshAll() {
+        await Promise.all([loadHealth(), loadMetrics(), loadSlowQueries()]);
+        document.getElementById('last-refresh').textContent = 'Last refresh: ' + new Date().toLocaleTimeString();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initCharts();
+        refreshAll();
+        // Auto-refresh every 30 seconds
+        setInterval(refreshAll, 30000);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,167 @@
+## ============================================================
+## Prometheus ServiceMonitor - 自动发现 /api/metrics 端点
+## 需要集群中已安装 prometheus-operator (kube-prometheus-stack)
+## ============================================================
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: avst-monitor
+  namespace: avst
+  labels:
+    app: avst
+    release: prometheus  # 匹配 Prometheus Operator 的 serviceMonitorSelector
+spec:
+  selector:
+    matchLabels:
+      app: avst
+      component: web
+  endpoints:
+    - port: http
+      path: /api/metrics
+      interval: 30s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - avst
+
+---
+## ============================================================
+## PrometheusRule - 告警规则
+## ============================================================
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: avst-alerts
+  namespace: avst
+  labels:
+    app: avst
+    release: prometheus
+spec:
+  groups:
+    - name: avst.rules
+      rules:
+        # 高错误率告警
+        - alert: HighErrorRate
+          expr: |
+            sum(rate(avst_http_requests_total{status=~"5.."}[5m]))
+            / sum(rate(avst_http_requests_total[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "AVST 高错误率 (> 5%)"
+            description: "过去5分钟内 5xx 错误率超过 5%，当前值: {{ $value | humanizePercentage }}"
+
+        # 高延迟告警
+        - alert: HighLatency
+          expr: |
+            histogram_quantile(0.95, rate(avst_http_request_duration_seconds_bucket[5m])) > 2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "AVST P95 延迟过高 (> 2s)"
+            description: "P95 响应时间超过 2 秒，当前值: {{ $value | humanizeDuration }}"
+
+        # Pod 重启告警
+        - alert: PodCrashLooping
+          expr: |
+            rate(kube_pod_container_status_restarts_total{namespace="avst"}[15m]) > 0
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: "AVST Pod 频繁重启"
+            description: "Pod {{ $labels.pod }} 在过去 15 分钟内持续重启"
+
+        # 数据库连接告警
+        - alert: DBConnectionPoolExhausted
+          expr: avst_db_active_connections > 45
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "数据库连接池接近耗尽"
+            description: "活跃数据库连接数: {{ $value }}/50"
+
+---
+## ============================================================
+## Grafana Dashboard ConfigMap
+## 自动导入到 Grafana (需要 sidecar.dashboards.enabled=true)
+## ============================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: avst-grafana-dashboard
+  namespace: avst
+  labels:
+    grafana_dashboard: "1"  # Grafana sidecar 自动检测
+data:
+  avst-dashboard.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "title": "AVST - Application Dashboard",
+      "uid": "avst-main",
+      "version": 1,
+      "panels": [
+        {
+          "title": "Request Rate",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            { "expr": "sum(rate(avst_http_requests_total[5m])) by (status)", "legendFormat": "{{status}}" }
+          ]
+        },
+        {
+          "title": "Response Time P95",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [
+            { "expr": "histogram_quantile(0.95, rate(avst_http_request_duration_seconds_bucket[5m]))", "legendFormat": "P95" },
+            { "expr": "histogram_quantile(0.50, rate(avst_http_request_duration_seconds_bucket[5m]))", "legendFormat": "P50" }
+          ]
+        },
+        {
+          "title": "Error Rate",
+          "type": "gauge",
+          "gridPos": { "h": 6, "w": 6, "x": 0, "y": 8 },
+          "targets": [
+            { "expr": "sum(rate(avst_http_requests_total{status=~\"5..\"}[5m])) / sum(rate(avst_http_requests_total[5m])) * 100" }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": { "steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 1}, {"color": "red", "value": 5}] },
+              "unit": "percent"
+            }
+          }
+        },
+        {
+          "title": "Active Connections",
+          "type": "stat",
+          "gridPos": { "h": 6, "w": 6, "x": 6, "y": 8 },
+          "targets": [
+            { "expr": "avst_active_connections" }
+          ]
+        },
+        {
+          "title": "DB Query Duration",
+          "type": "timeseries",
+          "gridPos": { "h": 6, "w": 12, "x": 12, "y": 8 },
+          "targets": [
+            { "expr": "histogram_quantile(0.95, rate(avst_db_query_duration_seconds_bucket[5m]))", "legendFormat": "P95" }
+          ]
+        },
+        {
+          "title": "Celery Task Throughput",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+          "targets": [
+            { "expr": "sum(rate(avst_celery_tasks_total{status=\"success\"}[5m]))", "legendFormat": "Success" },
+            { "expr": "sum(rate(avst_celery_tasks_total{status=\"failure\"}[5m]))", "legendFormat": "Failure" }
+          ]
+        }
+      ],
+      "time": { "from": "now-1h", "to": "now" },
+      "refresh": "30s"
+    }

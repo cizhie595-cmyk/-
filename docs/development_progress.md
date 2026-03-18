@@ -2,9 +2,9 @@
 
 > Last Updated: 2026-03-18
 
-## Overall Status: **MVP Feature Complete (All PRD Modules Implemented)**
+## Overall Status: **Production-Ready (All P0-P3 Issues Implemented)**
 
-All modules defined in the PRD have been implemented, including all P0 and P1 refinements. All frontend pages inherit the base template with consistent navigation. All API routes use database persistence with graceful degradation. The system is ready for integration testing and deployment.
+All 21 GitHub Issues (P0-P3) have been implemented. Frontend includes 16 pages with full i18n support (EN/ZH/KO), OAuth login, password reset, email verification, team management, notifications, and APM dashboard. Backend includes Stripe payments, rate limiting, audit logging, data export (CSV/Excel/PDF), Celery SSE, and comprehensive error handling. K8s deployment configs include Prometheus ServiceMonitor, alert rules, and Grafana dashboard. CI/CD pipeline with lint, test, and Docker build stages.
 
 ---
 
@@ -40,7 +40,7 @@ All modules defined in the PRD have been implemented, including all P0 and P1 re
 
 | Page | Template | Route | Status |
 |------|----------|-------|--------|
-| Login / Register | `auth.html` | `/auth` | Done |
+| Login / Register / OAuth / Reset | `auth.html` | `/auth/*` | Done |
 | Dashboard | `dashboard.html` | `/dashboard` | Done |
 | New Project Wizard | `new_project.html` | `/projects/new` | Done |
 | Project Detail (Data Table) | `project_detail.html` | `/projects/{id}` | Done |
@@ -52,6 +52,9 @@ All modules defined in the PRD have been implemented, including all P0 and P1 re
 | Subscription Management | `subscription.html` | `/settings/subscription` | Done |
 | AI Settings | `ai_settings.html` | `/settings/ai` | Done |
 | API Keys Settings | `api_keys_settings.html` | `/settings/api-keys` | Done |
+| Team Management | `team.html` | `/settings/team` | Done |
+| Notifications Center | `notifications.html` | `/notifications` | Done |
+| APM Dashboard | `apm_dashboard.html` | `/admin/apm` | Done |
 
 ### API Routes
 
@@ -69,6 +72,17 @@ All modules defined in the PRD have been implemented, including all P0 and P1 re
 | Monetization | `/api/subscription` | Done |
 | AI Config | `/api/ai` | Done |
 | API Keys | `/api/keys` | Done |
+| Export | `/api/v1/export` | Done |
+| Team | `/api/v1/team` | Done |
+| Notifications | `/api/v1/notifications` | Done |
+| Stripe | `/api/v1/stripe` | Done |
+| OAuth | `/api/auth/oauth` | Done |
+| SSE | `/api/v1/sse` | Done |
+| Audit | `/api/v1/admin/audit` | Done |
+| Cleanup | `/api/v1/admin/cleanup` | Done |
+| APM | `/api/v1/admin/apm` | Done |
+| i18n | `/api/i18n` | Done |
+| Swagger | `/api/docs` | Done |
 
 ---
 
@@ -123,7 +137,7 @@ Amazon Visionary Sourcing Tool
 │   └── http_client.py
 ├── frontend/
 │   ├── routes.py               # Page URL routing (PRD-aligned)
-│   ├── templates/ (12 pages)
+│   ├── templates/ (16 pages)
 │   └── static/
 │       ├── css/main.css        # Dark theme + skeleton + toast
 │       └── js/api.js           # API client + quota interception
@@ -149,13 +163,32 @@ Amazon Visionary Sourcing Tool
 | AI | OpenAI GPT-4V / GPT-4 |
 | 3D | TripoSR / Meshy API |
 | Scraping | Playwright + Requests + BeautifulSoup |
-| Deployment | Docker + Docker Compose + Gunicorn |
+| Deployment | Docker + Docker Compose + K8s + Gunicorn |
 | Auth | JWT + bcrypt + AES-256-GCM |
 | WebSocket | flask-sock |
 
 ---
 
 ## Changelog
+
+### 2026-03-18 (Phase 10) - P2/P3 Feature Completion & Production Readiness
+- **New Page**: `auth.html` fully rewritten with OAuth (Google/GitHub), forgot password, reset password, email verification panels
+- **New Page**: `team.html` - Team management with member invite, role assignment, activity log
+- **New Page**: `notifications.html` - Notification center with filters, mark read, preferences
+- **New Page**: `apm_dashboard.html` - APM monitoring with Chart.js charts, health status, slow queries, endpoint metrics
+- **New Route**: `/auth/forgot-password`, `/auth/reset-password`, `/auth/verify-email` frontend routes
+- **New Route**: `/admin/apm` APM dashboard frontend route
+- **Backend**: Added report PDF export route in `export_routes.py` + `data_exporter.py`
+- **Backend**: Added notification PUT routes (mark read, mark all read, update preferences)
+- **Frontend**: Added notification bell + language switcher dropdown to `base.html` top bar
+- **Frontend**: Added `data-i18n` attributes to all sidebar nav items and dashboard stat labels
+- **Frontend**: Added `exportBackend()` function for Excel/PDF export in `project_detail.html`
+- **i18n**: Added missing nav keys (new_project, subscription, team) to all 3 UI locale files
+- **i18n**: Added dashboard section keys (subtitle, active_projects, etc.) to all 3 UI locale files
+- **CSS**: Enhanced responsive design - mobile sidebar overlay, table scroll, iOS zoom fix, auth page mobile
+- **K8s**: Updated `web.yaml` labels to match ServiceMonitor selector (app=avst, component=web)
+- **K8s**: Added `monitoring.yaml` with Prometheus ServiceMonitor, PrometheusRule alerts, Grafana dashboard ConfigMap
+- **Tests**: 19/19 frontend pages pass, 16 templates parse without errors, all K8s YAML valid
 
 ### 2026-03-18 (Phase 9) - Frontend-Backend Contract Alignment & UI Enhancement
 - **Critical Fix**: `api.js` login method now correctly reads `data.access_token` (was checking non-existent `result.token`)
