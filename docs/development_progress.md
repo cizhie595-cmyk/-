@@ -134,7 +134,10 @@ Amazon Visionary Sourcing Tool
 ├── utils/
 │   ├── file_upload_parser.py
 │   ├── logger.py
-│   └── http_client.py
+│   ├── http_client.py
+│   ├── error_handler.py        # Global exception handler + HTML error pages
+│   ├── swagger_config.py       # OpenAPI 3.0 spec (105 paths)
+│   └── data_exporter.py        # CSV/Excel/PDF export
 ├── frontend/
 │   ├── routes.py               # Page URL routing (PRD-aligned)
 │   ├── templates/ (16 pages)
@@ -143,8 +146,8 @@ Amazon Visionary Sourcing Tool
 │       └── js/api.js           # API client + quota interception
 ├── chrome_extension/           # Chrome Manifest V3 plugin + WebSocket
 ├── database/
-│   ├── schema.sql
-│   └── migrations/ (4 scripts)
+│   ├── schema.sql              # Complete DDL (31 tables)
+│   └── migrations/ (8 scripts)
 ├── Dockerfile
 ├── docker-compose.yml
 └── docs/
@@ -170,6 +173,17 @@ Amazon Visionary Sourcing Tool
 ---
 
 ## Changelog
+
+### 2026-03-18 (Phase 12) - Schema Overhaul, Error Pages, Favicon & Meta
+- **Database**: Rewrote `schema.sql` from 13 tables to 31 tables (complete one-stop DDL including all migration tables)
+- **Database**: Added `users` table with all fields (ai_settings, subscription, oauth, email_verification)
+- **Database**: Fixed migration script numbering conflict (003/004 duplicates -> 005-008 renumbered)
+- **Error Pages**: Created `errors/403.html`, `errors/404.html`, `errors/500.html` with animations and dark theme
+- **Error Handler**: Enhanced `_wants_json()` helper - API paths return JSON, browser requests return HTML error pages
+- **Favicon**: Added SVG favicon (CS logo, purple gradient) at `/favicon.svg`
+- **SEO**: Added `robots.txt` (disallow /api/, /auth, /dashboard), meta description, theme-color
+- **Routes**: Added `/robots.txt` and `/favicon.svg` Flask routes in `app.py`
+- **Tests**: 24/24 frontend pages pass, 51/51 Mock tests pass, 8/8 K8s YAML valid, 31 DB tables verified
 
 ### 2026-03-18 (Phase 11) - Swagger API Docs + i18n Full Coverage + Mock Tests
 - **Swagger/OpenAPI 3.0**: Expanded from 13 paths to 105 paths, 115 operations, 18 tags, 8 schemas
