@@ -1,6 +1,6 @@
 """
 Coupang 选品系统 - 用户认证 API 路由
-提供: 注册、登录、Token刷新、登出 等接口
+提供: 注册、登录、Token刷新、登出、邮箱验证、密码重置 等接口
 """
 
 from flask import Blueprint, request, jsonify, g
@@ -16,7 +16,12 @@ from auth.jwt_handler import (
     create_refresh_token,
     verify_refresh_token,
     refresh_access_token,
+    create_email_verification_token,
+    create_password_reset_token,
+    verify_email_verification_token,
+    verify_password_reset_token,
 )
+from utils.email_sender import send_verification_email, send_password_reset_email
 from auth.middleware import login_required, admin_required
 from utils.logger import get_logger
 
@@ -100,9 +105,16 @@ def register():
 
     logger.info(f"新用户注册: {username} ({email})")
 
+    # 发送邮箱验证邮件
+    try:
+        verify_token = create_email_verification_token(user_id, email)
+        send_verification_email(email, username, verify_token, language)
+    except Exception as e:
+        logger.warning(f"验证邮件发送失败: {e}")
+
     return jsonify({
         "success": True,
-        "message": "注册成功",
+        "message": "注册成功，请查收验证邮件",
         "data": {
             "user_id": user_id,
             "username": username,
@@ -110,6 +122,7 @@ def register():
             "access_token": access_token,
             "refresh_token": refresh_token,
             "token_type": "Bearer",
+            "email_verified": False,
         }
     }), 201
 
@@ -330,6 +343,151 @@ def change_password():
         return jsonify({"success": True, "message": message}), 200
     else:
         return jsonify({"success": False, "message": message}), 400
+
+
+# ============================================================
+# GET /api/auth/verify-email - 邮箱验证
+# ============================================================
+@auth_bp.route("/verify-email", methods=["GET"])
+def verify_email():
+    """
+    验证邮箱
+    通过 URL 参数 token 验证邮箱地址
+    """
+    token = request.args.get("token", "")
+    if not token:
+        return jsonify({"success": False, "message": "缺少验证 Token"}), 400
+
+    result = verify_email_verification_token(token)
+    if not result:
+        return jsonify({"success": False, "message": "验证链接无效或已过期"}), 400
+
+    user_id = result["user_id"]
+    email = result["email"]
+
+    # 更新验证状态
+    success = UserModel.set_email_verified(user_id, email)
+    if success:
+        logger.info(f"邮箱验证成功: user_id={user_id}, email={email}")
+        return jsonify({"success": True, "message": "邮箱验证成功"}), 200
+    else:
+        return jsonify({"success": False, "message": "验证失败，请重试"}), 400
+
+
+# ============================================================
+# POST /api/auth/resend-verification - 重新发送验证邮件
+# ============================================================
+@auth_bp.route("/resend-verification", methods=["POST"])
+@login_required
+def resend_verification():
+    """
+    重新发送邮箱验证邮件
+    限制: 每个用户每小时最多 3 次
+    """
+    user_id = g.current_user["user_id"]
+    user = UserModel.get_by_id(user_id)
+
+    if not user:
+        return jsonify({"success": False, "message": "用户不存在"}), 404
+
+    if user.get("is_verified"):
+        return jsonify({"success": False, "message": "邮箱已验证，无需重复操作"}), 400
+
+    # 生成新的验证 Token 并发送
+    verify_token = create_email_verification_token(user_id, user["email"])
+    sent = send_verification_email(
+        user["email"], user["username"], verify_token,
+        user.get("language", "zh_CN")
+    )
+
+    if sent:
+        return jsonify({"success": True, "message": "验证邮件已发送，请查收"}), 200
+    else:
+        return jsonify({"success": False, "message": "邮件发送失败，请稍后重试"}), 500
+
+
+# ============================================================
+# POST /api/auth/forgot-password - 忘记密码
+# ============================================================
+@auth_bp.route("/forgot-password", methods=["POST"])
+def forgot_password():
+    """
+    忘记密码 - 发送密码重置邮件
+
+    请求体 (JSON):
+    {
+        "email": "user@example.com"
+    }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "message": "请求体不能为空"}), 400
+
+    email = data.get("email", "").strip()
+    if not email:
+        return jsonify({"success": False, "message": "邮箱不能为空"}), 400
+
+    # 无论用户是否存在，都返回相同的成功响应（防止邮箱枚举攻击）
+    user = UserModel.get_by_email(email)
+    if user:
+        reset_token = create_password_reset_token(user["id"], email)
+        send_password_reset_email(
+            email, user["username"], reset_token,
+            user.get("language", "zh_CN")
+        )
+        logger.info(f"密码重置邮件已发送: {email}")
+
+    return jsonify({
+        "success": True,
+        "message": "如果该邮箱已注册，您将收到一封密码重置邮件"
+    }), 200
+
+
+# ============================================================
+# POST /api/auth/reset-password - 重置密码
+# ============================================================
+@auth_bp.route("/reset-password", methods=["POST"])
+def reset_password():
+    """
+    重置密码
+
+    请求体 (JSON):
+    {
+        "token": "eyJ...",
+        "new_password": "NewPass456"
+    }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "message": "请求体不能为空"}), 400
+
+    token = data.get("token", "")
+    new_password = data.get("new_password", "")
+
+    if not token:
+        return jsonify({"success": False, "message": "缺少重置 Token"}), 400
+    if not new_password:
+        return jsonify({"success": False, "message": "新密码不能为空"}), 400
+
+    # 验证新密码强度
+    valid, msg = validate_password_strength(new_password)
+    if not valid:
+        return jsonify({"success": False, "message": msg}), 400
+
+    # 验证 Token
+    result = verify_password_reset_token(token)
+    if not result:
+        return jsonify({"success": False, "message": "重置链接无效或已过期"}), 400
+
+    user_id = result["user_id"]
+
+    # 重置密码
+    success = UserModel.reset_password(user_id, new_password)
+    if success:
+        logger.info(f"密码重置成功: user_id={user_id}")
+        return jsonify({"success": True, "message": "密码重置成功，请使用新密码登录"}), 200
+    else:
+        return jsonify({"success": False, "message": "密码重置失败，请重试"}), 400
 
 
 # ============================================================

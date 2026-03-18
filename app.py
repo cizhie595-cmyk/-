@@ -88,6 +88,16 @@ def create_app() -> Flask:
         }
     })
 
+    # === API 限流中间件 ===
+    try:
+        from auth.rate_limiter import init_rate_limiter
+        limiter = init_rate_limiter(app)
+        if limiter:
+            app.extensions["limiter"] = limiter
+            logger.info("[App] API 限流中间件已启用")
+    except Exception as rl_err:
+        logger.warning(f"API 限流初始化失败 (非必要): {rl_err}")
+
     # === 注册蓝图 (路由模块) ===
     from api.auth_routes import auth_bp
     app.register_blueprint(auth_bp)
@@ -121,6 +131,52 @@ def create_app() -> Flask:
 
     from api.dashboard_routes import dashboard_bp
     app.register_blueprint(dashboard_bp)
+
+    # Stripe 支付路由
+    from api.stripe_routes import stripe_bp
+    app.register_blueprint(stripe_bp)
+
+    # 审计日志路由
+    from api.audit_routes import audit_bp
+    app.register_blueprint(audit_bp)
+
+    # SSE 任务状态推送路由
+    from api.sse_routes import sse_bp
+    app.register_blueprint(sse_bp)
+
+    # OAuth 第三方登录路由
+    from api.oauth_routes import oauth_bp
+    app.register_blueprint(oauth_bp)
+
+    # 数据导出路由
+    from api.export_routes import export_bp
+    app.register_blueprint(export_bp)
+
+    # 团队协作路由
+    from api.team_routes import team_bp
+    app.register_blueprint(team_bp)
+
+    # 通知系统路由
+    from api.notification_routes import notification_bp
+    app.register_blueprint(notification_bp)
+
+    # 数据清理与归档路由
+    from api.cleanup_routes import cleanup_bp
+    app.register_blueprint(cleanup_bp)
+
+    # API 文档 (Swagger UI)
+    from api.swagger_routes import swagger_bp
+    app.register_blueprint(swagger_bp)
+
+    # 前端国际化 API
+    from api.i18n_routes import i18n_bp
+    app.register_blueprint(i18n_bp)
+
+    # APM 性能监控
+    from api.apm_routes import apm_bp
+    app.register_blueprint(apm_bp)
+    from utils.apm_monitor import init_apm
+    init_apm(app)
 
     # === WebSocket (Chrome 插件通信) ===
     try:
@@ -234,31 +290,8 @@ def create_app() -> Flask:
         })
 
     # === 全局错误处理 ===
-
-    @app.errorhandler(404)
-    def not_found(e):
-        return jsonify({
-            "success": False,
-            "error": "not_found",
-            "message": "请求的接口不存在",
-        }), 404
-
-    @app.errorhandler(405)
-    def method_not_allowed(e):
-        return jsonify({
-            "success": False,
-            "error": "method_not_allowed",
-            "message": "不支持的请求方法",
-        }), 405
-
-    @app.errorhandler(500)
-    def internal_error(e):
-        logger.error(f"服务器内部错误: {e}")
-        return jsonify({
-            "success": False,
-            "error": "internal_error",
-            "message": "服务器内部错误",
-        }), 500
+    from utils.error_handler import register_error_handlers
+    register_error_handlers(app)
 
     return app
 

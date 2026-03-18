@@ -1,0 +1,67 @@
+/* ============================================================
+   前端国际化 - 语言切换器样式
+   ============================================================ */
+
+.lang-switcher {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid var(--border, #334155);
+}
+
+.lang-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary, #94a3b8);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.lang-btn:hover {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--text-primary, #f1f5f9);
+}
+
+.lang-btn.active {
+    background: var(--primary, #6366f1);
+    color: white;
+    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+}
+
+.lang-flag {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.lang-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* 侧边栏中的语言切换器 */
+.sidebar .lang-switcher {
+    margin: 8px 16px;
+    justify-content: center;
+}
+
+/* 响应式: 小屏幕隐藏文字标签 */
+@media (max-width: 768px) {
+    .lang-label {
+        display: none;
+    }
+    .lang-btn {
+        padding: 6px 8px;
+    }
+}

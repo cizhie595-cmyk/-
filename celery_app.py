@@ -72,6 +72,10 @@ def make_celery(app_name: str = "coupang_selection") -> Celery:
                 "task": "tasks.scraping_tasks.cleanup_expired_tasks",
                 "schedule": 3600.0,  # 每小时执行一次
             },
+            "daily-data-cleanup": {
+                "task": "tasks.maintenance_tasks.run_data_cleanup",
+                "schedule": 86400.0,  # 每天执行一次
+            },
         },
     )
 

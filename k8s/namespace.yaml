@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: avst
+  labels:
+    app: amazon-visionary
+    environment: production

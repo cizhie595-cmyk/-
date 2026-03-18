@@ -7,10 +7,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/responsive.css">
+    <link rel="stylesheet" href="/static/css/i18n.css">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <div class="app-layout">
+        <!-- Sidebar Overlay (Mobile) -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
@@ -71,13 +75,15 @@
             </nav>
 
             <div class="sidebar-footer" style="padding: 16px; border-top: 1px solid var(--border);">
+                <!-- 语言切换器 -->
+                <div id="language-switcher" style="margin-bottom: 12px;"></div>
                 <div class="nav-item" id="user-info" style="margin: 0;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     <span id="user-name">Loading...</span>
                 </div>
                 <div class="nav-item" onclick="logout()" style="margin: 0; color: var(--danger);">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                    <span>Logout</span>
+                    <span data-i18n="nav.logout">Logout</span>
                 </div>
             </div>
         </aside>
@@ -87,7 +93,7 @@
             <!-- Top Status Bar (PRD 2.1 & 2.2) -->
             <header class="top-status-bar">
                 <!-- Sidebar Toggle (Mobile) -->
-                <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+                <button class="sidebar-toggle" onclick="toggleSidebar()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                 </button>
 
@@ -161,8 +167,26 @@
     </div>
 
     <script src="/static/js/api.js"></script>
+    <script src="/static/js/i18n.js"></script>
     <script>
         // ========== Global Functions ==========
+
+        // Sidebar toggle (mobile)
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+            document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+        }
+
+        // Close sidebar on ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar.classList.contains('open')) toggleSidebar();
+            }
+        });
 
         // Load user info
         (async function() {
