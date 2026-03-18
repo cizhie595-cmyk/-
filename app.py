@@ -152,6 +152,10 @@ def create_app() -> Flask:
     from api.export_routes import export_bp
     app.register_blueprint(export_bp)
 
+    # 团队协作路由
+    from api.team_routes import team_bp
+    app.register_blueprint(team_bp)
+
     # === WebSocket (Chrome 插件通信) ===
     try:
         from api.websocket_handler import register_websocket_routes
