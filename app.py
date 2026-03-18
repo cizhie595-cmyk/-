@@ -136,6 +136,10 @@ def create_app() -> Flask:
     from api.stripe_routes import stripe_bp
     app.register_blueprint(stripe_bp)
 
+    # 审计日志路由
+    from api.audit_routes import audit_bp
+    app.register_blueprint(audit_bp)
+
     # === WebSocket (Chrome 插件通信) ===
     try:
         from api.websocket_handler import register_websocket_routes
