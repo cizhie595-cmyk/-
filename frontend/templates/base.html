@@ -7,10 +7,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/responsive.css">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <div class="app-layout">
+        <!-- Sidebar Overlay (Mobile) -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
@@ -87,7 +90,7 @@
             <!-- Top Status Bar (PRD 2.1 & 2.2) -->
             <header class="top-status-bar">
                 <!-- Sidebar Toggle (Mobile) -->
-                <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+                <button class="sidebar-toggle" onclick="toggleSidebar()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                 </button>
 
@@ -163,6 +166,23 @@
     <script src="/static/js/api.js"></script>
     <script>
         // ========== Global Functions ==========
+
+        // Sidebar toggle (mobile)
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+            document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+        }
+
+        // Close sidebar on ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar.classList.contains('open')) toggleSidebar();
+            }
+        });
 
         // Load user info
         (async function() {
