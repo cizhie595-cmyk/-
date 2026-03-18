@@ -194,7 +194,7 @@ class APIClient {
     // ================================================================
 
     async createProject(data) {
-        return await this.request('POST', '/v1/projects', data);
+        return await this.request('POST', '/v1/projects/create', data);
     }
 
     async getProjects(params = {}) {
@@ -221,7 +221,7 @@ class APIClient {
     }
 
     async filterProducts(projectId, rules) {
-        return await this.request('POST', `/v1/projects/${projectId}/filter`, { rules });
+        return await this.request('POST', `/v1/projects/${projectId}/filter/rules`, { rules });
     }
 
     async aiFilter(projectId, description) {

@@ -824,3 +824,99 @@ def get_report_data(current_user, project_id):
     report_data["has_data"] = bool(visual_results or review_results or profit_data)
 
     return jsonify({"success": True, "data": report_data})
+
+
+# ============================================================
+# 单个产品详情 + 风险分析 (供 product_analysis.html 使用)
+# ============================================================
+
+@analysis_bp.route("/product/<asin>", methods=["GET"])
+@login_required
+def get_product_detail(current_user, asin):
+    """获取单个产品的详情数据和风险分析结果"""
+    user_id = current_user["user_id"]
+
+    product_data = {
+        "asin": asin,
+        "title": None,
+        "image_url": None,
+        "price": None,
+        "rating": None,
+        "review_count": None,
+        "bsr": None,
+        "est_sales_30d": None,
+        "fulfillment": None,
+        "brand": None,
+        "category": None,
+        "risk_scores": None,
+        "risk_assessment": None,
+    }
+
+    db = _get_db()
+    if db:
+        # 从 project_products 表获取产品基本信息
+        row = db.fetch_one("""
+            SELECT pp.asin, pp.title, pp.image_url, pp.price_current AS price,
+                   pp.rating, pp.review_count, pp.bsr_current AS bsr,
+                   pp.est_sales_30d, pp.fulfillment_type AS fulfillment,
+                   pp.brand, pp.category_name AS category
+            FROM project_products pp
+            JOIN sourcing_projects sp ON pp.project_id = sp.id
+            WHERE pp.asin = %s AND sp.user_id = %s
+            ORDER BY pp.created_at DESC LIMIT 1
+        """, (asin, user_id))
+
+        if row:
+            for key in product_data:
+                if key in row and row[key] is not None:
+                    product_data[key] = row[key]
+
+        # 从已完成的分析任务中获取风险评分
+        visual_task = db.fetch_one("""
+            SELECT result FROM analysis_tasks
+            WHERE asin = %s AND user_id = %s AND task_type = 'visual'
+                  AND status = 'completed' AND result IS NOT NULL
+            ORDER BY created_at DESC LIMIT 1
+        """, (asin, user_id))
+
+        if visual_task and visual_task.get("result"):
+            try:
+                result = visual_task["result"]
+                if isinstance(result, str):
+                    result = json.loads(result)
+                # 提取风险评分
+                if result.get("risk_scores"):
+                    product_data["risk_scores"] = result["risk_scores"]
+                elif result.get("assessment", {}).get("risk_scores"):
+                    product_data["risk_scores"] = result["assessment"]["risk_scores"]
+                # 提取 AI 风险评估
+                if result.get("risk_assessment"):
+                    product_data["risk_assessment"] = result["risk_assessment"]
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+    # 如果没有风险评分，尝试用 risk_analyzer 实时计算
+    if not product_data["risk_scores"] and product_data["title"]:
+        try:
+            from analysis.risk_analyzer import RiskAnalyzer
+            analyzer = RiskAnalyzer()
+            risk_result = analyzer.analyze_risks(asin, product_data["title"], {
+                "price": product_data.get("price"),
+                "rating": product_data.get("rating"),
+                "review_count": product_data.get("review_count"),
+                "bsr": product_data.get("bsr"),
+            })
+            if risk_result and risk_result.get("scores"):
+                product_data["risk_scores"] = risk_result["scores"]
+            if risk_result and risk_result.get("assessment"):
+                product_data["risk_assessment"] = {
+                    "saturation": risk_result["assessment"].get("market_saturation", "N/A"),
+                    "barrier": risk_result["assessment"].get("entry_barrier", "N/A"),
+                    "sustainability": risk_result["assessment"].get("profit_sustainability", "N/A"),
+                    "ip_risk": risk_result["assessment"].get("ip_risk", "N/A"),
+                    "recommendation": risk_result["assessment"].get("recommendation", "N/A"),
+                }
+        except Exception as e:
+            logger.warning(f"实时风险分析失败: {e}")
+
+    return jsonify({"success": True, "data": product_data})

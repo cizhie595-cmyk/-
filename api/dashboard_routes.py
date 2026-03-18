@@ -214,3 +214,151 @@ def get_activity_chart(current_user):
             "analyses": analysis_data,
         },
     })
+
+
+@dashboard_bp.route("/activities", methods=["GET"])
+@login_required
+def get_recent_activities(current_user):
+    """
+    获取最近活动列表
+
+    返回:
+        activities: list - 最近活动列表，每项包含:
+            type: str - 活动类型 (project_created, scrape_completed, analysis_completed, 3d_generated)
+            title: str - 活动标题
+            description: str - 活动描述
+            time: str - 时间 (ISO format)
+            status: str - 状态 (success, pending, failed)
+    """
+    user_id = current_user["user_id"]
+    db = _get_db()
+    activities = []
+
+    if db:
+        try:
+            # 最近项目创建
+            rows = db.fetch_all("""
+                SELECT name, keyword, marketplace_id, status, created_at
+                FROM sourcing_projects
+                WHERE user_id = %s
+                ORDER BY created_at DESC LIMIT 10
+            """, (user_id,))
+            for row in rows:
+                status = "success" if row["status"] in ("scraped", "filtered", "completed") else \
+                         "failed" if row["status"] == "failed" else "pending"
+                activities.append({
+                    "type": "project_created",
+                    "title": f"Project: {row['name']}",
+                    "description": f"Keyword: {row.get('keyword', 'N/A')} | Market: {row.get('marketplace_id', 'N/A')}",
+                    "time": row["created_at"].isoformat() if row.get("created_at") else None,
+                    "status": status,
+                })
+        except Exception as e:
+            logger.debug(f"查询项目活动失败: {e}")
+
+        try:
+            # 最近分析任务
+            rows = db.fetch_all("""
+                SELECT task_type, asin, status, created_at
+                FROM analysis_tasks
+                WHERE user_id = %s
+                ORDER BY created_at DESC LIMIT 10
+            """, (user_id,))
+            for row in rows:
+                type_label = {"visual": "Visual Analysis", "reviews": "Review Analysis",
+                              "report": "Report Generation"}.get(row["task_type"], row["task_type"])
+                status = "success" if row["status"] == "completed" else \
+                         "failed" if row["status"] == "failed" else "pending"
+                activities.append({
+                    "type": "analysis_completed",
+                    "title": type_label,
+                    "description": f"ASIN: {row.get('asin', 'N/A')}",
+                    "time": row["created_at"].isoformat() if row.get("created_at") else None,
+                    "status": status,
+                })
+        except Exception as e:
+            logger.debug(f"查询分析活动失败: {e}")
+
+        try:
+            # 最近 3D 模型
+            rows = db.fetch_all("""
+                SELECT model_name, status, created_at
+                FROM assets_3d
+                WHERE user_id = %s
+                ORDER BY created_at DESC LIMIT 5
+            """, (user_id,))
+            for row in rows:
+                status = "success" if row["status"] == "completed" else \
+                         "failed" if row["status"] == "failed" else "pending"
+                activities.append({
+                    "type": "3d_generated",
+                    "title": f"3D Model: {row.get('model_name', 'Untitled')}",
+                    "description": "3D model generation",
+                    "time": row["created_at"].isoformat() if row.get("created_at") else None,
+                    "status": status,
+                })
+        except Exception as e:
+            logger.debug(f"查询3D活动失败: {e}")
+    else:
+        # 内存降级
+        try:
+            from api.project_routes import _mem_projects
+            for pid, p in sorted(_mem_projects.items(),
+                                 key=lambda x: x[1].get("created_at", ""), reverse=True)[:10]:
+                if p.get("user_id") != user_id:
+                    continue
+                status = "success" if p["status"] in ("scraped", "filtered", "completed") else \
+                         "failed" if p["status"] == "failed" else "pending"
+                activities.append({
+                    "type": "project_created",
+                    "title": f"Project: {p.get('name', 'Untitled')}",
+                    "description": f"Keyword: {p.get('keyword', 'N/A')}",
+                    "time": p.get("created_at"),
+                    "status": status,
+                })
+        except Exception:
+            pass
+
+        try:
+            from api.analysis_routes import _mem_tasks
+            for tid, t in sorted(_mem_tasks.items(),
+                                 key=lambda x: x[1].get("created_at", ""), reverse=True)[:10]:
+                if t.get("user_id") != user_id:
+                    continue
+                type_label = {"visual": "Visual Analysis", "reviews": "Review Analysis",
+                              "report": "Report Generation"}.get(t.get("task_type", ""), t.get("task_type", ""))
+                status = "success" if t["status"] == "completed" else \
+                         "failed" if t["status"] == "failed" else "pending"
+                activities.append({
+                    "type": "analysis_completed",
+                    "title": type_label,
+                    "description": f"ASIN: {t.get('asin', 'N/A')}",
+                    "time": t.get("created_at"),
+                    "status": status,
+                })
+        except Exception:
+            pass
+
+        try:
+            from api.threed_routes import _mem_assets
+            for aid, a in sorted(_mem_assets.items(),
+                                 key=lambda x: x[1].get("created_at", ""), reverse=True)[:5]:
+                if a.get("user_id") != user_id:
+                    continue
+                status = "success" if a["status"] == "completed" else \
+                         "failed" if a["status"] == "failed" else "pending"
+                activities.append({
+                    "type": "3d_generated",
+                    "title": f"3D Model: {a.get('model_name', 'Untitled')}",
+                    "description": "3D model generation",
+                    "time": a.get("created_at"),
+                    "status": status,
+                })
+        except Exception:
+            pass
+
+    # 按时间排序
+    activities.sort(key=lambda x: x.get("time") or "", reverse=True)
+    activities = activities[:20]
+
+    return jsonify({"success": True, "data": {"activities": activities}})

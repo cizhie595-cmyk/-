@@ -203,11 +203,12 @@ let activityChart = null;
 async function loadDashboard() {
     try {
         // 并行加载所有数据
-        const [quota, projects, dashStats, chartData] = await Promise.all([
+        const [quota, projects, dashStats, chartData, activitiesData] = await Promise.all([
             api.getQuota().catch(() => null),
             api.getProjects().catch(() => null),
             api.request('GET', '/v1/dashboard/stats').catch(() => null),
             api.request('GET', '/v1/dashboard/activity-chart').catch(() => null),
+            api.request('GET', '/v1/dashboard/activities').catch(() => null),
         ]);
 
         // ── Dashboard 统计 ──
@@ -279,8 +280,14 @@ async function loadDashboard() {
                 `).join('');
             }
 
-            // 渲染最近活动
-            renderRecentActivity(list);
+            // 渲染最近活动（优先使用活动列表API，降级到项目列表）
+            if (activitiesData && activitiesData.data && activitiesData.data.activities && activitiesData.data.activities.length > 0) {
+                renderRecentActivity(null, activitiesData.data.activities);
+            } else {
+                renderRecentActivity(list, null);
+            }
+        } else if (activitiesData && activitiesData.data && activitiesData.data.activities) {
+            renderRecentActivity(null, activitiesData.data.activities);
         }
 
         // ── 活动图表 ──
@@ -295,21 +302,46 @@ async function loadDashboard() {
     }
 }
 
-function renderRecentActivity(projects) {
+function renderRecentActivity(projects, apiActivities) {
     const container = document.getElementById('activity-list');
     const activities = [];
 
-    // 从项目中提取最近活动
-    projects.slice(0, 5).forEach(p => {
-        activities.push({
-            icon: p.status === 'completed' ? '&#10003;' : '&#9881;',
-            iconColor: p.status === 'completed' ? 'var(--success)' : 'var(--warning)',
-            title: `Project "${p.name || 'Untitled'}" - ${p.status || 'draft'}`,
-            subtitle: `${p.marketplace || 'US'} &middot; ${p.product_count || 0} products`,
-            time: p.created_at ? formatDate(p.created_at) : '-',
-            link: `/projects/${p.id}`,
+    if (apiActivities && apiActivities.length > 0) {
+        // 使用活动列表 API 数据
+        apiActivities.slice(0, 8).forEach(a => {
+            const iconMap = {
+                'project_created': { icon: '&#128230;', color: 'var(--primary)' },
+                'analysis_completed': { icon: '&#128300;', color: 'var(--info, #3b82f6)' },
+                '3d_generated': { icon: '&#127922;', color: 'var(--accent, #8b5cf6)' },
+            };
+            const statusColorMap = {
+                'success': 'var(--success)',
+                'pending': 'var(--warning)',
+                'failed': 'var(--danger, #ef4444)',
+            };
+            const ic = iconMap[a.type] || { icon: '&#9881;', color: 'var(--text-muted)' };
+            activities.push({
+                icon: ic.icon,
+                iconColor: statusColorMap[a.status] || ic.color,
+                title: a.title || 'Activity',
+                subtitle: a.description || '',
+                time: a.time ? formatDate(a.time) : '-',
+                link: '#',
+            });
         });
-    });
+    } else if (projects && projects.length > 0) {
+        // 降级：从项目列表提取活动
+        projects.slice(0, 5).forEach(p => {
+            activities.push({
+                icon: p.status === 'completed' ? '&#10003;' : '&#9881;',
+                iconColor: p.status === 'completed' ? 'var(--success)' : 'var(--warning)',
+                title: `Project "${p.name || 'Untitled'}" - ${p.status || 'draft'}`,
+                subtitle: `${p.marketplace || 'US'} &middot; ${p.product_count || 0} products`,
+                time: p.created_at ? formatDate(p.created_at) : '-',
+                link: `/projects/${p.id}`,
+            });
+        });
+    }
 
     if (activities.length === 0) {
         container.innerHTML = `<div class="text-center text-muted" style="padding: 32px;">No recent activity</div>`;

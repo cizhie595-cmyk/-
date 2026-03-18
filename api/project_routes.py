@@ -558,6 +558,133 @@ def _apply_mem_filters(products: list, args) -> list:
     return filtered
 
 
+@project_bp.route("/<project_id>/filter/rules", methods=["POST"])
+@login_required
+def rule_filter(current_user, project_id):
+    """规则过滤：根据用户设定的规则过滤产品"""
+    user_id = current_user["user_id"]
+
+    db = _get_db()
+    if db:
+        project = _db_get_project(db, project_id, user_id)
+    else:
+        project = _mem_projects.get(project_id)
+        if project and project["user_id"] != user_id:
+            project = None
+
+    if not project:
+        return jsonify({"success": False, "error": "项目不存在"}), 404
+
+    data = request.get_json() or {}
+    rules = data.get("rules", {})
+    if not rules:
+        return jsonify({"success": False, "error": "请提供过滤规则"}), 400
+
+    min_price = rules.get("min_price")
+    max_price = rules.get("max_price")
+    min_reviews = rules.get("min_reviews")
+    max_reviews = rules.get("max_reviews")
+    min_rating = rules.get("min_rating")
+    min_monthly_sales = rules.get("min_monthly_sales")
+    exclude_brands = rules.get("exclude_brands", [])
+
+    if db:
+        # 获取未过滤的产品
+        rows = db.fetch_all(
+            "SELECT * FROM project_products WHERE project_id = %s AND is_filtered = 0",
+            (project_id,)
+        )
+        filtered_asins = []
+        for p in rows:
+            price = p.get("price_current") or p.get("price") or 0
+            reviews = p.get("review_count") or 0
+            rating = p.get("rating") or 0
+            sales = p.get("est_sales_30d") or 0
+            brand = (p.get("brand") or "").lower()
+
+            should_filter = False
+            if min_price and price < min_price:
+                should_filter = True
+            if max_price and price > max_price:
+                should_filter = True
+            if min_reviews and reviews < min_reviews:
+                should_filter = True
+            if max_reviews and reviews > max_reviews:
+                should_filter = True
+            if min_rating and rating < min_rating:
+                should_filter = True
+            if min_monthly_sales and sales < min_monthly_sales:
+                should_filter = True
+            if exclude_brands and brand in [b.lower() for b in exclude_brands]:
+                should_filter = True
+
+            if should_filter:
+                filtered_asins.append(p.get("asin"))
+
+        if filtered_asins:
+            placeholders = ", ".join(["%s"] * len(filtered_asins))
+            db.execute(f"""
+                UPDATE project_products
+                SET is_filtered = 1, filter_reason = 'rule_filter'
+                WHERE project_id = %s AND asin IN ({placeholders})
+            """, (project_id, *filtered_asins))
+
+        total_before = len(rows)
+        total_after = total_before - len(filtered_asins)
+
+        _db_update_project_status(
+            db, project_id, "filtered",
+            filtered_count=total_after
+        )
+    else:
+        # 内存降级
+        products = _mem_products.get(project_id, [])
+        filtered_count = 0
+        for p in products:
+            if p.get("is_filtered"):
+                continue
+            price = p.get("price") or p.get("price_current") or 0
+            reviews = p.get("review_count") or 0
+            rating = p.get("rating") or 0
+            sales = p.get("est_sales_30d") or 0
+            brand = (p.get("brand") or "").lower()
+
+            should_filter = False
+            if min_price and price < min_price:
+                should_filter = True
+            if max_price and price > max_price:
+                should_filter = True
+            if min_reviews and reviews < min_reviews:
+                should_filter = True
+            if max_reviews and reviews > max_reviews:
+                should_filter = True
+            if min_rating and rating < min_rating:
+                should_filter = True
+            if min_monthly_sales and sales < min_monthly_sales:
+                should_filter = True
+            if exclude_brands and brand in [b.lower() for b in exclude_brands]:
+                should_filter = True
+
+            if should_filter:
+                p["is_filtered"] = True
+                p["filter_reason"] = "rule_filter"
+                filtered_count += 1
+
+        total_before = len([p for p in products])
+        total_after = len([p for p in products if not p.get("is_filtered")])
+
+    logger.info(f"用户 {user_id} 规则过滤项目 {project_id}: {total_before} -> {total_after}")
+
+    return jsonify({
+        "success": True,
+        "data": {
+            "total_before": total_before,
+            "total_after": total_after,
+            "rules_applied": rules,
+        },
+    })
+
+
 @project_bp.route("/<project_id>/filter/ai", methods=["POST"])
 @login_required
 @quota_required("analysis")
