@@ -156,6 +156,10 @@ def create_app() -> Flask:
     from api.team_routes import team_bp
     app.register_blueprint(team_bp)
 
+    # 通知系统路由
+    from api.notification_routes import notification_bp
+    app.register_blueprint(notification_bp)
+
     # === WebSocket (Chrome 插件通信) ===
     try:
         from api.websocket_handler import register_websocket_routes
