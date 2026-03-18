@@ -3,7 +3,7 @@
 {% block content %}
 <div class="top-bar">
     <div>
-        <h2 class="page-title">New Sourcing Project</h2>
+        <h2 class="page-title" data-i18n="new_project.title">New Sourcing Project</h2>
         <p class="page-subtitle">Configure and launch a new product sourcing analysis</p>
     </div>
 </div>
@@ -11,7 +11,7 @@
 <div class="card-grid card-grid-2">
     <!-- Left: Project Config -->
     <div class="card">
-        <h3 class="card-title mb-md">Project Configuration</h3>
+        <h3 class="card-title mb-md" data-i18n="new_project.config">Project Configuration</h3>
 
         <form id="project-form" onsubmit="createProject(event)">
             <div class="form-group">
@@ -110,7 +110,7 @@
     <!-- Right: Preview & Tips -->
     <div>
         <div class="card mb-lg">
-            <h3 class="card-title mb-md">Analysis Pipeline</h3>
+            <h3 class="card-title mb-md" data-i18n="new_project.pipeline">Analysis Pipeline</h3>
             <div id="pipeline-steps">
                 <div class="pipeline-step">
                     <div class="step-number">1</div>
@@ -158,7 +158,7 @@
         </div>
 
         <div class="card">
-            <h3 class="card-title mb-md">Quota Usage</h3>
+            <h3 class="card-title mb-md" data-i18n="new_project.quota_usage">Quota Usage</h3>
             <div id="quota-info">
                 <div class="flex-between mb-md">
                     <span class="text-muted">Plan</span>

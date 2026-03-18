@@ -24,7 +24,7 @@
 │  ├── alibaba1688/ (以图搜货)     │  ├── market_analysis/           │
 │  └── google_trends.py            │  └── model_3d/ (3D生成+视频渲染) │
 ├──────────────────────────────────────────────────────────────────┤
-│  api/ (12个蓝图)   │  auth/ (JWT+AES)  │  frontend/ (12个页面)     │
+│  api/ (23个蓝图)   │  auth/ (JWT+AES)  │  frontend/ (16个页面)     │
 │  tasks/ (Celery)   │  monetization/    │  chrome_extension/        │
 │  database/         │  i18n/            │  docker/                  │
 └──────────────────────────────────────────────────────────────────┘
@@ -70,7 +70,7 @@
 | 30 天标准化 | Sales_30D/Revenue_30D/CVR_30D 归一化评分 |
 | Amazon 数据筛选 | Amazon 专用数据清洗与筛选 |
 
-### Web 前端（12 个页面）
+### Web 前端（16 个页面）
 
 | 页面 | 路由 | 说明 |
 |------|------|------|
@@ -85,9 +85,13 @@
 | 3D 实验室 | `/3d-lab` | Three.js 3D 模型预览 + 视频渲染 |
 | 订阅管理 | `/settings/subscription` | 三档订阅计划 |
 | AI 设置 | `/settings/ai` | AI 服务商配置 |
-| API 密钥 | `/settings/api-keys` | 第三方 API 密钥管理 |
+| AI 密钥 | `/settings/api-keys` | 第三方 API 密钥管理 |
+| 团队管理 | `/settings/team` | 团队协作 + 成员管理 |
+| 通知中心 | `/notifications` | 站内通知 + 偏好设置 |
+| APM 监控 | `/admin/apm` | 系统性能监控面板 |
+| API 文档 | `/api/docs` | Swagger/OpenAPI 交互式文档 |
 
-### REST API（13 个蓝图）
+### REST API（23 个蓝图）
 
 | 蓝图 | 前缀 | 说明 |
 |------|------|------|
@@ -104,6 +108,16 @@
 | Monetization | `/api/subscription` | 订阅管理 + Affiliate |
 | AI Config | `/api/ai` | AI 服务商配置 |
 | API Keys | `/api/keys` | 第三方 API 密钥加密存储 |
+| OAuth | `/api/oauth` | Google/GitHub 第三方登录 |
+| Stripe | `/api/stripe` | Stripe 支付集成 |
+| Teams | `/api/v1/teams` | 团队协作管理 |
+| Notifications | `/api/v1/notifications` | 站内通知系统 |
+| Export | `/api/v1/export` | 数据导出（CSV/Excel/PDF） |
+| Audit | `/api/audit` | 操作审计日志 |
+| SSE | `/api/sse` | Server-Sent Events 实时推送 |
+| i18n | `/api/i18n` | 国际化语言包 API |
+| Swagger | `/api/docs` | OpenAPI 3.0 交互式文档 |
+| APM | `/api/v1/admin/apm` | 性能监控数据 |
 
 ## 技术栈
 
@@ -116,8 +130,10 @@
 | AI | OpenAI GPT-4V / GPT-4 |
 | 3D | TripoSR / Meshy API |
 | 爬虫 | Playwright + Requests + BeautifulSoup |
-| 部署 | Docker + Docker Compose + Gunicorn |
-| 认证 | JWT + bcrypt + AES-256-GCM |
+| 部署 | Docker + Docker Compose + K8s + Gunicorn |
+| 认证 | JWT + bcrypt + AES-256-GCM + OAuth 2.0 |
+| 支付 | Stripe Checkout + Customer Portal |
+| 监控 | Prometheus + Grafana + APM |
 | WebSocket | flask-sock |
 
 ## 快速开始
@@ -188,7 +204,7 @@ coupang-product-selection/
 ├── Dockerfile                       # Docker 镜像
 ├── docker-compose.yml               # Docker Compose 编排
 │
-├── api/                             # REST API 路由（13 个蓝图）
+├── api/                             # REST API 路由（23 个蓝图）
 │   ├── auth_routes.py               # 认证 + 额度
 │   ├── dashboard_routes.py          # 仪表盘统计 + 活动图表
 │   ├── project_routes.py            # 选品项目管理
@@ -200,7 +216,18 @@ coupang-product-selection/
 │   ├── websocket_handler.py         # Chrome 扩展 WebSocket
 │   ├── monetization_routes.py       # 订阅 + Affiliate
 │   ├── ai_config_routes.py          # AI 服务商配置
-│   └── api_keys_routes.py           # 第三方 API 密钥
+│   ├── api_keys_routes.py           # 第三方 API 密钥
+│   ├── oauth_routes.py              # OAuth 第三方登录
+│   ├── stripe_routes.py             # Stripe 支付
+│   ├── team_routes.py               # 团队协作
+│   ├── notification_routes.py       # 通知系统
+│   ├── export_routes.py             # 数据导出
+│   ├── audit_routes.py              # 审计日志
+│   ├── sse_routes.py                # SSE 实时推送
+│   ├── i18n_routes.py               # 国际化 API
+│   ├── swagger_routes.py            # Swagger 文档
+│   ├── apm_routes.py                # APM 监控
+│   └── cleanup_routes.py            # 数据清理
 │
 ├── auth/                            # 认证与安全
 │   ├── jwt_handler.py               # JWT Token 生成/验证
@@ -240,7 +267,7 @@ coupang-product-selection/
 │   └── threed_tasks.py              # 3D 生成 + 视频渲染任务
 │
 ├── frontend/                        # Web 前端
-│   ├── routes.py                    # 页面路由（12 个页面）
+│   ├── routes.py                    # 页面路由（16 个页面）
 │   ├── templates/                   # Jinja2 模板
 │   │   ├── base.html                # 基础布局（侧边栏 + 顶栏）
 │   │   ├── auth.html                # 登录/注册
@@ -254,7 +281,10 @@ coupang-product-selection/
 │   │   ├── threed_lab.html          # 3D 实验室
 │   │   ├── subscription.html        # 订阅管理
 │   │   ├── ai_settings.html         # AI 设置
-│   │   └── api_keys_settings.html   # API 密钥设置
+│   │   ├── api_keys_settings.html   # API 密钥设置
+│   │   ├── team.html                # 团队管理
+│   │   ├── notifications.html       # 通知中心
+│   │   └── apm_dashboard.html       # APM 监控面板
 │   └── static/
 │       ├── css/main.css             # 暗色主题 + 设计系统
 │       └── js/api.js                # API 客户端 + 额度拦截
@@ -277,7 +307,30 @@ coupang-product-selection/
 ├── tests/                           # 测试
 │   ├── conftest.py                  # 测试配置
 │   ├── test_all_modules.py          # 模块冒烟测试（20 项）
-│   └── test_api_integration.py      # API 集成测试（31 项）
+│   ├── test_api_integration.py      # API 集成测试（31 项）
+│   ├── test_scrapers.py             # 爬虫模块 Mock 测试（26 项）
+│   └── test_ai_analysis.py          # AI 分析模块 Mock 测试（25 项）
+│
+├── k8s/                             # Kubernetes 部署
+│   ├── web.yaml                     # Web 服务 Deployment + Service
+│   ├── worker.yaml                  # Celery Worker
+│   ├── mysql.yaml                   # MySQL StatefulSet
+│   ├── redis.yaml                   # Redis
+│   ├── ingress.yaml                 # Ingress 路由
+│   ├── configmap.yaml               # 配置
+│   ├── hpa.yaml                     # 自动伸缩
+│   └── monitoring.yaml              # Prometheus + Grafana
+│
+├── utils/                           # 工具模块
+│   ├── apm_monitor.py               # APM 性能监控
+│   ├── audit_logger.py              # 审计日志
+│   ├── data_cleaner.py              # 数据清理
+│   ├── data_exporter.py             # 数据导出
+│   ├── email_sender.py              # 邮件发送
+│   ├── error_handler.py             # 全局异常处理
+│   ├── notification_manager.py      # 通知管理
+│   ├── swagger_config.py            # OpenAPI 文档配置
+│   └── task_notifier.py             # SSE 任务通知
 │
 └── docs/                            # 文档
     └── development_progress.md      # 开发进度
@@ -350,14 +403,33 @@ coupang-product-selection/
 - [x] Celery 异步任务队列
 - [x] Chrome 扩展（Manifest V3 + WebSocket）
 - [x] Docker 部署配置
-- [x] Web 前端可视化界面（12 个页面）
-- [x] REST API（13 个蓝图）
+- [x] Web 前端可视化界面（16 个页面）
+- [x] REST API（23 个蓝图）
 - [x] Dashboard 活动图表对接真实 API
 - [x] 3D 模块数据库持久化（替换内存存储）
 - [x] 额度中间件 Bug 修复（g.user_id + features 键映射）
 - [x] API 集成测试（31 项）
 - [x] CI/CD 配置（GitHub Actions）
 - [x] 安全审计与修复
+- [x] Stripe 支付集成（Checkout + Customer Portal + Webhook）
+- [x] 邮箱验证 + 密码重置（SMTP）
+- [x] OAuth 第三方登录（Google + GitHub）
+- [x] 限流中间件（Flask-Limiter）
+- [x] 全局异常处理器
+- [x] 数据库连接池（DBUtils）
+- [x] 操作审计日志
+- [x] SSE 实时任务推送
+- [x] 团队协作管理
+- [x] 站内通知系统
+- [x] 数据导出（CSV/Excel/PDF）
+- [x] 数据清理工具
+- [x] Swagger/OpenAPI 3.0 文档（105 个路径、115 个操作）
+- [x] 国际化前端集成（data-i18n 属性）
+- [x] 响应式 CSS（移动端适配）
+- [x] K8s 部署配置（Deployment/Service/Ingress/HPA/PDB）
+- [x] Prometheus + Grafana 监控
+- [x] APM 性能监控面板
+- [x] Mock 测试（爬虫 26 项 + AI 分析 25 项）
 
 ## 测试
 
@@ -367,6 +439,9 @@ python tests/test_all_modules.py
 
 # 运行 API 集成测试（31 项）
 python tests/test_api_integration.py
+
+# 运行 Mock 测试（pytest）
+python -m pytest tests/test_scrapers.py tests/test_ai_analysis.py -v
 ```
 
 ## 注意事项

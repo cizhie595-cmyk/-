@@ -27,7 +27,7 @@
 {% block content %}
 <div class="top-bar">
     <div>
-        <h2 class="page-title">APM Dashboard</h2>
+        <h2 class="page-title" data-i18n="apm.title">APM Dashboard</h2>
         <p class="page-subtitle">Application Performance Monitoring & Health Status</p>
     </div>
     <div class="refresh-bar">
@@ -39,7 +39,7 @@
 <!-- Health Status -->
 <div class="card mb-lg">
     <div class="card-header">
-        <h3 class="card-title">System Health</h3>
+        <h3 class="card-title" data-i18n="apm.system_health">System Health</h3>
         <span class="badge" id="health-badge">Checking...</span>
     </div>
     <div class="metric-grid" id="health-grid" style="margin-top: 16px;">
@@ -93,13 +93,13 @@
 <!-- Charts -->
 <div class="card-grid card-grid-2 mb-lg">
     <div class="card">
-        <h3 class="card-title">Response Time Distribution</h3>
+        <h3 class="card-title" data-i18n="apm.response_time">Response Time Distribution</h3>
         <div class="chart-container">
             <canvas id="latencyChart"></canvas>
         </div>
     </div>
     <div class="card">
-        <h3 class="card-title">Status Code Distribution</h3>
+        <h3 class="card-title" data-i18n="apm.status_codes">Status Code Distribution</h3>
         <div class="chart-container">
             <canvas id="statusChart"></canvas>
         </div>
@@ -109,7 +109,7 @@
 <!-- Top Endpoints -->
 <div class="card mb-lg">
     <div class="card-header">
-        <h3 class="card-title">Top Endpoints by Request Count</h3>
+        <h3 class="card-title" data-i18n="apm.top_endpoints">Top Endpoints by Request Count</h3>
     </div>
     <div class="table-container">
         <table class="data-table" id="endpoints-table">

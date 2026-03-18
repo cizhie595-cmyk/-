@@ -117,7 +117,8 @@
     "remove_member": "移除成员",
     "change_role": "更改角色",
     "invite_code": "邀请码",
-    "pending_invitations": "待处理邀请"
+    "pending_invitations": "待处理邀请",
+    "shared_projects": "共享项目"
   },
   "notification": {
     "title": "通知",
@@ -128,7 +129,8 @@
     "task_completed": "任务完成",
     "task_failed": "任务失败",
     "team_invited": "团队邀请",
-    "subscription_expiring": "订阅即将到期"
+    "subscription_expiring": "订阅即将到期",
+    "preferences": "通知偏好设置"
   },
   "subscription": {
     "title": "订阅计划",
@@ -140,7 +142,8 @@
     "manage_subscription": "管理订阅",
     "features": "功能",
     "price": "价格",
-    "per_month": "/月"
+    "per_month": "/月",
+    "quota_overview": "配额概览"
   },
   "common": {
     "save": "保存",
@@ -162,5 +165,62 @@
     "close": "关闭",
     "copy": "复制",
     "copied": "已复制"
+  },
+  "market_analysis": {
+    "title": "市场与品类分析",
+    "google_trends": "Google 趋势 (12个月)",
+    "seasonality": "季节性分析",
+    "price_distribution": "价格分布",
+    "market_concentration": "市场集中度 (CR3/CR10)"
+  },
+  "profit": {
+    "title": "利润计算器",
+    "history": "计算历史",
+    "product_params": "产品参数",
+    "additional_costs": "附加费用",
+    "sourcing_search": "1688 货源搜索",
+    "selling_price": "售价",
+    "product_cost": "产品成本",
+    "shipping_cost": "FBA 运费",
+    "calculate": "计算利润"
+  },
+  "threed": {
+    "title": "3D 产品实验室",
+    "model_info": "模型信息",
+    "quick_actions": "快捷操作",
+    "my_assets": "我的 3D 资产",
+    "generate_model": "生成 3D 模型",
+    "render_video": "渲染视频"
+  },
+  "report": {
+    "title": "选品决策报告",
+    "executive_summary": "执行摘要",
+    "top_products": "推荐产品 Top",
+    "ai_recommendations": "AI 推荐",
+    "export_pdf": "导出 PDF"
+  },
+  "product_analysis": {
+    "title": "产品深度分析",
+    "composite_score": "综合评分",
+    "risk_radar": "五维风险雷达",
+    "ai_risk": "AI 风险评估"
+  },
+  "new_project": {
+    "title": "新建选品项目",
+    "config": "项目配置",
+    "pipeline": "分析流程",
+    "quota_usage": "配额使用"
+  },
+  "apm": {
+    "title": "APM 监控面板",
+    "system_health": "系统健康",
+    "response_time": "响应时间分布",
+    "status_codes": "状态码分布",
+    "top_endpoints": "请求量 Top 端点"
+  },
+  "settings": {
+    "api_keys_title": "第三方 API 密钥",
+    "ai_settings_title": "AI 模型设置",
+    "test_result": "测试结果"
   }
 }

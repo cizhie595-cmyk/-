@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="page-header">
-    <h2>Team Management</h2>
+    <h2 data-i18n="team.title">Team Management</h2>
     <p class="text-muted">Manage your team members, roles, and shared projects</p>
 </div>
 
@@ -21,7 +21,7 @@
 <!-- Members Table -->
 <div class="card" id="members-card" style="margin-bottom:24px;display:none;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h3 style="margin:0;">Members</h3>
+        <h3 style="margin:0;" data-i18n="team.members">Members</h3>
         <button class="btn btn-primary" onclick="showInviteModal()">Invite Member</button>
     </div>
     <table class="data-table" style="width:100%;">
@@ -40,7 +40,7 @@
 
 <!-- Shared Projects -->
 <div class="card" id="shared-projects-card" style="display:none;">
-    <h3 style="margin-bottom:16px;">Shared Projects</h3>
+    <h3 style="margin-bottom:16px;" data-i18n="team.shared_projects">Shared Projects</h3>
     <div id="shared-projects-list">
         <p class="text-muted">No shared projects yet.</p>
     </div>
@@ -49,7 +49,7 @@
 <!-- Create Team Modal -->
 <div id="create-team-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:center;justify-content:center;">
     <div style="background:var(--surface);border-radius:16px;padding:32px;width:420px;max-width:90vw;">
-        <h3 style="margin-bottom:16px;">Create Team</h3>
+        <h3 style="margin-bottom:16px;" data-i18n="team.create_team">Create Team</h3>
         <div class="form-group" style="margin-bottom:16px;">
             <label class="form-label">Team Name</label>
             <input type="text" id="team-name-input" class="form-input" placeholder="e.g. My Sourcing Team">

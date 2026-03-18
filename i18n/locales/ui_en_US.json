@@ -117,7 +117,8 @@
     "remove_member": "Remove Member",
     "change_role": "Change Role",
     "invite_code": "Invite Code",
-    "pending_invitations": "Pending Invitations"
+    "pending_invitations": "Pending Invitations",
+    "shared_projects": "Shared Projects"
   },
   "notification": {
     "title": "Notifications",
@@ -128,7 +129,8 @@
     "task_completed": "Task Completed",
     "task_failed": "Task Failed",
     "team_invited": "Team Invitation",
-    "subscription_expiring": "Subscription Expiring"
+    "subscription_expiring": "Subscription Expiring",
+    "preferences": "Notification Preferences"
   },
   "subscription": {
     "title": "Subscription Plans",
@@ -140,7 +142,8 @@
     "manage_subscription": "Manage Subscription",
     "features": "Features",
     "price": "Price",
-    "per_month": "/month"
+    "per_month": "/month",
+    "quota_overview": "Quota Overview"
   },
   "common": {
     "save": "Save",
@@ -162,5 +165,62 @@
     "close": "Close",
     "copy": "Copy",
     "copied": "Copied"
+  },
+  "market_analysis": {
+    "title": "Market & Category Analysis",
+    "google_trends": "Google Trends (12 Months)",
+    "seasonality": "Seasonality Analysis",
+    "price_distribution": "Price Distribution",
+    "market_concentration": "Market Concentration (CR3/CR10)"
+  },
+  "profit": {
+    "title": "Profit Calculator",
+    "history": "Calculation History",
+    "product_params": "Product Parameters",
+    "additional_costs": "Additional Costs",
+    "sourcing_search": "1688 Sourcing Search",
+    "selling_price": "Selling Price",
+    "product_cost": "Product Cost",
+    "shipping_cost": "Shipping to FBA",
+    "calculate": "Calculate Profit"
+  },
+  "threed": {
+    "title": "3D Product Lab",
+    "model_info": "Model Information",
+    "quick_actions": "Quick Actions",
+    "my_assets": "My 3D Assets",
+    "generate_model": "Generate 3D Model",
+    "render_video": "Render Video"
+  },
+  "report": {
+    "title": "Sourcing Decision Report",
+    "executive_summary": "Executive Summary",
+    "top_products": "Top Recommended Products",
+    "ai_recommendations": "AI Recommendations",
+    "export_pdf": "Export PDF"
+  },
+  "product_analysis": {
+    "title": "Product Deep Analysis",
+    "composite_score": "Composite Score",
+    "risk_radar": "Five-Dimension Risk Radar",
+    "ai_risk": "AI Risk Assessment"
+  },
+  "new_project": {
+    "title": "New Sourcing Project",
+    "config": "Project Configuration",
+    "pipeline": "Analysis Pipeline",
+    "quota_usage": "Quota Usage"
+  },
+  "apm": {
+    "title": "APM Dashboard",
+    "system_health": "System Health",
+    "response_time": "Response Time Distribution",
+    "status_codes": "Status Code Distribution",
+    "top_endpoints": "Top Endpoints by Request Count"
+  },
+  "settings": {
+    "api_keys_title": "Third-Party API Keys",
+    "ai_settings_title": "AI Model Settings",
+    "test_result": "Test Result"
   }
 }

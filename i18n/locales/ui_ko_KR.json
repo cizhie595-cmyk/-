@@ -117,7 +117,8 @@
     "remove_member": "멤버 제거",
     "change_role": "역할 변경",
     "invite_code": "초대 코드",
-    "pending_invitations": "대기 중인 초대"
+    "pending_invitations": "대기 중인 초대",
+    "shared_projects": "공유 프로젝트"
   },
   "notification": {
     "title": "알림",
@@ -128,7 +129,8 @@
     "task_completed": "작업 완료",
     "task_failed": "작업 실패",
     "team_invited": "팀 초대",
-    "subscription_expiring": "구독 만료 예정"
+    "subscription_expiring": "구독 만료 예정",
+    "preferences": "알림 설정"
   },
   "subscription": {
     "title": "구독 플랜",
@@ -140,7 +142,8 @@
     "manage_subscription": "구독 관리",
     "features": "기능",
     "price": "가격",
-    "per_month": "/월"
+    "per_month": "/월",
+    "quota_overview": "할당량 개요"
   },
   "common": {
     "save": "저장",
@@ -162,5 +165,62 @@
     "close": "닫기",
     "copy": "복사",
     "copied": "복사됨"
+  },
+  "market_analysis": {
+    "title": "시장 및 카테고리 분석",
+    "google_trends": "Google 트렌드 (12개월)",
+    "seasonality": "계절성 분석",
+    "price_distribution": "가격 분포",
+    "market_concentration": "시장 집중도 (CR3/CR10)"
+  },
+  "profit": {
+    "title": "수익 계산기",
+    "history": "계산 기록",
+    "product_params": "제품 매개변수",
+    "additional_costs": "추가 비용",
+    "sourcing_search": "1688 소싱 검색",
+    "selling_price": "판매가",
+    "product_cost": "제품 원가",
+    "shipping_cost": "FBA 배송비",
+    "calculate": "수익 계산"
+  },
+  "threed": {
+    "title": "3D 제품 연구소",
+    "model_info": "모델 정보",
+    "quick_actions": "빠른 작업",
+    "my_assets": "내 3D 자산",
+    "generate_model": "3D 모델 생성",
+    "render_video": "비디오 렌더링"
+  },
+  "report": {
+    "title": "소싱 결정 보고서",
+    "executive_summary": "요약",
+    "top_products": "추천 제품 Top",
+    "ai_recommendations": "AI 추천",
+    "export_pdf": "PDF 내보내기"
+  },
+  "product_analysis": {
+    "title": "제품 심층 분석",
+    "composite_score": "종합 점수",
+    "risk_radar": "5차원 리스크 레이더",
+    "ai_risk": "AI 리스크 평가"
+  },
+  "new_project": {
+    "title": "새 소싱 프로젝트",
+    "config": "프로젝트 설정",
+    "pipeline": "분석 파이프라인",
+    "quota_usage": "할당량 사용"
+  },
+  "apm": {
+    "title": "APM 대시보드",
+    "system_health": "시스템 상태",
+    "response_time": "응답 시간 분포",
+    "status_codes": "상태 코드 분포",
+    "top_endpoints": "요청량 Top 엔드포인트"
+  },
+  "settings": {
+    "api_keys_title": "서드파티 API 키",
+    "ai_settings_title": "AI 모델 설정",
+    "test_result": "테스트 결과"
   }
 }

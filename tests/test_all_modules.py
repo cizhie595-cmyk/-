@@ -360,4 +360,5 @@ print(f"\n{'='*50}")
 print(f"测试完成: ✅ {passed} 通过 | ❌ {failed} 失败")
 print(f"{'='*50}")
 
-sys.exit(0 if failed == 0 else 1)
+if __name__ == "__main__":
+    sys.exit(0 if failed == 0 else 1)
