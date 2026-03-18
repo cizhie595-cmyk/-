@@ -157,6 +157,28 @@ Amazon Visionary Sourcing Tool
 
 ## Changelog
 
+### 2026-03-18 (Phase 9) - Frontend-Backend Contract Alignment & UI Enhancement
+- **Critical Fix**: `api.js` login method now correctly reads `data.access_token` (was checking non-existent `result.token`)
+- **Critical Fix**: `api.js` login sends `login_id` parameter (was sending `email`, backend expects `login_id`)
+- **Critical Fix**: `auth.html` login form now supports username or email (matching backend `login_id`)
+- Fixed `base.html` getProfile data unpacking: `{data: user}` not `{user: ...}`
+- Fixed `dashboard.html` projects data unpacking: `{data: {projects}}` not `{projects}`
+- Fixed `market_analysis.html` token key: `auth_token` not `token` (2 places)
+- Fixed `report.html` token key: `auth_token` not `token` (2 places)
+- Fixed `report.html` Top Products table column alignment with actual API data fields
+- Fixed `report.html` getProject data unpacking
+- Fixed `new_project.html` createProject response data unpacking
+- Fixed `project_detail.html` getProject/getProducts data unpacking
+- Fixed `project_detail.html` report link: `/reports/{id}` not `/report/{id}`
+- Fixed `subscription.html` method name: `getMySubscription()` not `getSubscription()`
+- Fixed `subscription.html` subscription/usage data unpacking
+- Implemented missing `project_detail.html` functions: `exportData()`, `sortTable()`, `applyAIFilter()`, `prevPage()`, `nextPage()`, `updatePagination()`
+- Updated `subscription.html` plan cards to match backend: free/orbit/moonshot with correct pricing ($0/$29.99/$99.99)
+- Added `subscription.html` Quota Overview with dynamic progress bars
+- Enhanced `subscription.html` Usage History with real API integration
+- Added dynamic current plan highlighting in subscription page
+- Saved `refresh_token` to localStorage on login
+
 ### 2026-03-18 (Phase 8) - Page Refactoring & Backend Integration
 - Refactored `ai_settings.html` to inherit `base.html` template (consistent sidebar/nav)
 - Refactored `api_keys_settings.html` to inherit `base.html` template
