@@ -168,6 +168,10 @@ def create_app() -> Flask:
     from api.swagger_routes import swagger_bp
     app.register_blueprint(swagger_bp)
 
+    # 前端国际化 API
+    from api.i18n_routes import i18n_bp
+    app.register_blueprint(i18n_bp)
+
     # === WebSocket (Chrome 插件通信) ===
     try:
         from api.websocket_handler import register_websocket_routes
