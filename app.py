@@ -248,31 +248,8 @@ def create_app() -> Flask:
         })
 
     # === 全局错误处理 ===
-
-    @app.errorhandler(404)
-    def not_found(e):
-        return jsonify({
-            "success": False,
-            "error": "not_found",
-            "message": "请求的接口不存在",
-        }), 404
-
-    @app.errorhandler(405)
-    def method_not_allowed(e):
-        return jsonify({
-            "success": False,
-            "error": "method_not_allowed",
-            "message": "不支持的请求方法",
-        }), 405
-
-    @app.errorhandler(500)
-    def internal_error(e):
-        logger.error(f"服务器内部错误: {e}")
-        return jsonify({
-            "success": False,
-            "error": "internal_error",
-            "message": "服务器内部错误",
-        }), 500
+    from utils.error_handler import register_error_handlers
+    register_error_handlers(app)
 
     return app
 
