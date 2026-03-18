@@ -9,7 +9,7 @@
             <p class="text-muted">Task updates, quota alerts, and system messages</p>
         </div>
         <div style="display:flex;gap:12px;">
-            <button class="btn" onclick="markAllAsRead()">Mark All Read</button>
+            <button class="btn" onclick="markAllAsRead()" data-i18n="notifications.mark_all_read">Mark All Read</button>
             <select id="notif-filter" class="form-select" onchange="loadNotifications()" style="width:160px;">
                 <option value="all">All</option>
                 <option value="unread">Unread Only</option>

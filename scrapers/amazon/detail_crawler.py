@@ -209,7 +209,7 @@ class AmazonDetailCrawler:
             try:
                 return float(match.group())
             except ValueError:
-                pass
+                logger.debug(f"Failed to parse price value: {match.group()}")
         return None
 
     def _extract_ratings(self, soup) -> dict:
@@ -351,8 +351,8 @@ class AmazonDetailCrawler:
                                     "variant": variant_name,
                                     "type": "product",
                                 })
-            except (json.JSONDecodeError, AttributeError):
-                pass
+            except (json.JSONDecodeError, AttributeError) as e:
+                logger.debug(f"Failed to parse colorImages JSON: {e}")
 
         # 方法2: 从缩略图列表提取
         if not images:
@@ -408,8 +408,8 @@ class AmazonDetailCrawler:
                     elif isinstance(dimensions, dict):
                         variant["dimensions"] = dimensions
                     variants.append(variant)
-            except (json.JSONDecodeError, AttributeError):
-                pass
+            except (json.JSONDecodeError, AttributeError) as e:
+                logger.debug(f"Failed to parse variant dimension data: {e}")
 
         # 查找变体 ASIN 映射
         asin_pattern = r'"dimensionToAsinMap"\s*:\s*(\{.*?\})'
@@ -425,8 +425,8 @@ class AmazonDetailCrawler:
                             "asin": asin,
                             "dimensions": {"label": dim_key},
                         })
-            except (json.JSONDecodeError, AttributeError):
-                pass
+            except (json.JSONDecodeError, AttributeError) as e:
+                logger.debug(f"Failed to parse dimensionToAsinMap: {e}")
 
         return variants
 
@@ -493,7 +493,7 @@ class AmazonDetailCrawler:
                 try:
                     hidden["estimated_monthly_sales"] = int(num)
                 except ValueError:
-                    pass
+                    logger.debug(f"Failed to parse monthly sales number: {num}")
 
         # 3. 提取 merchantId
         merchant_match = re.search(r'"merchantId"\s*:\s*"([^"]+)"', html)

@@ -2,38 +2,53 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=380">
+    <meta name="viewport" content="width=400">
     <title>AVST 选品助手</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
-            width: 380px;
+            width: 400px;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             font-size: 13px;
             color: #1f2937;
             background: #f9fafb;
         }
-
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-
-        .header h1 {
-            font-size: 16px;
-            font-weight: 600;
+        .header h1 { font-size: 15px; font-weight: 600; }
+        .header p { font-size: 11px; opacity: 0.8; margin-top: 2px; }
+        .header-version {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
         }
-
-        .header p {
-            font-size: 11px;
-            opacity: 0.8;
-            margin-top: 4px;
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
         }
-
-        .content { padding: 16px 20px; }
-
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.15s;
+        }
+        .tab:hover { color: #667eea; }
+        .tab.active { color: #667eea; border-bottom-color: #667eea; }
+        .tab-panel { display: none; padding: 16px 20px; }
+        .tab-panel.active { display: block; }
         .status-bar {
             display: flex;
             align-items: center;
@@ -44,22 +59,99 @@
             border: 1px solid #e5e7eb;
             margin-bottom: 16px;
         }
-
         .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 8px; height: 8px;
             border-radius: 50%;
             background: #ef4444;
+            flex-shrink: 0;
         }
-
         .status-dot.connected { background: #22c55e; }
-
-        .status-text { font-size: 12px; color: #6b7280; }
-
-        .form-group {
-            margin-bottom: 12px;
+        .status-text { font-size: 12px; color: #6b7280; flex: 1; }
+        .status-user { font-size: 11px; color: #667eea; font-weight: 500; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
         }
-
+        .stat-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .stat-value { font-size: 22px; font-weight: 700; color: #1f2937; }
+        .stat-value.purple { color: #667eea; }
+        .stat-value.green { color: #22c55e; }
+        .stat-value.orange { color: #f59e0b; }
+        .stat-value.blue { color: #3b82f6; }
+        .stat-label { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-size: 12px;
+            color: #374151;
+        }
+        .action-btn:hover { border-color: #667eea; background: #f5f3ff; }
+        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .action-icon {
+            width: 28px; height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .action-icon.capture { background: #ede9fe; color: #7c3aed; }
+        .action-icon.analyze { background: #dbeafe; color: #2563eb; }
+        .action-icon.compare { background: #fef3c7; color: #d97706; }
+        .action-icon.track { background: #d1fae5; color: #059669; }
+        .history-list { max-height: 240px; overflow-y: auto; }
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .history-item:hover { border-color: #667eea; }
+        .history-img {
+            width: 40px; height: 40px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #f3f4f6;
+        }
+        .history-info { flex: 1; min-width: 0; }
+        .history-title {
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .history-meta { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+        .history-price { font-size: 13px; font-weight: 600; color: #059669; white-space: nowrap; }
+        .form-group { margin-bottom: 12px; }
         .form-group label {
             display: block;
             font-size: 12px;
@@ -67,7 +159,6 @@
             color: #374151;
             margin-bottom: 4px;
         }
-
         .form-group input {
             width: 100%;
             padding: 8px 12px;
@@ -77,12 +168,10 @@
             outline: none;
             transition: border-color 0.15s;
         }
-
         .form-group input:focus {
             border-color: #667eea;
             box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
         }
-
         .btn {
             width: 100%;
             padding: 10px;
@@ -93,23 +182,25 @@
             cursor: pointer;
             transition: all 0.15s;
         }
-
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
-
         .btn-primary:hover { opacity: 0.9; }
-
         .btn-secondary {
             background: white;
             color: #374151;
             border: 1px solid #d1d5db;
             margin-top: 8px;
         }
-
         .btn-secondary:hover { background: #f3f4f6; }
-
+        .btn-danger {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            margin-top: 8px;
+        }
+        .btn-danger:hover { background: #fee2e2; }
         .message {
             margin-top: 12px;
             padding: 8px 12px;
@@ -117,10 +208,8 @@
             font-size: 12px;
             display: none;
         }
-
         .message.success { display: block; background: #ecfdf5; color: #065f46; }
         .message.error { display: block; background: #fef2f2; color: #991b1b; }
-
         .section-title {
             font-size: 12px;
             font-weight: 600;
@@ -129,51 +218,152 @@
             letter-spacing: 0.5px;
             margin-bottom: 8px;
         }
-
-        .divider {
-            height: 1px;
+        .divider { height: 1px; background: #e5e7eb; margin: 16px 0; }
+        .empty-state { text-align: center; padding: 30px 20px; color: #9ca3af; }
+        .empty-state .icon { font-size: 32px; margin-bottom: 8px; }
+        .empty-state p { font-size: 12px; }
+        .quota-bar {
+            height: 4px;
             background: #e5e7eb;
-            margin: 16px 0;
+            border-radius: 2px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+        .quota-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 2px;
+            transition: width 0.3s;
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Amazon Visionary Sourcing Tool</h1>
-        <p>跨境电商智能选品助手 v1.0.0</p>
+        <div>
+            <h1>AVST 选品助手</h1>
+            <p>跨境电商智能选品</p>
+        </div>
+        <span class="header-version">v1.3.0</span>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" data-tab="dashboard">概览</div>
+        <div class="tab" data-tab="capture">采集</div>
+        <div class="tab" data-tab="settings">设置</div>
     </div>
 
     <div class="content">
-        <!-- 连接状态 -->
-        <div class="status-bar">
-            <div class="status-dot" id="statusDot"></div>
-            <span class="status-text" id="statusText">检查连接中...</span>
+        <div class="tab-panel active" id="panel-dashboard">
+            <div class="status-bar">
+                <div class="status-dot" id="statusDot"></div>
+                <span class="status-text" id="statusText">检查连接中...</span>
+                <span class="status-user" id="statusUser"></span>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value purple" id="stat-captured">0</div>
+                    <div class="stat-label">今日采集</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value green" id="stat-projects">0</div>
+                    <div class="stat-label">活跃项目</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value orange" id="stat-analyzed">0</div>
+                    <div class="stat-label">已分析</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value blue" id="stat-tracked">0</div>
+                    <div class="stat-label">追踪中</div>
+                </div>
+            </div>
+
+            <div class="section-title">配额使用</div>
+            <div class="status-bar" style="flex-direction: column; align-items: stretch;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="font-size: 12px; color: #374151;">API 调用</span>
+                    <span style="font-size: 12px; color: #6b7280;" id="quota-text">0 / 1000</span>
+                </div>
+                <div class="quota-bar">
+                    <div class="quota-fill" id="quota-fill" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <div class="section-title">快捷操作</div>
+            <div class="quick-actions">
+                <button class="action-btn" id="btn-capture" disabled>
+                    <div class="action-icon capture">&#128269;</div>
+                    <div>
+                        <div style="font-weight: 500;">采集当前页</div>
+                        <div style="font-size: 10px; color: #9ca3af;">抓取商品数据</div>
+                    </div>
+                </button>
+                <button class="action-btn" id="btn-analyze" disabled>
+                    <div class="action-icon analyze">&#9889;</div>
+                    <div>
+                        <div style="font-weight: 500;">AI 分析</div>
+                        <div style="font-size: 10px; color: #9ca3af;">智能选品评估</div>
+                    </div>
+                </button>
+                <button class="action-btn" id="btn-compare" disabled>
+                    <div class="action-icon compare">&#128200;</div>
+                    <div>
+                        <div style="font-weight: 500;">竞品对比</div>
+                        <div style="font-size: 10px; color: #9ca3af;">多维度对比</div>
+                    </div>
+                </button>
+                <button class="action-btn" id="btn-track" disabled>
+                    <div class="action-icon track">&#128276;</div>
+                    <div>
+                        <div style="font-weight: 500;">价格追踪</div>
+                        <div style="font-size: 10px; color: #9ca3af;">监控价格变动</div>
+                    </div>
+                </button>
+            </div>
         </div>
 
-        <!-- 服务器配置 -->
-        <div class="section-title">服务器配置</div>
-        <div class="form-group">
-            <label for="apiBase">API 地址</label>
-            <input type="text" id="apiBase" placeholder="http://localhost:5000">
+        <div class="tab-panel" id="panel-capture">
+            <div class="section-title">采集历史</div>
+            <div class="history-list" id="history-list">
+                <div class="empty-state">
+                    <div class="icon">&#128230;</div>
+                    <p>暂无采集记录</p>
+                    <p>在 Amazon/Coupang 商品页点击"采集当前页"</p>
+                </div>
+            </div>
         </div>
 
-        <div class="divider"></div>
+        <div class="tab-panel" id="panel-settings">
+            <div class="section-title">服务器配置</div>
+            <div class="form-group">
+                <label for="apiBase">API 地址</label>
+                <input type="text" id="apiBase" placeholder="http://localhost:5000">
+            </div>
+            <button class="btn btn-secondary" id="saveConfigBtn">保存配置</button>
 
-        <!-- 登录 -->
-        <div class="section-title">账号登录</div>
-        <div class="form-group">
-            <label for="username">用户名 / 邮箱</label>
-            <input type="text" id="username" placeholder="请输入用户名或邮箱">
+            <div class="divider"></div>
+
+            <div class="section-title">账号登录</div>
+            <div class="form-group">
+                <label for="username">用户名 / 邮箱</label>
+                <input type="text" id="username" placeholder="请输入用户名或邮箱">
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" placeholder="请输入密码">
+            </div>
+            <button class="btn btn-primary" id="loginBtn">登录</button>
+            <button class="btn btn-danger" id="logoutBtn" style="display: none;">退出登录</button>
+            <div class="message" id="message"></div>
+
+            <div class="divider"></div>
+            <div class="section-title">关于</div>
+            <div style="font-size: 11px; color: #9ca3af; line-height: 1.6;">
+                <p>AVST v1.3.0 - Amazon Visionary Sourcing Tool</p>
+                <p>Coupang/Amazon 跨境电商智能选品系统</p>
+            </div>
         </div>
-        <div class="form-group">
-            <label for="password">密码</label>
-            <input type="password" id="password" placeholder="请输入密码">
-        </div>
-
-        <button class="btn btn-primary" id="loginBtn">登录</button>
-        <button class="btn btn-secondary" id="saveConfigBtn">保存配置</button>
-
-        <div class="message" id="message"></div>
     </div>
 
     <script src="popup.js"></script>

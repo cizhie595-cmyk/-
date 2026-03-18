@@ -294,7 +294,31 @@ class StripeHandler:
 
         logger.warning(f"[Stripe] 支付失败: customer={customer_id}")
 
-        # TODO: 发送支付失败通知邮件
+        # 发送支付失败通知邮件
+        try:
+            from utils.email_sender import EmailSender
+            email_sender = EmailSender()
+            # 根据 customer_id 查找用户邮箱
+            from config.database import get_db_connection
+            conn = get_db_connection()
+            with conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT email, username FROM users WHERE stripe_customer_id = %s",
+                    (customer_id,)
+                )
+                user = cursor.fetchone()
+            if user:
+                email_sender.send_payment_failed(
+                    to_email=user['email'],
+                    username=user.get('username', 'User'),
+                    subscription_id=subscription_id
+                )
+                logger.info(f"[Stripe] 支付失败通知邮件已发送至 {user['email']}")
+            else:
+                logger.warning(f"[Stripe] 未找到 customer_id={customer_id} 对应的用户")
+        except Exception as e:
+            logger.error(f"[Stripe] 发送支付失败邮件异常: {e}")
 
         return {
             "handled": True,

@@ -1,0 +1,203 @@
+# ============================================================
+# NetworkPolicy - Pod 间网络隔离
+# 实现最小权限原则，限制 Pod 间通信
+# ============================================================
+
+# 默认拒绝所有入站流量
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: click-stats
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+
+---
+# Web Pod: 允许 Ingress Controller 和 Prometheus 访问
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-web-ingress
+  namespace: click-stats
+  labels:
+    app: click-stats
+    component: web
+spec:
+  podSelector:
+    matchLabels:
+      app: click-stats
+      component: web
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # 允许 Ingress Controller 访问 Web 端口
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 5000
+    # 允许 Prometheus 抓取 metrics
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 5000
+  egress:
+    # 允许访问 MySQL
+    - to:
+        - podSelector:
+            matchLabels:
+              component: mysql
+      ports:
+        - protocol: TCP
+          port: 3306
+    # 允许访问 Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              component: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # 允许 DNS 解析
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # 允许访问外部 API (Stripe, Amazon, Coupang)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+
+---
+# MySQL Pod: 只允许 Web 和 Celery 访问
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-mysql-ingress
+  namespace: click-stats
+  labels:
+    app: click-stats
+    component: mysql
+spec:
+  podSelector:
+    matchLabels:
+      app: click-stats
+      component: mysql
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: click-stats
+              component: web
+        - podSelector:
+            matchLabels:
+              app: click-stats
+              component: celery
+      ports:
+        - protocol: TCP
+          port: 3306
+
+---
+# Redis Pod: 只允许 Web 和 Celery 访问
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-redis-ingress
+  namespace: click-stats
+  labels:
+    app: click-stats
+    component: redis
+spec:
+  podSelector:
+    matchLabels:
+      app: click-stats
+      component: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: click-stats
+              component: web
+        - podSelector:
+            matchLabels:
+              app: click-stats
+              component: celery
+      ports:
+        - protocol: TCP
+          port: 6379
+
+---
+# Celery Pod: 允许访问 MySQL, Redis 和外部 API
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-celery-egress
+  namespace: click-stats
+  labels:
+    app: click-stats
+    component: celery
+spec:
+  podSelector:
+    matchLabels:
+      app: click-stats
+      component: celery
+  policyTypes:
+    - Egress
+  egress:
+    # MySQL
+    - to:
+        - podSelector:
+            matchLabels:
+              component: mysql
+      ports:
+        - protocol: TCP
+          port: 3306
+    # Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              component: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # 外部 HTTPS (Amazon, Coupang API)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443

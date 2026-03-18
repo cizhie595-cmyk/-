@@ -1,0 +1,63 @@
+# ============================================================
+# PodDisruptionBudget - 滚动更新保护
+# 确保在维护/升级期间至少有指定数量的 Pod 保持运行
+# ============================================================
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: click-stats-web-pdb
+  namespace: click-stats
+  labels:
+    app: click-stats
+    component: web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: click-stats
+      component: web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: click-stats-celery-pdb
+  namespace: click-stats
+  labels:
+    app: click-stats
+    component: celery
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: click-stats
+      component: celery
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: click-stats-mysql-pdb
+  namespace: click-stats
+  labels:
+    app: click-stats
+    component: mysql
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: click-stats
+      component: mysql
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: click-stats-redis-pdb
+  namespace: click-stats
+  labels:
+    app: click-stats
+    component: redis
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: click-stats
+      component: redis

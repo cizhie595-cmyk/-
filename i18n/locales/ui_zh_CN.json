@@ -75,7 +75,16 @@
     "archive": "归档",
     "status_active": "进行中",
     "status_completed": "已完成",
-    "status_archived": "已归档"
+    "status_archived": "已归档",
+    "exportCsv": "导出 CSV",
+    "exportExcel": "导出 Excel",
+    "exportPdf": "导出 PDF",
+    "generateReport": "生成报告",
+    "analysisProgress": "分析进度",
+    "totalProducts": "总产品数",
+    "deepAnalysis": "深度分析结果",
+    "sourcingResults": "1688 货源结果",
+    "profitAnalysis": "利润分析"
   },
   "analysis": {
     "title": "分析",
@@ -164,7 +173,8 @@
     "submit": "提交",
     "close": "关闭",
     "copy": "复制",
-    "copied": "已复制"
+    "copied": "已复制",
+    "sortBy": "排序方式"
   },
   "market_analysis": {
     "title": "市场与品类分析",
@@ -222,5 +232,38 @@
     "api_keys_title": "第三方 API 密钥",
     "ai_settings_title": "AI 模型设置",
     "test_result": "测试结果"
-  }
+  },
+  "auth.login": "登录",
+  "auth.register": "注册",
+  "auth.username_or_email": "用户名或邮箱",
+  "auth.password": "密码",
+  "auth.username": "用户名",
+  "auth.email": "邮箱",
+  "auth.confirm_password": "确认密码",
+  "auth.sign_in": "登录",
+  "auth.create_account": "创建账户",
+  "auth.forgot_password": "忘记密码",
+  "auth.reset_password": "重置密码",
+  "subscription.title": "订阅计划",
+  "subscription.current_plan": "当前计划",
+  "subscription.usage_overview": "使用概览",
+  "subscription.usage_history": "使用历史",
+  "notifications.title": "通知中心",
+  "notifications.mark_all_read": "全部标记已读",
+  "notifications.preferences": "通知偏好",
+  "new_project.title": "创建新项目",
+  "new_project.name": "项目名称",
+  "new_project.marketplace": "市场",
+  "new_project.keywords": "关键词",
+  "new_project.create_btn": "创建项目",
+  "report.title": "分析报告",
+  "report.market_overview": "市场概览",
+  "report.top_products": "热门产品",
+  "report.price_distribution": "价格分布",
+  "team.title": "团队管理",
+  "team.invite_btn": "邀请成员",
+  "team.members": "团队成员",
+  "team.activity_log": "活动日志",
+  "auth.brand_title": "Amazon Visionary",
+  "team.create_btn": "创建团队"
 }

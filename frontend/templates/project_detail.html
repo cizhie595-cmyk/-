@@ -7,17 +7,17 @@
         <p class="page-subtitle" id="project-meta"></p>
     </div>
     <div style="display: flex; gap: 8px;">
-        <button class="btn btn-secondary" onclick="exportData()">Export CSV</button>
-        <button class="btn btn-secondary" onclick="exportBackend('xlsx')">Export Excel</button>
-        <button class="btn btn-secondary" onclick="exportBackend('pdf')">Export PDF</button>
-        <button class="btn btn-primary" id="report-btn" onclick="generateReport()">Generate Report</button>
+        <button class="btn btn-secondary" onclick="exportData()" data-i18n="project.exportCsv">Export CSV</button>
+        <button class="btn btn-secondary" onclick="exportBackend('xlsx')" data-i18n="project.exportExcel">Export Excel</button>
+        <button class="btn btn-secondary" onclick="exportBackend('pdf')" data-i18n="project.exportPdf">Export PDF</button>
+        <button class="btn btn-primary" id="report-btn" onclick="generateReport()" data-i18n="project.generateReport">Generate Report</button>
     </div>
 </div>
 
 <!-- Project Progress -->
 <div class="card mb-lg" id="progress-card">
     <div class="flex-between mb-md">
-        <h3 class="card-title">Analysis Progress</h3>
+        <h3 class="card-title" data-i18n="project.analysisProgress">Analysis Progress</h3>
         <span class="badge badge-warning" id="progress-status">Running</span>
     </div>
     <div class="progress-bar" style="height: 8px;">
@@ -37,7 +37,7 @@
         </div>
         <div>
             <div class="stat-value" id="total-products">0</div>
-            <div class="stat-label">Total Products</div>
+            <div class="stat-label" data-i18n="project.totalProducts">Total Products</div>
         </div>
     </div>
     <div class="stat-card">
@@ -83,11 +83,11 @@
     <div class="card mb-lg">
         <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: end;">
             <div class="form-group" style="margin: 0; flex: 1; min-width: 150px;">
-                <label class="form-label">Search</label>
+                <label class="form-label" data-i18n="common.search">Search</label>
                 <input type="text" class="form-input" id="search-input" placeholder="Search ASIN, title..." oninput="filterTable()">
             </div>
             <div class="form-group" style="margin: 0;">
-                <label class="form-label">Sort By</label>
+                <label class="form-label" data-i18n="common.sortBy">Sort By</label>
                 <select class="form-select" id="sort-select" onchange="sortTable()">
                     <option value="sales_desc">Sales (High to Low)</option>
                     <option value="price_asc">Price (Low to High)</option>
@@ -136,7 +136,7 @@
 <!-- Analysis Tab -->
 <div class="tab-content hidden" id="tab-analysis">
     <div class="card">
-        <h3 class="card-title mb-md">Deep Analysis Results</h3>
+        <h3 class="card-title mb-md" data-i18n="project.deepAnalysis">Deep Analysis Results</h3>
         <div id="analysis-content" class="text-muted text-center" style="padding: 40px;">
             Select a product to view its deep analysis
         </div>
@@ -146,7 +146,7 @@
 <!-- Sources Tab -->
 <div class="tab-content hidden" id="tab-sources">
     <div class="card">
-        <h3 class="card-title mb-md">1688 Sourcing Results</h3>
+        <h3 class="card-title mb-md" data-i18n="project.sourcingResults">1688 Sourcing Results</h3>
         <div id="sources-content" class="text-muted text-center" style="padding: 40px;">
             1688 sourcing data will appear here after analysis
         </div>
@@ -156,7 +156,7 @@
 <!-- Profit Tab -->
 <div class="tab-content hidden" id="tab-profit">
     <div class="card">
-        <h3 class="card-title mb-md">Profit Analysis</h3>
+        <h3 class="card-title mb-md" data-i18n="project.profitAnalysis">Profit Analysis</h3>
         <div id="profit-content" class="text-muted text-center" style="padding: 40px;">
             Profit calculations will appear here after analysis
         </div>

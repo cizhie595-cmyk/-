@@ -1,6 +1,7 @@
 """
 Coupang 选品系统 - Celery 异步任务状态实时推送
 通过 WebSocket 和 SSE (Server-Sent Events) 将任务进度推送至前端
+支持多频道: tasks, notifications, prices, system
 """
 
 import json
@@ -14,40 +15,55 @@ from utils.logger import get_logger
 logger = get_logger()
 
 # ============================================================
-# SSE 事件管理器（支持无 WebSocket 场景）
+# SSE 事件管理器（支持多频道）
 # ============================================================
 
 class SSEManager:
-    """Server-Sent Events 管理器"""
+    """
+    Server-Sent Events 管理器
+
+    支持多频道订阅:
+    - tasks: 任务状态更新（爬取、分析、3D生成、报告）
+    - notifications: 系统通知推送
+    - prices: 价格变动推送
+    - system: 系统级广播（维护通知、版本更新等）
+    """
+
+    DEFAULT_CHANNEL = "tasks"
 
     def __init__(self):
-        self._subscribers = defaultdict(list)  # user_id -> [queue.Queue]
+        # 结构: {channel: {user_id: [queue.Queue]}}
+        self._channels = defaultdict(lambda: defaultdict(list))
         self._lock = threading.Lock()
 
-    def subscribe(self, user_id: int) -> queue.Queue:
-        """用户订阅任务事件流"""
+    def subscribe(self, user_id: int, channel: str = None) -> queue.Queue:
+        """用户订阅指定频道的事件流"""
+        channel = channel or self.DEFAULT_CHANNEL
         q = queue.Queue(maxsize=100)
         with self._lock:
-            self._subscribers[user_id].append(q)
-        logger.debug(f"[SSE] User {user_id} subscribed (total: {len(self._subscribers[user_id])})")
+            self._channels[channel][user_id].append(q)
+        count = len(self._channels[channel][user_id])
+        logger.debug(f"[SSE] User {user_id} subscribed to '{channel}' (total: {count})")
         return q
 
-    def unsubscribe(self, user_id: int, q: queue.Queue):
-        """用户取消订阅"""
+    def unsubscribe(self, user_id: int, q: queue.Queue, channel: str = None):
+        """用户取消订阅指定频道"""
+        channel = channel or self.DEFAULT_CHANNEL
         with self._lock:
-            if user_id in self._subscribers:
+            if channel in self._channels and user_id in self._channels[channel]:
                 try:
-                    self._subscribers[user_id].remove(q)
+                    self._channels[channel][user_id].remove(q)
                 except ValueError:
                     pass
-                if not self._subscribers[user_id]:
-                    del self._subscribers[user_id]
-        logger.debug(f"[SSE] User {user_id} unsubscribed")
+                if not self._channels[channel][user_id]:
+                    del self._channels[channel][user_id]
+        logger.debug(f"[SSE] User {user_id} unsubscribed from '{channel}'")
 
-    def publish(self, user_id: int, event: dict):
-        """向用户推送事件"""
+    def publish(self, user_id: int, event: dict, channel: str = None):
+        """向用户的指定频道推送事件"""
+        channel = channel or self.DEFAULT_CHANNEL
         with self._lock:
-            queues = list(self._subscribers.get(user_id, []))
+            queues = list(self._channels.get(channel, {}).get(user_id, []))
 
         dead_queues = []
         for q in queues:
@@ -55,21 +71,43 @@ class SSEManager:
                 q.put_nowait(event)
             except queue.Full:
                 dead_queues.append(q)
+                logger.warning(f"[SSE] Queue full for user {user_id} on '{channel}', dropping")
 
         # 清理满队列
         if dead_queues:
             with self._lock:
                 for q in dead_queues:
                     try:
-                        self._subscribers[user_id].remove(q)
+                        self._channels[channel][user_id].remove(q)
                     except (ValueError, KeyError):
                         pass
 
-    def get_subscriber_count(self, user_id: int = None) -> int:
-        """获取订阅者数量"""
+    def broadcast(self, event: dict, channel: str = None):
+        """向指定频道的所有订阅者广播事件"""
+        channel = channel or "system"
+        with self._lock:
+            all_users = dict(self._channels.get(channel, {}))
+
+        for user_id, queues in all_users.items():
+            for q in queues:
+                try:
+                    q.put_nowait(event)
+                except queue.Full:
+                    logger.warning(f"[SSE] Broadcast queue full for user {user_id}")
+
+    def get_subscriber_count(self, user_id: int = None, channel: str = None) -> int:
+        """获取指定频道的订阅者数量"""
+        channel = channel or self.DEFAULT_CHANNEL
         if user_id:
-            return len(self._subscribers.get(user_id, []))
-        return sum(len(v) for v in self._subscribers.values())
+            return len(self._channels.get(channel, {}).get(user_id, []))
+        return sum(len(v) for v in self._channels.get(channel, {}).values())
+
+    def get_total_subscriber_count(self) -> int:
+        """获取所有频道的总订阅者数量"""
+        total = 0
+        for channel_data in self._channels.values():
+            total += sum(len(v) for v in channel_data.values())
+        return total
 
 
 # 全局 SSE 管理器
@@ -126,8 +164,8 @@ class TaskNotifier:
         if error is not None:
             event["error"] = error
 
-        # 1. 通过 SSE 推送
-        sse_manager.publish(user_id, event)
+        # 1. 通过 SSE 推送（tasks 频道）
+        sse_manager.publish(user_id, event, channel="tasks")
 
         # 2. 通过 WebSocket 推送（如果可用）
         try:
@@ -169,6 +207,39 @@ class TaskNotifier:
         TaskNotifier.notify(user_id, task_id, task_type,
                             state=TaskNotifier.STATE_FAILURE, progress=0,
                             step=step, error=error)
+
+    @staticmethod
+    def notify_notification(user_id: int, title: str, message: str,
+                            notification_type: str = "info", link: str = None):
+        """推送系统通知到 notifications 频道"""
+        event = {
+            "type": "NOTIFICATION",
+            "title": title,
+            "message": message,
+            "notification_type": notification_type,
+            "timestamp": int(time.time()),
+        }
+        if link:
+            event["link"] = link
+        sse_manager.publish(user_id, event, channel="notifications")
+
+    @staticmethod
+    def notify_price_change(user_id: int, asin: str, product_name: str,
+                            old_price: float, new_price: float, currency: str = "USD"):
+        """推送价格变动到 prices 频道"""
+        change_pct = ((new_price - old_price) / old_price * 100) if old_price > 0 else 0
+        event = {
+            "type": "PRICE_CHANGE",
+            "asin": asin,
+            "product_name": product_name,
+            "old_price": old_price,
+            "new_price": new_price,
+            "currency": currency,
+            "change_percent": round(change_pct, 2),
+            "direction": "up" if new_price > old_price else "down",
+            "timestamp": int(time.time()),
+        }
+        sse_manager.publish(user_id, event, channel="prices")
 
 
 # 全局推送器实例

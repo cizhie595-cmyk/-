@@ -1,0 +1,159 @@
+# ============================================================
+# CronJob - 定时数据清理任务
+# 替代 Celery Beat 的 K8s 原生方案
+# ============================================================
+
+# 每日凌晨 2:00 清理过期数据
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: click-stats-data-cleanup
+  namespace: click-stats
+  labels:
+    app: click-stats
+    component: cronjob
+    task: data-cleanup
+spec:
+  schedule: "0 2 * * *"
+  timeZone: "Asia/Shanghai"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            app: click-stats
+            component: cronjob
+            task: data-cleanup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: data-cleanup
+              image: click-stats:latest
+              command:
+                - python
+                - -c
+                - |
+                  from tasks.maintenance_tasks import run_daily_cleanup
+                  run_daily_cleanup()
+              envFrom:
+                - configMapRef:
+                    name: click-stats-config
+                - secretRef:
+                    name: click-stats-secrets
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+
+---
+# 每周日凌晨 3:00 生成周报
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: click-stats-weekly-report
+  namespace: click-stats
+  labels:
+    app: click-stats
+    component: cronjob
+    task: weekly-report
+spec:
+  schedule: "0 3 * * 0"
+  timeZone: "Asia/Shanghai"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 7200
+      template:
+        metadata:
+          labels:
+            app: click-stats
+            component: cronjob
+            task: weekly-report
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: weekly-report
+              image: click-stats:latest
+              command:
+                - python
+                - -c
+                - |
+                  from tasks.maintenance_tasks import generate_weekly_reports
+                  generate_weekly_reports()
+              envFrom:
+                - configMapRef:
+                    name: click-stats-config
+                - secretRef:
+                    name: click-stats-secrets
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 512Mi
+                limits:
+                  cpu: 1000m
+                  memory: 1Gi
+
+---
+# 每月 1 日凌晨 4:00 重置配额
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: click-stats-quota-reset
+  namespace: click-stats
+  labels:
+    app: click-stats
+    component: cronjob
+    task: quota-reset
+spec:
+  schedule: "0 4 1 * *"
+  timeZone: "Asia/Shanghai"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app: click-stats
+            component: cronjob
+            task: quota-reset
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: quota-reset
+              image: click-stats:latest
+              command:
+                - python
+                - -c
+                - |
+                  from tasks.maintenance_tasks import reset_monthly_quotas
+                  reset_monthly_quotas()
+              envFrom:
+                - configMapRef:
+                    name: click-stats-config
+                - secretRef:
+                    name: click-stats-secrets
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi

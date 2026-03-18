@@ -75,7 +75,16 @@
     "archive": "Archive",
     "status_active": "Active",
     "status_completed": "Completed",
-    "status_archived": "Archived"
+    "status_archived": "Archived",
+    "exportCsv": "Export CSV",
+    "exportExcel": "Export Excel",
+    "exportPdf": "Export PDF",
+    "generateReport": "Generate Report",
+    "analysisProgress": "Analysis Progress",
+    "totalProducts": "Total Products",
+    "deepAnalysis": "Deep Analysis Results",
+    "sourcingResults": "1688 Sourcing Results",
+    "profitAnalysis": "Profit Analysis"
   },
   "analysis": {
     "title": "Analysis",
@@ -164,7 +173,8 @@
     "submit": "Submit",
     "close": "Close",
     "copy": "Copy",
-    "copied": "Copied"
+    "copied": "Copied",
+    "sortBy": "Sort By"
   },
   "market_analysis": {
     "title": "Market & Category Analysis",
@@ -222,5 +232,38 @@
     "api_keys_title": "Third-Party API Keys",
     "ai_settings_title": "AI Model Settings",
     "test_result": "Test Result"
-  }
+  },
+  "auth.login": "Login",
+  "auth.register": "Register",
+  "auth.username_or_email": "Username or Email",
+  "auth.password": "Password",
+  "auth.username": "Username",
+  "auth.email": "Email",
+  "auth.confirm_password": "Confirm Password",
+  "auth.sign_in": "Sign In",
+  "auth.create_account": "Create Account",
+  "auth.forgot_password": "Forgot Password",
+  "auth.reset_password": "Reset Password",
+  "subscription.title": "Subscription Plans",
+  "subscription.current_plan": "Current Plan",
+  "subscription.usage_overview": "Usage Overview",
+  "subscription.usage_history": "Usage History",
+  "notifications.title": "Notification Center",
+  "notifications.mark_all_read": "Mark All Read",
+  "notifications.preferences": "Notification Preferences",
+  "new_project.title": "Create New Project",
+  "new_project.name": "Project Name",
+  "new_project.marketplace": "Marketplace",
+  "new_project.keywords": "Keywords",
+  "new_project.create_btn": "Create Project",
+  "report.title": "Analysis Report",
+  "report.market_overview": "Market Overview",
+  "report.top_products": "Top Products",
+  "report.price_distribution": "Price Distribution",
+  "team.title": "Team Management",
+  "team.invite_btn": "Invite Member",
+  "team.members": "Team Members",
+  "team.activity_log": "Activity Log",
+  "auth.brand_title": "Amazon Visionary",
+  "team.create_btn": "Create Team"
 }

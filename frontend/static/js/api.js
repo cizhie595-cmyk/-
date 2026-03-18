@@ -53,13 +53,32 @@ class APIClient {
                 return null;
             }
 
-            // 处理额度不足响应
+            // 解析限流响应头并缓存
+            const rateLimitRemaining = response.headers.get('X-RateLimit-Remaining');
+            const rateLimitLimit = response.headers.get('X-RateLimit-Limit');
+            const rateLimitReset = response.headers.get('X-RateLimit-Reset');
+            if (rateLimitRemaining !== null) {
+                this._rateLimit = {
+                    remaining: parseInt(rateLimitRemaining),
+                    limit: parseInt(rateLimitLimit) || 100,
+                    reset: parseInt(rateLimitReset) || 0,
+                };
+                // 当剩余请求数低于 20% 时显示警告
+                if (this._rateLimit.remaining > 0 && this._rateLimit.remaining <= this._rateLimit.limit * 0.2) {
+                    this._showRateLimitWarning(this._rateLimit.remaining, this._rateLimit.limit);
+                }
+            }
+
+            // 处理限流/额度不足响应
             if (response.status === 429) {
                 const result = await response.json();
+                const retryAfter = response.headers.get('Retry-After') || result.retry_after || '60';
                 if (result.error === 'quota_exceeded') {
                     showToast(`额度不足: ${result.message || '请升级订阅'}`, 'warning');
-                    return null;
+                } else {
+                    showToast(`请求过于频繁，请 ${retryAfter} 秒后重试`, 'warning');
                 }
+                return null;
             }
 
             const result = await response.json();
@@ -409,6 +428,92 @@ class APIClient {
 
     async batchAffiliateLinks(urls, marketplace) {
         return await this.request('POST', '/affiliate/batch', { urls, marketplace });
+    }
+
+    // ================================================================
+    // Rate Limit Info
+    // ================================================================
+
+    /**
+     * 获取当前限流状态
+     * @returns {{remaining: number, limit: number, reset: number}|null}
+     */
+    getRateLimit() {
+        return this._rateLimit || null;
+    }
+
+    /**
+     * 显示限流警告（每 60 秒最多显示一次）
+     */
+    _showRateLimitWarning(remaining, limit) {
+        const now = Date.now();
+        if (this._lastRateLimitWarning && (now - this._lastRateLimitWarning) < 60000) {
+            return; // 防止频繁显示
+        }
+        this._lastRateLimitWarning = now;
+        showToast(`API 请求即将达到限制（剩余 ${remaining}/${limit}）`, 'warning');
+    }
+
+    // ================================================================
+    // Notifications API
+    // ================================================================
+
+    async getNotifications(params = {}) {
+        const query = new URLSearchParams(params).toString();
+        return await this.request('GET', `/notifications?${query}`);
+    }
+
+    async markNotificationRead(id) {
+        return await this.request('PUT', `/notifications/${id}/read`);
+    }
+
+    async markAllNotificationsRead() {
+        return await this.request('PUT', '/notifications/read-all');
+    }
+
+    async getNotificationPreferences() {
+        return await this.request('GET', '/notifications/preferences');
+    }
+
+    async updateNotificationPreferences(prefs) {
+        return await this.request('PUT', '/notifications/preferences', prefs);
+    }
+
+    // ================================================================
+    // Team API
+    // ================================================================
+
+    async getTeamMembers() {
+        return await this.request('GET', '/team/members');
+    }
+
+    async inviteTeamMember(data) {
+        return await this.request('POST', '/team/invite', data);
+    }
+
+    async updateMemberRole(memberId, role) {
+        return await this.request('PUT', `/team/members/${memberId}`, { role });
+    }
+
+    async removeTeamMember(memberId) {
+        return await this.request('DELETE', `/team/members/${memberId}`);
+    }
+
+    async getTeamActivity(params = {}) {
+        const query = new URLSearchParams(params).toString();
+        return await this.request('GET', `/team/activity?${query}`);
+    }
+
+    // ================================================================
+    // Export API
+    // ================================================================
+
+    async exportProjectData(projectId, format = 'csv') {
+        return await this.request('GET', `/v1/export/project/${projectId}?format=${format}`);
+    }
+
+    async exportReport(projectId, format = 'pdf') {
+        return await this.request('GET', `/v1/export/report/${projectId}?format=${format}`);
     }
 }
 

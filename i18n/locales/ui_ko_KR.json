@@ -75,7 +75,16 @@
     "archive": "보관",
     "status_active": "진행 중",
     "status_completed": "완료",
-    "status_archived": "보관됨"
+    "status_archived": "보관됨",
+    "exportCsv": "CSV 내보내기",
+    "exportExcel": "Excel 내보내기",
+    "exportPdf": "PDF 내보내기",
+    "generateReport": "보고서 생성",
+    "analysisProgress": "분석 진행",
+    "totalProducts": "총 제품 수",
+    "deepAnalysis": "심층 분석 결과",
+    "sourcingResults": "1688 소싱 결과",
+    "profitAnalysis": "수익 분석"
   },
   "analysis": {
     "title": "분석",
@@ -164,7 +173,8 @@
     "submit": "제출",
     "close": "닫기",
     "copy": "복사",
-    "copied": "복사됨"
+    "copied": "복사됨",
+    "sortBy": "정렬 기준"
   },
   "market_analysis": {
     "title": "시장 및 카테고리 분석",
@@ -222,5 +232,38 @@
     "api_keys_title": "서드파티 API 키",
     "ai_settings_title": "AI 모델 설정",
     "test_result": "테스트 결과"
-  }
+  },
+  "auth.login": "로그인",
+  "auth.register": "회원가입",
+  "auth.username_or_email": "사용자명 또는 이메일",
+  "auth.password": "비밀번호",
+  "auth.username": "사용자명",
+  "auth.email": "이메일",
+  "auth.confirm_password": "비밀번호 확인",
+  "auth.sign_in": "로그인",
+  "auth.create_account": "계정 만들기",
+  "auth.forgot_password": "비밀번호 찾기",
+  "auth.reset_password": "비밀번호 재설정",
+  "subscription.title": "구독 플랜",
+  "subscription.current_plan": "현재 플랜",
+  "subscription.usage_overview": "사용량 개요",
+  "subscription.usage_history": "사용 기록",
+  "notifications.title": "알림 센터",
+  "notifications.mark_all_read": "모두 읽음 표시",
+  "notifications.preferences": "알림 설정",
+  "new_project.title": "새 프로젝트 만들기",
+  "new_project.name": "프로젝트 이름",
+  "new_project.marketplace": "마켓플레이스",
+  "new_project.keywords": "키워드",
+  "new_project.create_btn": "프로젝트 생성",
+  "report.title": "분석 보고서",
+  "report.market_overview": "시장 개요",
+  "report.top_products": "인기 상품",
+  "report.price_distribution": "가격 분포",
+  "team.title": "팀 관리",
+  "team.invite_btn": "멤버 초대",
+  "team.members": "팀 멤버",
+  "team.activity_log": "활동 로그",
+  "auth.brand_title": "Amazon Visionary",
+  "team.create_btn": "팀 만들기"
 }

@@ -135,8 +135,8 @@ class VideoRenderer:
             if result.returncode == 0:
                 logger.info("FFmpeg 可用")
                 return True
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            pass
+        except (FileNotFoundError, subprocess.TimeoutExpired) as e:
+            logger.debug(f"FFmpeg 检测异常: {type(e).__name__}")
 
         logger.warning("FFmpeg 未安装，视频渲染功能不可用")
         return False
@@ -293,8 +293,8 @@ class VideoRenderer:
             # 清理临时文件
             try:
                 shutil.rmtree(temp_dir, ignore_errors=True)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"清理临时目录失败: {temp_dir}, {e}")
 
     def _generate_render_script(
         self,

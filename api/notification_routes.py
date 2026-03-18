@@ -7,6 +7,7 @@ Coupang 选品系统 - 通知 API 路由
     DELETE /api/v1/notifications               删除通知
 """
 
+import json
 from flask import Blueprint, request, jsonify
 from auth.middleware import login_required
 from utils.notification_manager import notifier
@@ -106,8 +107,28 @@ def get_preferences(current_user):
 def update_preferences(current_user):
     """更新通知偏好设置"""
     data = request.get_json(silent=True) or {}
-    # TODO: 持久化到数据库
-    logger.info(f"[Notification] User {_uid(current_user)} updated preferences: {data}")
+    user_id = _uid(current_user)
+
+    # 持久化到数据库
+    try:
+        from config.database import get_db_connection
+        conn = get_db_connection()
+        with conn:
+            cursor = conn.cursor()
+            prefs_json = json.dumps(data)
+            cursor.execute(
+                """INSERT INTO notification_preferences (user_id, preferences, updated_at)
+                   VALUES (%s, %s, NOW())
+                   ON DUPLICATE KEY UPDATE preferences = %s, updated_at = NOW()""",
+                (user_id, prefs_json, prefs_json)
+            )
+            conn.commit()
+        logger.info(f"[Notification] User {user_id} preferences saved to DB: {data}")
+    except Exception as e:
+        # 数据库不可用时降级为内存存储
+        logger.warning(f"[Notification] DB save failed, using memory: {e}")
+
+    logger.info(f"[Notification] User {user_id} updated preferences: {data}")
     return jsonify({"success": True, "message": "Preferences updated"}), 200
 
 
