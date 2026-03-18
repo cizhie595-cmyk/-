@@ -160,6 +160,10 @@ def create_app() -> Flask:
     from api.notification_routes import notification_bp
     app.register_blueprint(notification_bp)
 
+    # 数据清理与归档路由
+    from api.cleanup_routes import cleanup_bp
+    app.register_blueprint(cleanup_bp)
+
     # === WebSocket (Chrome 插件通信) ===
     try:
         from api.websocket_handler import register_websocket_routes
