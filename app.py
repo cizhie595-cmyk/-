@@ -132,6 +132,10 @@ def create_app() -> Flask:
     from api.dashboard_routes import dashboard_bp
     app.register_blueprint(dashboard_bp)
 
+    # Stripe 支付路由
+    from api.stripe_routes import stripe_bp
+    app.register_blueprint(stripe_bp)
+
     # === WebSocket (Chrome 插件通信) ===
     try:
         from api.websocket_handler import register_websocket_routes
