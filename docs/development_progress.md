@@ -171,6 +171,14 @@ Amazon Visionary Sourcing Tool
 
 ## Changelog
 
+### 2026-03-18 (Phase 11) - Swagger API Docs + i18n Full Coverage + Mock Tests
+- **Swagger/OpenAPI 3.0**: Expanded from 13 paths to 105 paths, 115 operations, 18 tags, 8 schemas
+- **i18n**: Added 45 `data-i18n` attributes across 13 frontend pages, 3 language files expanded to 186 keys each
+- **Tests**: New `test_scrapers.py` (26 tests) + `test_ai_analysis.py` (25 tests) with full Mock coverage, all 51 pass
+- **README**: Updated blueprint count 12→23, page count 12→16, added new tech stack, project structure, dev progress
+- **Fix**: `test_all_modules.py` sys.exit wrapped in `__name__` guard for pytest compatibility
+- **Cleanup**: Removed temporary files (test_merge.py, todo_remaining.md, swagger backup)
+
 ### 2026-03-18 (Phase 10) - P2/P3 Feature Completion & Production Readiness
 - **New Page**: `auth.html` fully rewritten with OAuth (Google/GitHub), forgot password, reset password, email verification panels
 - **New Page**: `team.html` - Team management with member invite, role assignment, activity log
