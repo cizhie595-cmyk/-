@@ -124,37 +124,101 @@
         btn.textContent = 'Analyzing...';
         document.getElementById('results-section').classList.remove('hidden');
 
-        try {
-            // 获取 Google Trends 数据
-            const trendsResult = await api.getGoogleTrends([keyword], marketplace);
-            if (trendsResult.success) {
-                renderTrendsChart(trendsResult.data);
-                renderSeasonalChart(trendsResult.data);
-                renderRelatedQueries(trendsResult.data);
-            }
-        } catch (e) {
-            console.error('Trends error:', e);
+        // 重置显示
+        document.getElementById('m-gmv').textContent = '...';
+        document.getElementById('m-sellers').textContent = '...';
+        document.getElementById('m-cr3').textContent = '...';
+        document.getElementById('m-new-ratio').textContent = '...';
+        document.getElementById('ai-summary').innerHTML = '<p>Analyzing market data...</p>';
+
+        // 并行获取 Google Trends + 市场数据
+        const [trendsResult, marketResult] = await Promise.allSettled([
+            fetchTrendsData(keyword, marketplace),
+            fetchMarketData(keyword, marketplace),
+        ]);
+
+        // 渲染 Google Trends
+        if (trendsResult.status === 'fulfilled' && trendsResult.value) {
+            renderTrendsChart(trendsResult.value);
+            renderSeasonalChart(trendsResult.value);
+            renderRelatedQueries(trendsResult.value);
         }
 
-        // 模拟其他分析数据（实际会从后端获取）
-        document.getElementById('m-gmv').textContent = '$2.4M';
-        document.getElementById('m-sellers').textContent = '1,247';
-        document.getElementById('m-cr3').textContent = '34.2%';
-        document.getElementById('m-new-ratio').textContent = '18.5%';
-
-        renderPriceDistChart();
-        renderConcentrationChart();
-
-        document.getElementById('ai-summary').innerHTML = `
-            <p>Based on the analysis of <strong>${keyword}</strong> in the ${marketplace} marketplace:</p>
-            <p>The market shows <strong>moderate competition</strong> with a CR3 of 34.2%, indicating room for new entrants.
-            Monthly GMV is estimated at $2.4M with a healthy growth trend over the past 12 months.</p>
-            <p>Key opportunity: The new product ratio of 18.5% suggests active innovation in this category.
-            Recommended entry strategy: Focus on differentiated features identified in the pain point analysis.</p>
-        `;
+        // 渲染市场数据
+        if (marketResult.status === 'fulfilled' && marketResult.value) {
+            renderMarketMetrics(marketResult.value);
+        } else {
+            document.getElementById('ai-summary').innerHTML =
+                '<p class="text-muted">Unable to load market data. Please create a sourcing project and run data scraping first.</p>';
+        }
 
         btn.disabled = false;
         btn.textContent = 'Analyze';
+    }
+
+    async function fetchTrendsData(keyword, marketplace) {
+        try {
+            const result = await api.getGoogleTrends([keyword], marketplace);
+            return result.success ? result.data : null;
+        } catch (e) {
+            console.error('Trends error:', e);
+            return null;
+        }
+    }
+
+    async function fetchMarketData(keyword, marketplace) {
+        try {
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`/api/v1/analysis/market?keyword=${encodeURIComponent(keyword)}&marketplace=${marketplace}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const result = await resp.json();
+            return result.success ? result.data : null;
+        } catch (e) {
+            console.error('Market data error:', e);
+            return null;
+        }
+    }
+
+    function renderMarketMetrics(data) {
+        // 统计卡片
+        if (data.gmv_estimate !== null && data.gmv_estimate !== undefined) {
+            const gmv = data.gmv_estimate;
+            document.getElementById('m-gmv').textContent =
+                gmv >= 1000000 ? `$${(gmv / 1000000).toFixed(1)}M` :
+                gmv >= 1000 ? `$${(gmv / 1000).toFixed(1)}K` : `$${gmv.toFixed(0)}`;
+        } else {
+            document.getElementById('m-gmv').textContent = 'N/A';
+        }
+
+        document.getElementById('m-sellers').textContent =
+            data.seller_count ? data.seller_count.toLocaleString() : 'N/A';
+        document.getElementById('m-cr3').textContent =
+            data.cr3 !== null ? `${data.cr3}%` : 'N/A';
+        document.getElementById('m-new-ratio').textContent =
+            data.new_product_ratio !== null ? `${data.new_product_ratio}%` : 'N/A';
+
+        // 价格分布图
+        if (data.price_distribution && data.price_distribution.length > 0) {
+            renderPriceDistChart(data.price_distribution);
+        } else {
+            renderPriceDistChart(null);
+        }
+
+        // 市场集中度图
+        if (data.concentration && data.concentration.length > 0) {
+            renderConcentrationChart(data.cr3, data.concentration);
+        } else {
+            renderConcentrationChart(null, null);
+        }
+
+        // AI 摘要
+        if (data.ai_summary) {
+            document.getElementById('ai-summary').innerHTML = `<p>${data.ai_summary}</p>`;
+        } else {
+            document.getElementById('ai-summary').innerHTML =
+                '<p class="text-muted">No sufficient data for AI summary.</p>';
+        }
     }
 
     function renderTrendsChart(data) {
@@ -227,16 +291,26 @@
         });
     }
 
-    function renderPriceDistChart() {
+    function renderPriceDistChart(distribution) {
         const ctx = document.getElementById('chart-price-dist').getContext('2d');
         if (priceDistChart) priceDistChart.destroy();
+
+        let labels, data;
+        if (distribution && distribution.length > 0) {
+            labels = distribution.map(d => d.range);
+            data = distribution.map(d => d.count);
+        } else {
+            labels = ['$0-10', '$10-20', '$20-30', '$30-50', '$50-100', '$100+'];
+            data = [0, 0, 0, 0, 0, 0];
+        }
+
         priceDistChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['$0-10', '$10-20', '$20-30', '$30-50', '$50-100', '$100+'],
+                labels: labels,
                 datasets: [{
                     label: 'Products',
-                    data: [15, 42, 38, 28, 12, 5],
+                    data: data,
                     backgroundColor: 'rgba(6, 182, 212, 0.6)',
                     borderColor: '#06b6d4',
                     borderWidth: 1,
@@ -253,16 +327,37 @@
         });
     }
 
-    function renderConcentrationChart() {
+    function renderConcentrationChart(cr3, concentration) {
         const ctx = document.getElementById('chart-concentration').getContext('2d');
         if (concentrationChart) concentrationChart.destroy();
+
+        let labels, data, colors;
+        if (cr3 !== null && concentration && concentration.length > 0) {
+            // 计算 top3, top4-10, others 的占比
+            const totalSales = concentration.reduce((s, c) => s + c.sales, 0);
+            const top3Sales = concentration.slice(0, 3).reduce((s, c) => s + c.sales, 0);
+            const top10Sales = concentration.slice(3, 10).reduce((s, c) => s + c.sales, 0);
+            const otherSales = Math.max(0, totalSales - top3Sales - top10Sales);
+
+            const top3Pct = totalSales > 0 ? (top3Sales / totalSales * 100).toFixed(1) : 0;
+            const top10Pct = totalSales > 0 ? (top10Sales / totalSales * 100).toFixed(1) : 0;
+            const otherPct = totalSales > 0 ? (otherSales / totalSales * 100).toFixed(1) : 0;
+
+            labels = [`Top 3 (${top3Pct}%)`, `Top 4-10 (${top10Pct}%)`, `Others (${otherPct}%)`];
+            data = [parseFloat(top3Pct), parseFloat(top10Pct), parseFloat(otherPct)];
+        } else {
+            labels = ['Top 3 Sellers', 'Top 4-10', 'Others'];
+            data = [0, 0, 0];
+        }
+        colors = ['#ef4444', '#f59e0b', '#22c55e'];
+
         concentrationChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['Top 3 Sellers', 'Top 4-10', 'Others'],
+                labels: labels,
                 datasets: [{
-                    data: [34.2, 22.8, 43.0],
-                    backgroundColor: ['#ef4444', '#f59e0b', '#22c55e'],
+                    data: data,
+                    backgroundColor: colors,
                     borderWidth: 0,
                 }]
             },
@@ -299,5 +394,22 @@
             risingDiv.innerHTML = '<div class="text-muted">No data available</div>';
         }
     }
+
+    // 如果 URL 中有关键词参数，自动执行分析
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        const keyword = params.get('keyword');
+        if (keyword) {
+            document.getElementById('market-keyword').value = keyword;
+            const marketplace = params.get('marketplace');
+            if (marketplace) {
+                document.getElementById('market-marketplace').value = marketplace;
+            }
+            // 延迟触发分析
+            setTimeout(() => {
+                document.getElementById('analyze-btn').click();
+            }, 500);
+        }
+    })();
 </script>
 {% endblock %}

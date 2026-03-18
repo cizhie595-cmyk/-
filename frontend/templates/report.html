@@ -20,6 +20,10 @@
     .rec-go { background: rgba(34, 197, 94, 0.1); border-color: var(--success); }
     .rec-caution { background: rgba(245, 158, 11, 0.1); border-color: var(--warning); }
     .rec-stop { background: rgba(239, 68, 68, 0.1); border-color: var(--danger); }
+    .no-data-hint {
+        text-align: center; padding: 24px; color: var(--text-muted);
+        font-style: italic;
+    }
     @media print {
         .sidebar, .top-bar .btn, .no-print { display: none !important; }
         .main-content { margin-left: 0 !important; }
@@ -162,52 +166,137 @@
 
     async function loadReport() {
         try {
+            // 加载项目基本信息
             const project = await api.getProject(projectId);
             if (project) {
                 document.getElementById('report-meta').textContent =
                     `Project: ${project.name || 'Untitled'} | Keyword: ${project.keyword || '-'} | Generated: ${new Date().toLocaleDateString('zh-CN')}`;
             }
 
-            // 模拟报告数据
-            document.getElementById('overall-score').textContent = '78';
-            document.getElementById('score-market').textContent = '82';
-            document.getElementById('score-profit').textContent = '75';
-            document.getElementById('score-competition').textContent = '68';
-            document.getElementById('score-risk').textContent = '85';
+            // 从后端 API 获取报告数据
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`/api/v1/analysis/report/${projectId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const result = await resp.json();
 
-            document.getElementById('bar-market').style.width = '82%';
-            document.getElementById('bar-profit').style.width = '75%';
-            document.getElementById('bar-competition').style.width = '68%';
-            document.getElementById('bar-risk').style.width = '85%';
-
-            document.getElementById('executive-summary').innerHTML = `
-                <p>This category shows <strong>moderate growth potential</strong> with an estimated monthly GMV of $2.4M.
-                The competition level is manageable with a CR3 of 34.2%, and there is room for differentiated products.</p>
-                <p>Recommended strategy: Enter with a differentiated product focusing on the pain points identified in customer reviews.
-                Target a selling price of $25-35 with an estimated profit margin of 25-30%.</p>
-            `;
-
-            document.getElementById('rec-go-content').innerHTML = `
-                <ul style="padding-left: 16px; line-height: 1.8;">
-                    <li>Market demand is growing (15% YoY increase in search volume)</li>
-                    <li>Multiple pain points identified for product improvement</li>
-                    <li>Healthy profit margins achievable at $25-35 price point</li>
-                </ul>
-            `;
-            document.getElementById('rec-caution-content').innerHTML = `
-                <ul style="padding-left: 16px; line-height: 1.8;">
-                    <li>Top 3 sellers hold 34.2% market share - monitor their pricing</li>
-                    <li>Seasonal demand peaks in Q4 - plan inventory accordingly</li>
-                </ul>
-            `;
-            document.getElementById('rec-stop-content').innerHTML = `
-                <ul style="padding-left: 16px; line-height: 1.8;">
-                    <li>Potential IP/patent issues with certain design features</li>
-                    <li>Some products in this category face high return rates (8-12%)</li>
-                </ul>
-            `;
+            if (result.success && result.data) {
+                renderReportData(result.data);
+            } else {
+                renderNoData();
+            }
         } catch (e) {
             console.error('Report load error:', e);
+            renderNoData();
+        }
+    }
+
+    function renderReportData(data) {
+        const scores = data.scores || {};
+        const hasData = data.has_data;
+
+        // 分数
+        setScore('overall-score', scores.overall);
+        setScore('score-market', scores.market);
+        setScore('score-profit', scores.profit);
+        setScore('score-competition', scores.competition);
+        setScore('score-risk', scores.risk);
+
+        // 进度条
+        setProgressBar('bar-market', scores.market);
+        setProgressBar('bar-profit', scores.profit);
+        setProgressBar('bar-competition', scores.competition);
+        setProgressBar('bar-risk', scores.risk);
+
+        // Executive Summary
+        if (data.executive_summary) {
+            document.getElementById('executive-summary').innerHTML = `<p>${data.executive_summary}</p>`;
+        }
+
+        // Market Analysis
+        if (hasData) {
+            document.getElementById('market-analysis-content').innerHTML =
+                `<p>Analysis data has been compiled from visual and review assessments. ` +
+                `Overall market score: <strong>${scores.market || '--'}/100</strong>. ` +
+                `Profit potential score: <strong>${scores.profit || '--'}/100</strong>.</p>`;
+        } else {
+            document.getElementById('market-analysis-content').innerHTML =
+                '<p class="no-data-hint">Complete visual and review analyses to populate this section.</p>';
+        }
+
+        // Recommendations
+        const recs = data.recommendations || {};
+        renderRecommendationList('rec-go-content', recs.go);
+        renderRecommendationList('rec-caution-content', recs.caution);
+        renderRecommendationList('rec-stop-content', recs.stop);
+
+        // Top Products - 从项目产品中加载
+        loadTopProducts();
+    }
+
+    function renderNoData() {
+        document.getElementById('executive-summary').innerHTML =
+            '<p class="no-data-hint">No analysis data available yet. Please run visual and review analyses for this project first.</p>';
+        document.getElementById('market-analysis-content').innerHTML =
+            '<p class="no-data-hint">No market data available.</p>';
+        document.getElementById('top-products-tbody').innerHTML =
+            '<tr><td colspan="8" class="text-center text-muted">No product data available</td></tr>';
+        renderRecommendationList('rec-go-content', ['Complete data scraping and analysis to get recommendations']);
+        renderRecommendationList('rec-caution-content', ['No data available yet']);
+        renderRecommendationList('rec-stop-content', ['No data available yet']);
+    }
+
+    function setScore(elementId, value) {
+        const el = document.getElementById(elementId);
+        el.textContent = value !== null && value !== undefined ? value : '--';
+    }
+
+    function setProgressBar(elementId, value) {
+        const el = document.getElementById(elementId);
+        el.style.width = value !== null && value !== undefined ? `${value}%` : '0%';
+    }
+
+    function renderRecommendationList(elementId, items) {
+        const el = document.getElementById(elementId);
+        if (items && items.length > 0) {
+            el.innerHTML = `
+                <ul style="padding-left: 16px; line-height: 1.8;">
+                    ${items.map(item => `<li>${item}</li>`).join('')}
+                </ul>
+            `;
+        } else {
+            el.innerHTML = '<p class="text-muted">No data available</p>';
+        }
+    }
+
+    async function loadTopProducts() {
+        try {
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`/api/v1/projects/${projectId}/products?page_size=10&sort_by=rating&sort_order=desc`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const result = await resp.json();
+
+            if (result.success && result.data && result.data.products.length > 0) {
+                const tbody = document.getElementById('top-products-tbody');
+                tbody.innerHTML = result.data.products.map((p, i) => `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td><a href="/products/${p.asin}/analysis" style="color: var(--primary-light);">${p.asin || '-'}</a></td>
+                        <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${p.title || '-'}</td>
+                        <td>$${p.price_current || p.price || '-'}</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>${p.rating || '-'}</td>
+                        <td>${p.review_count || '-'}</td>
+                    </tr>
+                `).join('');
+            } else {
+                document.getElementById('top-products-tbody').innerHTML =
+                    '<tr><td colspan="8" class="text-center text-muted">No product data. Run data scraping first.</td></tr>';
+            }
+        } catch (e) {
+            console.error('Products load error:', e);
         }
     }
 

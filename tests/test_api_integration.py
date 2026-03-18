@@ -558,7 +558,170 @@ test("3D \u72b6\u6001\u54cd\u5e94\u5b57\u6bb5\u5b8c\u6574\u6027", test_3d_status
 
 
 # ============================================================
-# 总结
+# 8. Project API \u6d4b\u8bd5
+# ============================================================
+print("\n\U0001f4e6 8. Project API \u6d4b\u8bd5")
+
+
+def test_project_create_no_keyword():
+    """创建项目无关键词返回 400"""
+    app = create_test_app()
+    client = app.test_client()
+    token = get_test_token()
+    resp = client.post("/api/v1/projects/create",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        data=json.dumps({"name": "test"}),
+    )
+    assert resp.status_code == 400
+
+
+def test_project_create_success():
+    """成功创建项目"""
+    app = create_test_app()
+    client = app.test_client()
+    token = get_test_token()
+    resp = client.post("/api/v1/projects/create",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        data=json.dumps({"name": "Test Project", "keyword": "wireless earbuds", "marketplace": "US"}),
+    )
+    assert resp.status_code == 201
+    data = resp.get_json()
+    assert data["success"] is True
+    assert "project_id" in data["data"]
+
+
+def test_project_list():
+    """\u83b7\u53d6\u9879\u76ee\u5217\u8868"""
+    app = create_test_app()
+    client = app.test_client()
+    token = get_test_token()
+    resp = client.get("/api/v1/projects",
+        headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["success"] is True
+    assert "projects" in data["data"]
+
+
+def test_project_list_no_auth():
+    """\u65e0\u8ba4\u8bc1\u8bbf\u95ee\u9879\u76ee\u5217\u8868\u8fd4\u56de 401"""
+    app = create_test_app()
+    client = app.test_client()
+    resp = client.get("/api/v1/projects")
+    assert resp.status_code == 401
+
+
+test("\u521b\u5efa\u9879\u76ee - \u65e0\u5173\u952e\u8bcd", test_project_create_no_keyword)
+test("\u521b\u5efa\u9879\u76ee - \u6210\u529f", test_project_create_success)
+test("\u9879\u76ee\u5217\u8868 - \u8ba4\u8bc1\u540e", test_project_list)
+test("\u9879\u76ee\u5217\u8868 - \u65e0\u8ba4\u8bc1", test_project_list_no_auth)
+
+
+# ============================================================
+# 9. Analysis API \u6d4b\u8bd5
+# ============================================================
+print("\n\U0001f52c 9. Analysis API \u6d4b\u8bd5")
+
+
+def test_analysis_visual_no_asin():
+    """\u89c6\u89c9\u5206\u6790\u65e0 ASIN \u8fd4\u56de 400"""
+    app = create_test_app()
+    client = app.test_client()
+    token = get_test_token()
+    resp = client.post("/api/v1/analysis/visual",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        data=json.dumps({}),
+    )
+    assert resp.status_code == 400
+
+
+def test_analysis_reviews_no_asin():
+    """\u8bc4\u8bba\u5206\u6790\u65e0 ASIN \u8fd4\u56de 400"""
+    app = create_test_app()
+    client = app.test_client()
+    token = get_test_token()
+    resp = client.post("/api/v1/analysis/reviews",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        data=json.dumps({}),
+    )
+    assert resp.status_code == 400
+
+
+def test_analysis_result_not_found():
+    """\u67e5\u8be2\u4e0d\u5b58\u5728\u7684\u4efb\u52a1\u8fd4\u56de 404"""
+    app = create_test_app()
+    client = app.test_client()
+    token = get_test_token()
+    resp = client.get("/api/v1/analysis/99999/result",
+        headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 404
+
+
+def test_analysis_report_generate_no_params():
+    """\u751f\u6210\u62a5\u544a\u65e0\u53c2\u6570\u8fd4\u56de 400"""
+    app = create_test_app()
+    client = app.test_client()
+    token = get_test_token()
+    resp = client.post("/api/v1/analysis/report/generate",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        data=json.dumps({}),
+    )
+    assert resp.status_code == 400
+
+
+def test_analysis_market_no_keyword():
+    """\u5e02\u573a\u5206\u6790\u65e0\u5173\u952e\u8bcd\u8fd4\u56de 400"""
+    app = create_test_app()
+    client = app.test_client()
+    token = get_test_token()
+    resp = client.get("/api/v1/analysis/market",
+        headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 400
+
+
+def test_analysis_market_with_keyword():
+    """\u5e02\u573a\u5206\u6790\u6709\u5173\u952e\u8bcd\u8fd4\u56de\u6570\u636e"""
+    app = create_test_app()
+    client = app.test_client()
+    token = get_test_token()
+    resp = client.get("/api/v1/analysis/market?keyword=test",
+        headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["success"] is True
+    market = data["data"]
+    assert "gmv_estimate" in market
+    assert "seller_count" in market
+    assert "ai_summary" in market
+
+
+def test_analysis_report_data():
+    """\u83b7\u53d6\u9879\u76ee\u62a5\u544a\u6570\u636e"""
+    app = create_test_app()
+    client = app.test_client()
+    token = get_test_token()
+    resp = client.get("/api/v1/analysis/report/1",
+        headers={"Authorization": f"Bearer {token}"})
+    # \u65e0\u6570\u636e\u5e93\u65f6\u8fd4\u56de\u7a7a\u6570\u636e\u4f46\u4e0d\u62a5\u9519
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["success"] is True
+    report = data["data"]
+    assert "scores" in report
+    assert "recommendations" in report
+
+
+test("\u89c6\u89c9\u5206\u6790 - \u65e0ASIN", test_analysis_visual_no_asin)
+test("\u8bc4\u8bba\u5206\u6790 - \u65e0ASIN", test_analysis_reviews_no_asin)
+test("\u5206\u6790\u7ed3\u679c - \u4e0d\u5b58\u5728", test_analysis_result_not_found)
+test("\u62a5\u544a\u751f\u6210 - \u65e0\u53c2\u6570", test_analysis_report_generate_no_params)
+test("\u5e02\u573a\u5206\u6790 - \u65e0\u5173\u952e\u8bcd", test_analysis_market_no_keyword)
+test("\u5e02\u573a\u5206\u6790 - \u6709\u5173\u952e\u8bcd", test_analysis_market_with_keyword)
+test("\u62a5\u544a\u6570\u636e - \u83b7\u53d6", test_analysis_report_data)
+
+
+# ============================================================
+# \u603b\u7ed3
 # ============================================================
 print(f"\n{'='*60}")
 print(f"\u6d4b\u8bd5\u5b8c\u6210: \u2705 {passed} \u901a\u8fc7 | \u274c {failed} \u5931\u8d25")
