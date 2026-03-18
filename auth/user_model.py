@@ -248,6 +248,45 @@ class UserModel:
         }
 
     @staticmethod
+    def set_email_verified(user_id: int, email: str) -> bool:
+        """
+        设置邮箱已验证
+        :param user_id: 用户ID
+        :param email: 待验证的邮箱（需与用户记录匹配）
+        :return: 是否成功
+        """
+        try:
+            db.execute(
+                "UPDATE users SET is_verified = 1 WHERE id = %s AND email = %s",
+                (user_id, email),
+            )
+            logger.info(f"邮箱验证成功: ID={user_id}, email={email}")
+            return True
+        except Exception as e:
+            logger.error(f"邮箱验证失败: {e}")
+            return False
+
+    @staticmethod
+    def reset_password(user_id: int, new_password: str) -> bool:
+        """
+        重置密码（不需要旧密码，用于忘记密码场景）
+        :param user_id: 用户ID
+        :param new_password: 新密码（明文）
+        :return: 是否成功
+        """
+        try:
+            new_hash = hash_password(new_password)
+            db.execute(
+                "UPDATE users SET password_hash = %s WHERE id = %s",
+                (new_hash, user_id),
+            )
+            logger.info(f"密码重置成功: ID={user_id}")
+            return True
+        except Exception as e:
+            logger.error(f"密码重置失败: {e}")
+            return False
+
+    @staticmethod
     def set_active(user_id: int, is_active: bool) -> bool:
         """启用/禁用用户"""
         try:

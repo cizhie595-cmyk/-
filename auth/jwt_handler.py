@@ -1,6 +1,6 @@
 """
 Coupang 选品系统 - JWT Token 管理
-提供: Token 生成、验证、刷新
+提供: Token 生成、验证、刷新、邮箱验证Token、密码重置Token
 """
 
 import os
@@ -17,6 +17,11 @@ JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "coupang-selection-system-secret-ke
 JWT_ALGORITHM = "HS256"
 JWT_ACCESS_TOKEN_EXPIRE_HOURS = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_HOURS", "24"))
 JWT_REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRE_DAYS", "30"))
+
+# 邮箱验证 Token 有效期 (24小时)
+EMAIL_VERIFY_TOKEN_EXPIRE_HOURS = 24
+# 密码重置 Token 有效期 (1小时)
+PASSWORD_RESET_TOKEN_EXPIRE_HOURS = 1
 
 
 def create_access_token(user_id: int, username: str, role: str = "user") -> str:
@@ -55,6 +60,44 @@ def create_refresh_token(user_id: int) -> str:
         "type": "refresh",
         "iat": now,
         "exp": now + timedelta(days=JWT_REFRESH_TOKEN_EXPIRE_DAYS),
+    }
+    token = jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+    return token
+
+
+def create_email_verification_token(user_id: int, email: str) -> str:
+    """
+    生成邮箱验证令牌
+    :param user_id: 用户ID
+    :param email: 待验证的邮箱
+    :return: JWT Token 字符串 (有效期24小时)
+    """
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(user_id),
+        "email": email,
+        "type": "email_verify",
+        "iat": now,
+        "exp": now + timedelta(hours=EMAIL_VERIFY_TOKEN_EXPIRE_HOURS),
+    }
+    token = jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+    return token
+
+
+def create_password_reset_token(user_id: int, email: str) -> str:
+    """
+    生成密码重置令牌
+    :param user_id: 用户ID
+    :param email: 用户邮箱
+    :return: JWT Token 字符串 (有效期1小时)
+    """
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(user_id),
+        "email": email,
+        "type": "password_reset",
+        "iat": now,
+        "exp": now + timedelta(hours=PASSWORD_RESET_TOKEN_EXPIRE_HOURS),
     }
     token = jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
     return token
@@ -103,6 +146,34 @@ def verify_refresh_token(token: str) -> Optional[int]:
     payload = verify_token(token)
     if payload and payload.get("type") == "refresh":
         return int(payload["sub"])
+    return None
+
+
+def verify_email_verification_token(token: str) -> Optional[dict]:
+    """
+    验证邮箱验证令牌
+    :return: {"user_id": int, "email": str}，失败返回 None
+    """
+    payload = verify_token(token)
+    if payload and payload.get("type") == "email_verify":
+        return {
+            "user_id": int(payload["sub"]),
+            "email": payload.get("email"),
+        }
+    return None
+
+
+def verify_password_reset_token(token: str) -> Optional[dict]:
+    """
+    验证密码重置令牌
+    :return: {"user_id": int, "email": str}，失败返回 None
+    """
+    payload = verify_token(token)
+    if payload and payload.get("type") == "password_reset":
+        return {
+            "user_id": int(payload["sub"]),
+            "email": payload.get("email"),
+        }
     return None
 
 
