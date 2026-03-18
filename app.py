@@ -148,6 +148,10 @@ def create_app() -> Flask:
     from api.oauth_routes import oauth_bp
     app.register_blueprint(oauth_bp)
 
+    # 数据导出路由
+    from api.export_routes import export_bp
+    app.register_blueprint(export_bp)
+
     # === WebSocket (Chrome 插件通信) ===
     try:
         from api.websocket_handler import register_websocket_routes
