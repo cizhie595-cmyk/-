@@ -258,10 +258,11 @@ def save_profit_calculation(current_user):
         "asin": data.get("asin"),
         "selling_price": data.get("selling_price", 0),
         "sourcing_cost": data.get("sourcing_cost", 0),
-        "marketplace": data.get("marketplace", "US"),
-        "category": data.get("category", "general"),
-        "weight_kg": data.get("weight_kg", 0.5),
-        "exchange_rate": data.get("exchange_rate", 7.25),
+        "shipping_cost_per_kg": data.get("shipping_cost_per_kg", 0),
+        "estimated_cpa": data.get("estimated_cpa", 0),
+        "return_rate": data.get("return_rate", 0.05),
+        "landed_cost": data.get("landed_cost"),
+        "amazon_fees": data.get("amazon_fees"),
         "net_profit": data.get("net_profit", 0),
         "net_margin": data.get("net_margin", 0),
         "roi": data.get("roi", 0),
@@ -273,8 +274,13 @@ def save_profit_calculation(current_user):
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO profit_calculations
-            (user_id, asin, selling_price, sourcing_cost, net_profit, net_margin, roi)
+            (user_id, asin, selling_price, sourcing_cost,
+             shipping_cost_per_kg, estimated_cpa, return_rate,
+             landed_cost, amazon_fees,
+             net_profit, net_margin, roi)
             VALUES (%(user_id)s, %(asin)s, %(selling_price)s, %(sourcing_cost)s,
+                    %(shipping_cost_per_kg)s, %(estimated_cpa)s, %(return_rate)s,
+                    %(landed_cost)s, %(amazon_fees)s,
                     %(net_profit)s, %(net_margin)s, %(roi)s)
         """, record)
         conn.commit()
@@ -308,6 +314,8 @@ def get_profit_history(current_user):
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
             SELECT id, asin, selling_price, sourcing_cost,
+                   shipping_cost_per_kg, estimated_cpa, return_rate,
+                   landed_cost, amazon_fees,
                    net_profit, net_margin, roi, created_at
             FROM profit_calculations
             WHERE user_id = %s

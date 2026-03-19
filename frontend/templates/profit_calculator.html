@@ -354,14 +354,17 @@
         }
 
         try {
+            const apiResult = lastCalcResult.apiResult || {};
+            const costs = apiResult.costs || {};
             const payload = {
                 asin: document.getElementById('calc-asin').value.trim() || null,
                 selling_price: parseFloat(document.getElementById('calc-price').value) || 0,
                 sourcing_cost: parseFloat(document.getElementById('calc-cost').value) || 0,
-                marketplace: document.getElementById('calc-marketplace').value,
-                category: document.getElementById('calc-category').value,
-                weight_kg: parseFloat(document.getElementById('calc-weight').value) || 0.5,
-                exchange_rate: parseFloat(document.getElementById('calc-exchange').value) || 7.25,
+                shipping_cost_per_kg: parseFloat(document.getElementById('calc-shipping').value) || 0,
+                estimated_cpa: parseFloat(document.getElementById('calc-ppc').value) || 0,
+                return_rate: (parseFloat(document.getElementById('calc-return-rate').value) || 5) / 100,
+                landed_cost: costs.total_cost || lastCalcResult.totalCost || 0,
+                amazon_fees: (costs.referral_fee || 0) + (costs.fba_fee || 0),
                 net_profit: lastCalcResult.profit,
                 net_margin: lastCalcResult.margin,
                 roi: lastCalcResult.totalCost > 0 ? (lastCalcResult.profit / lastCalcResult.totalCost * 100) : 0,
