@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-03-19
+
+### Added
+- Coupang Pipeline (`pipeline.py`) enhanced with 7 new analysis modules achieving feature parity with Amazon Pipeline
+- Step 3.5: KeywordResearcher integration - keyword difficulty scoring, search volume estimation, long-tail keyword discovery
+- Step 4.5: BSRTracker + CompetitorFinder integration - BSR ranking snapshots, competitive landscape analysis, market gap identification
+- Step 5.5: SentimentVisualizer integration - review sentiment analysis, word cloud generation, tag extraction
+- Step 8.5: SupplierScorer integration - multi-dimension 1688 supplier evaluation (credibility, capability, service, price, logistics)
+- Step 9.5: PricingOptimizer integration - price elasticity analysis, strategy comparison (penetration/competitive/premium/skimming)
+- Step 9.8: ProductDecisionEngine integration - AI-powered Go/No-Go decision scoring with comprehensive data aggregation
+- Step 10 Enhanced: DashboardAnalytics data aggregation + enhanced report generation with all new module data
+- 7 report formatting methods for enhanced Markdown report generation
+- `skip_enhanced` parameter in pipeline `run()` for backward compatibility
+- Coupang KR marketplace option in `new_project.html`, `competitor_monitor.html`, `keyword_research.html`, `pricing_strategy.html`
+- Dynamic pipeline steps display in `new_project.html` that adapts to selected marketplace (Amazon vs Coupang)
+- Multi-currency support (KRW/USD/EUR/GBP/JPY) in pricing strategy page
+- `test_coupang_pipeline_enhanced.py` with 44 comprehensive test cases
+
+### Fixed
+- `_format_supplier_section` dict/number compatibility bug in dimension score extraction
+- `save_raw_data()` now includes all 7 enhanced analysis data fields
+
 ## [1.3.0] - 2026-03-18
 
 ### Added

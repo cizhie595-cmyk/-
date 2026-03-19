@@ -1,10 +1,10 @@
 # Amazon Visionary Sourcing Tool - Development Progress
 
-> Last Updated: 2026-03-18
+> Last Updated: 2026-03-19
 
-## Overall Status: **Production-Ready (Phase 13 Complete - 98.5% Code Coverage)**
+## Overall Status: **Production-Ready (Phase 14 Complete - 99% Code Coverage)**
 
-All 21 GitHub Issues (P0-P3) and 20 remaining modules fully implemented. 351 files, 51,062 lines of code. Frontend: 19 HTML templates with full i18n (52 keys x 3 languages), OAuth login, password reset, email verification, team management, notifications, APM dashboard. Backend: 125 Python files, Stripe payments, rate limiting, audit logging, data export (CSV/Excel/PDF), multi-channel SSE, comprehensive error handling with HTML error pages. Infrastructure: gunicorn production config, Makefile (15 commands), 11 K8s YAML (PDB/NetworkPolicy/CronJob/ServiceMonitor), CI/CD pipeline, 14 test files (51+ mock tests passing). Chrome Extension fully rewritten with stats dashboard and collection history.
+All 21 GitHub Issues (P0-P3) and 20 remaining modules fully implemented. Phase 14: Coupang Pipeline enhanced with 7 new analysis modules (keyword research, BSR tracking, competitor discovery, sentiment visualization, supplier scoring, pricing optimization, AI decision engine). 285 files, 61,742 lines of code. Frontend: 19 HTML templates with full i18n (52 keys x 3 languages), OAuth login, password reset, email verification, team management, notifications, APM dashboard. Backend: 125 Python files, Stripe payments, rate limiting, audit logging, data export (CSV/Excel/PDF), multi-channel SSE, comprehensive error handling with HTML error pages. Infrastructure: gunicorn production config, Makefile (15 commands), 11 K8s YAML (PDB/NetworkPolicy/CronJob/ServiceMonitor), CI/CD pipeline, 14 test files (51+ mock tests passing). Chrome Extension fully rewritten with stats dashboard and collection history.
 
 ---
 
@@ -24,6 +24,7 @@ All 21 GitHub Issues (P0-P3) and 20 remaining modules fully implemented. 351 fil
 | Amazon Pipeline | Done | 100% |
 | 1688 Image Search | Done | 100% |
 | Profit Calculator | Done | 100% |
+| Coupang Pipeline Enhanced (7 modules) | Done | 100% |
 | 3D Asset Generation API | Done | 100% |
 | Video Renderer (FFmpeg) | Done | 100% |
 | File Upload Parser (CSV/XLSX) | Done | 100% |
@@ -123,6 +124,15 @@ Amazon Visionary Sourcing Tool
 │   ├── amazon_data_filter.py
 │   ├── data_filter.py
 │   ├── risk_scoring.py         # 5-dimension risk radar
+│   ├── keyword_researcher.py   # Keyword difficulty & long-tail
+│   ├── bsr_tracker.py          # BSR ranking snapshots
+│   ├── competitor_finder.py    # Competitive landscape analysis
+│   ├── sentiment_visualizer.py # Review sentiment & word cloud
+│   ├── supplier_scorer.py      # 1688 supplier evaluation
+│   ├── pricing_optimizer.py    # Price elasticity & strategy
+│   ├── ai_analysis/
+│   │   └── product_decision_engine.py  # AI Go/No-Go decision
+│   ├── dashboard_analytics.py  # KPI dashboard engine
 │   ├── market_analysis/
 │   ├── profit_analysis/
 │   └── model_3d/
@@ -173,6 +183,27 @@ Amazon Visionary Sourcing Tool
 ---
 
 ## Changelog
+
+### 2026-03-19 (Phase 14) - Coupang Pipeline Enhanced with 7 Analysis Modules
+- **pipeline.py**: Integrated 7 new analysis modules into Coupang SelectionPipeline:
+  - Step 3.5: KeywordResearcher - keyword difficulty, search volume estimation, long-tail discovery
+  - Step 4.5: BSRTracker + CompetitorFinder - BSR ranking snapshots, competitive landscape, market gaps
+  - Step 5.5: SentimentVisualizer - review sentiment analysis, word cloud, tag extraction
+  - Step 8.5: SupplierScorer - multi-dimension 1688 supplier evaluation (credibility, capability, service, price, logistics)
+  - Step 9.5: PricingOptimizer - price elasticity, strategy comparison (penetration/competitive/premium/skimming)
+  - Step 9.8: ProductDecisionEngine - AI-powered Go/No-Go decision scoring with comprehensive data
+  - Step 10 Enhanced: DashboardAnalytics data + enhanced report generation with all new module data
+- **pipeline.py**: Added 7 report formatting methods (_format_keyword_section, _format_competitor_section, etc.)
+- **pipeline.py**: Fixed _format_supplier_section dict/number compatibility bug in dimension score extraction
+- **pipeline.py**: Enhanced save_raw_data() to include all 7 new analysis data fields
+- **pipeline.py**: Added `skip_enhanced` parameter to run() for backward compatibility
+- **Frontend**: Updated `new_project.html` with Coupang KR marketplace option and dynamic pipeline steps display
+- **Frontend**: Updated `competitor_monitor.html` with Coupang KR marketplace option and KRW currency support
+- **Frontend**: Updated `keyword_research.html` with Coupang KR marketplace option
+- **Frontend**: Updated `pricing_strategy.html` with Coupang KR marketplace option and multi-currency support
+- **Tests**: Added `test_coupang_pipeline_enhanced.py` with 44 test cases covering all 7 enhanced modules
+- **Tests**: All 44 new tests passing, total 152 tests (151 passed, 1 env-only failure)
+- Coupang Pipeline now has feature parity with Amazon Pipeline across all analysis modules
 
 ### 2026-03-18 (Phase 13) - Complete All Remaining Modules (P0-P3)
 - **P0 - gunicorn.conf.py**: Production WSGI config (4 workers, graceful timeout, access log, preload)

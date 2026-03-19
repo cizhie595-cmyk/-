@@ -27,13 +27,18 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                 <div class="form-group">
                     <label class="form-label">Marketplace</label>
-                    <select class="form-select" id="project-marketplace">
-                        <option value="US">Amazon US</option>
-                        <option value="UK">Amazon UK</option>
-                        <option value="DE">Amazon DE</option>
-                        <option value="JP">Amazon JP</option>
-                        <option value="FR">Amazon FR</option>
-                        <option value="CA">Amazon CA</option>
+                    <select class="form-select" id="project-marketplace" onchange="updatePipelineSteps()">
+                        <optgroup label="Amazon">
+                            <option value="US">Amazon US</option>
+                            <option value="UK">Amazon UK</option>
+                            <option value="DE">Amazon DE</option>
+                            <option value="JP">Amazon JP</option>
+                            <option value="FR">Amazon FR</option>
+                            <option value="CA">Amazon CA</option>
+                        </optgroup>
+                        <optgroup label="Coupang">
+                            <option value="KR">Coupang KR</option>
+                        </optgroup>
                     </select>
                 </div>
                 <div class="form-group">
@@ -112,48 +117,7 @@
         <div class="card mb-lg">
             <h3 class="card-title mb-md" data-i18n="new_project.pipeline">Analysis Pipeline</h3>
             <div id="pipeline-steps">
-                <div class="pipeline-step">
-                    <div class="step-number">1</div>
-                    <div>
-                        <div style="font-weight: 600;">Product Search</div>
-                        <div class="text-muted" style="font-size: 0.85rem;">SP-API / Crawler fetches product list</div>
-                    </div>
-                </div>
-                <div class="pipeline-step">
-                    <div class="step-number">2</div>
-                    <div>
-                        <div style="font-weight: 600;">Data Enrichment</div>
-                        <div class="text-muted" style="font-size: 0.85rem;">Keepa historical data + BSR trends</div>
-                    </div>
-                </div>
-                <div class="pipeline-step">
-                    <div class="step-number">3</div>
-                    <div>
-                        <div style="font-weight: 600;">Smart Filtering</div>
-                        <div class="text-muted" style="font-size: 0.85rem;">Rule-based + AI relevance filtering</div>
-                    </div>
-                </div>
-                <div class="pipeline-step">
-                    <div class="step-number">4</div>
-                    <div>
-                        <div style="font-weight: 600;">Deep Analysis</div>
-                        <div class="text-muted" style="font-size: 0.85rem;">Visual semantic + Review AI analysis</div>
-                    </div>
-                </div>
-                <div class="pipeline-step">
-                    <div class="step-number">5</div>
-                    <div>
-                        <div style="font-weight: 600;">Profit Calculation</div>
-                        <div class="text-muted" style="font-size: 0.85rem;">1688 sourcing + FBA cost estimation</div>
-                    </div>
-                </div>
-                <div class="pipeline-step">
-                    <div class="step-number">6</div>
-                    <div>
-                        <div style="font-weight: 600;">Decision Report</div>
-                        <div class="text-muted" style="font-size: 0.85rem;">Comprehensive analysis with risk score</div>
-                    </div>
-                </div>
+                <div id="pipeline-steps-inner"></div>
             </div>
         </div>
 
@@ -276,6 +240,51 @@
             btn.textContent = 'Create & Start Analysis';
         }
     }
+
+    // Pipeline steps definitions
+    const AMAZON_STEPS = [
+        { title: 'Product Search', desc: 'SP-API / Crawler fetches product list' },
+        { title: 'Data Enrichment', desc: 'Keepa historical data + BSR trends' },
+        { title: 'Smart Filtering + Keyword Research', desc: 'Rule-based + AI filtering + keyword difficulty analysis' },
+        { title: 'Detail Crawl + BSR Tracking + Competitor Discovery', desc: 'Deep crawl + ranking snapshots + competitive landscape' },
+        { title: 'Review Analysis + Sentiment Visualization', desc: 'AI review analysis + word cloud + sentiment trends' },
+        { title: 'Visual Semantic + AI Decision Engine', desc: 'Detail page AI analysis + Go/No-Go decision scoring' },
+        { title: 'Category Trend Analysis', desc: 'GMV / monopoly / new product ratio' },
+        { title: '1688 Sourcing + Supplier Scoring', desc: 'Image search sourcing + multi-dimension supplier evaluation' },
+        { title: 'Profit Calculation + Pricing Strategy', desc: 'FBA cost estimation + optimal pricing + elasticity analysis' },
+        { title: 'Decision Report + Dashboard', desc: 'Comprehensive report with all enhanced analytics' },
+    ];
+
+    const COUPANG_STEPS = [
+        { title: 'Product Search', desc: 'Coupang crawler fetches product list' },
+        { title: 'Wing Backend Data', desc: 'Click/sales data from Wing backend' },
+        { title: 'Smart Filtering + Keyword Research', desc: 'Rule-based + AI filtering + keyword difficulty analysis' },
+        { title: 'Detail Crawl + BSR Tracking + Competitor Discovery', desc: 'Deep crawl + ranking snapshots + competitive landscape' },
+        { title: 'Review Analysis + Sentiment Visualization', desc: 'AI review analysis + word cloud + sentiment trends' },
+        { title: 'Visual Semantic + AI Decision Engine', desc: 'Detail page AI analysis + Go/No-Go decision scoring' },
+        { title: 'Category Trend Analysis', desc: 'Naver trends + category GMV analysis' },
+        { title: '1688 Sourcing + Supplier Scoring', desc: 'Image search sourcing + multi-dimension supplier evaluation' },
+        { title: 'Profit Calculation + Pricing Strategy', desc: 'Cost estimation + optimal pricing + elasticity analysis' },
+        { title: 'Decision Report + Dashboard', desc: 'Comprehensive report with all enhanced analytics' },
+    ];
+
+    function updatePipelineSteps() {
+        const marketplace = document.getElementById('project-marketplace').value;
+        const steps = marketplace === 'KR' ? COUPANG_STEPS : AMAZON_STEPS;
+        const container = document.getElementById('pipeline-steps-inner');
+        container.innerHTML = steps.map((s, i) => `
+            <div class="pipeline-step">
+                <div class="step-number">${i + 1}</div>
+                <div>
+                    <div style="font-weight: 600;">${s.title}</div>
+                    <div class="text-muted" style="font-size: 0.85rem;">${s.desc}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Initialize pipeline steps on load
+    updatePipelineSteps();
 
     // Load quota
     (async () => {

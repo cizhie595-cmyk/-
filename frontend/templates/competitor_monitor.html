@@ -22,10 +22,15 @@
         <div class="form-group" style="min-width: 120px; margin: 0;">
             <label class="form-label">Marketplace</label>
             <select class="form-select" id="comp-marketplace">
-                <option value="US">US</option>
-                <option value="UK">UK</option>
-                <option value="DE">DE</option>
-                <option value="JP">JP</option>
+                <optgroup label="Amazon">
+                    <option value="US">US</option>
+                    <option value="UK">UK</option>
+                    <option value="DE">DE</option>
+                    <option value="JP">JP</option>
+                </optgroup>
+                <optgroup label="Coupang">
+                    <option value="KR">KR</option>
+                </optgroup>
             </select>
         </div>
         <div class="form-group" style="flex: 1; min-width: 200px; margin: 0;">
@@ -122,7 +127,7 @@ function renderMonitors() {
             <td><code>${m.asin}</code></td>
             <td>${m.label || '-'}</td>
             <td>${m.marketplace || 'US'}</td>
-            <td>${m.last_price ? '$' + m.last_price.toFixed(2) : '-'}</td>
+            <td>${m.last_price ? (m.marketplace === 'KR' ? '\u20a9' : '$') + m.last_price.toLocaleString() : '-'}</td>
             <td>${m.last_bsr ? '#' + m.last_bsr.toLocaleString() : '-'}</td>
             <td>${m.last_rating || '-'}</td>
             <td>${m.last_review_count || '-'}</td>

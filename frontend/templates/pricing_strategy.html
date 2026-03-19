@@ -38,11 +38,16 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Marketplace</label>
-                <select class="form-select" id="pr-marketplace">
-                    <option value="US">US</option>
-                    <option value="UK">UK</option>
-                    <option value="DE">DE</option>
-                    <option value="JP">JP</option>
+                <select class="form-select" id="pr-marketplace" onchange="updateCurrencyLabels()">
+                    <optgroup label="Amazon">
+                        <option value="US">US</option>
+                        <option value="UK">UK</option>
+                        <option value="DE">DE</option>
+                        <option value="JP">JP</option>
+                    </optgroup>
+                    <optgroup label="Coupang">
+                        <option value="KR">KR</option>
+                    </optgroup>
                 </select>
             </div>
         </div>
@@ -111,6 +116,18 @@ const API_BASE = '/api/v1/pricing';
 let strategyChart = null;
 let elasticityChart = null;
 let distributionChart = null;
+
+function getCurrencySymbol() {
+    const mp = document.getElementById('pr-marketplace').value;
+    return mp === 'KR' ? '\u20a9' : mp === 'JP' ? '\u00a5' : mp === 'UK' ? '\u00a3' : mp === 'DE' ? '\u20ac' : '$';
+}
+
+function updateCurrencyLabels() {
+    const sym = getCurrencySymbol();
+    document.querySelectorAll('[data-currency-label]').forEach(el => {
+        el.textContent = el.getAttribute('data-currency-label').replace('$', sym);
+    });
+}
 
 async function api(url, options = {}) {
     const token = localStorage.getItem('access_token');

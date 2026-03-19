@@ -21,10 +21,15 @@
         <div class="form-group" style="min-width: 120px; margin: 0;">
             <label class="form-label">Marketplace</label>
             <select class="form-select" id="kw-marketplace">
-                <option value="US">US</option>
-                <option value="UK">UK</option>
-                <option value="DE">DE</option>
-                <option value="JP">JP</option>
+                <optgroup label="Amazon">
+                    <option value="US">US</option>
+                    <option value="UK">UK</option>
+                    <option value="DE">DE</option>
+                    <option value="JP">JP</option>
+                </optgroup>
+                <optgroup label="Coupang">
+                    <option value="KR">KR</option>
+                </optgroup>
             </select>
         </div>
         <button type="submit" class="btn btn-primary btn-lg" id="research-btn">Research</button>
