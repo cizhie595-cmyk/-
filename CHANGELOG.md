@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-03-19
+### Added - Phase 19: Complete ORM Model Layer (26 New Models)
+- **models_user.py**: UserModel (15 methods) + UserOAuthModel (5 methods) - User auth, OAuth, subscription, API keys, AI settings
+- **models_project.py**: SourcingProjectModel (8 methods) + ProjectProductModel (7 methods) + AnalysisTaskModel (8 methods) - Project lifecycle, product management, async task tracking
+- **models_analysis.py**: CategoryModel (5 methods) + MonthlySummaryModel (3 methods) + ProductImageModel (4 methods) + ReviewAnalysisModel (2 methods) + DetailPageAnalysisModel (2 methods) + ProfitAnalysisModel (3 methods) + TrendDataModel (3 methods) + AnalysisReportModel (5 methods) + ProfitCalculationModel (3 methods) + Asset3DModel (6 methods) - Full analysis data persistence
+- **models_system.py**: CrawlLogModel (6 methods) + ApiUsageLogModel (4 methods) + UsageRecordModel (3 methods) + SubscriptionLogModel (3 methods) + AffiliateClickModel (3 methods) + SystemConfigModel (4 methods) + AuditLogModel (4 methods) + NotificationModel (7 methods) + TeamModel (6 methods) + TeamMemberModel (6 methods) + TeamInvitationModel (6 methods) + MigrationModel (3 methods)
+- Updated `database/__init__.py` to export all 32 model classes covering 31 schema.sql tables
+- 149 new test cases for all ORM models (all passing)
+
 ## [1.8.0] - 2026-03-19
 
 ### Added - Phase 18: Product Analysis Deep Enhancement
