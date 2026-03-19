@@ -6,8 +6,8 @@
 {% block content %}
 <div class="top-bar">
     <div>
-        <h2 class="page-title">Keyword Research</h2>
-        <p class="page-subtitle">Search volume estimation, difficulty analysis & long-tail keyword discovery</p>
+        <h2 class="page-title" data-i18n="keyword.title">Keyword Research</h2>
+        <p class="page-subtitle" data-i18n="keyword.subtitle">Search volume estimation, difficulty analysis & long-tail keyword discovery</p>
     </div>
 </div>
 
@@ -15,11 +15,11 @@
 <div class="card mb-lg">
     <form onsubmit="runResearch(event)" style="display: flex; gap: 12px; align-items: end; flex-wrap: wrap;">
         <div class="form-group" style="flex: 2; min-width: 250px; margin: 0;">
-            <label class="form-label">Seed Keyword</label>
-            <input type="text" class="form-input" id="seed-keyword" placeholder="e.g., wireless earbuds" value="{{ keyword }}" required>
+            <label class="form-label" data-i18n="keyword.seed_keyword">Seed Keyword</label>
+            <input type="text" class="form-input" id="seed-keyword" data-i18n="keyword.seed_placeholder" data-i18n-attr="placeholder" placeholder="e.g., wireless earbuds" value="{{ keyword }}" required>
         </div>
         <div class="form-group" style="min-width: 120px; margin: 0;">
-            <label class="form-label">Marketplace</label>
+            <label class="form-label" data-i18n="keyword.marketplace">Marketplace</label>
             <select class="form-select" id="kw-marketplace">
                 <optgroup label="Amazon">
                     <option value="US">US</option>
@@ -32,7 +32,7 @@
                 </optgroup>
             </select>
         </div>
-        <button type="submit" class="btn btn-primary btn-lg" id="research-btn">Research</button>
+        <button type="submit" class="btn btn-primary btn-lg" id="research-btn" data-i18n="keyword.research_btn">Research</button>
     </form>
 </div>
 
@@ -64,7 +64,7 @@
 
 <!-- Difficulty Breakdown -->
 <div class="card mb-lg" id="difficulty-section" style="display: none;">
-    <h3 class="card-title">Difficulty Breakdown</h3>
+    <h3 class="card-title" data-i18n="keyword.difficulty">Difficulty Breakdown</h3>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
         <div>
             <canvas id="difficultyChart" height="250"></canvas>
@@ -77,14 +77,14 @@
 
 <!-- Recommendations -->
 <div class="card mb-lg" id="recommendations-section" style="display: none;">
-    <h3 class="card-title">Recommendations</h3>
+    <h3 class="card-title" data-i18n="keyword.recommendations">Recommendations</h3>
     <div id="recommendations-list"></div>
 </div>
 
 <!-- Long-tail Keywords -->
 <div class="card mb-lg" id="longtail-section" style="display: none;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 class="card-title" style="margin: 0;">Long-tail Keywords</h3>
+        <h3 class="card-title" style="margin: 0;" data-i18n="keyword.long_tail">Long-tail Keywords</h3>
         <div style="display: flex; gap: 8px;">
             <select class="form-select" id="lt-category" onchange="filterLongTail()" style="width: auto;">
                 <option value="all">All Categories</option>
@@ -101,7 +101,7 @@
 
 <!-- Autocomplete Suggestions -->
 <div class="card mb-lg" id="autocomplete-section" style="display: none;">
-    <h3 class="card-title">Amazon Autocomplete Suggestions</h3>
+    <h3 class="card-title" data-i18n="keyword.autocomplete">Amazon Autocomplete Suggestions</h3>
     <div id="autocomplete-list"></div>
 </div>
 
@@ -256,7 +256,7 @@ function renderDifficultyDetails(diff) {
 function renderRecommendations(recs) {
     const container = document.getElementById('recommendations-list');
     if (!recs.length) {
-        container.innerHTML = '<p class="text-muted">No recommendations available.</p>';
+        EmptyState.render(container, 'no-keywords', { title: 'No Recommendations', message: 'Run a keyword research to get AI-powered recommendations.' });
         return;
     }
     let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
@@ -275,7 +275,7 @@ function filterLongTail() {
     const container = document.getElementById('longtail-table');
 
     if (!filtered.length) {
-        container.innerHTML = '<p class="text-muted">No keywords found for this category.</p>';
+        EmptyState.render(container, 'no-keywords', { title: 'No Keywords Found', message: 'No keywords match the selected category filter. Try selecting a different category.' });
         return;
     }
 
@@ -297,7 +297,7 @@ function filterLongTail() {
 function renderAutocomplete(suggestions) {
     const container = document.getElementById('autocomplete-list');
     if (!suggestions.length) {
-        container.innerHTML = '<p class="text-muted">No autocomplete suggestions found.</p>';
+        EmptyState.render(container, 'no-results', { title: 'No Suggestions Found', message: 'No autocomplete suggestions were found for this keyword.' });
         return;
     }
     let html = '<div style="display: flex; flex-wrap: wrap; gap: 8px;">';

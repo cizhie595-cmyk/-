@@ -43,7 +43,7 @@ def upload_and_parse(current_user):
 
     try:
         # 保存文件
-        save_result = FileUploadAPI.save_upload(file, current_user["id"])
+        save_result = FileUploadAPI.save_upload(file, current_user["user_id"])
 
         # 解析文件
         parse_result = FileUploadAPI.parse_upload(save_result["file_path"])

@@ -256,22 +256,13 @@ def create_app() -> Flask:
     app.register_blueprint(frontend_bp)
 
     # PRD 8.1: /api/v1/user/quota 别名路由
+    from auth.middleware import login_required as lr
     @app.route("/api/v1/user/quota")
-    def user_quota_alias():
+    @lr
+    def user_quota_alias(current_user):
         """PRD 8.1 兼容路由 -> 转发到 /api/auth/quota"""
         from api.auth_routes import get_user_quota
-        from auth.middleware import login_required
-        # 手动调用 login_required 逻辑
-        from auth.jwt_handler import verify_access_token
-        from flask import request as req
-        auth_header = req.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            return jsonify({"success": False, "message": "未提供认证令牌"}), 401
-        token = auth_header.split(" ", 1)[1]
-        payload = verify_access_token(token)
-        if not payload:
-            return jsonify({"success": False, "message": "令牌无效或已过期"}), 401
-        return get_user_quota(payload)
+        return get_user_quota.__wrapped__(current_user)
 
     @app.route("/robots.txt")
     def robots_txt():

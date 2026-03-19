@@ -7,7 +7,7 @@
 <div class="top-bar">
     <div>
         <h2 class="page-title" data-i18n="profit.title">Profit Calculator</h2>
-        <p class="page-subtitle">FBA cost estimation, 1688 sourcing, and profit margin analysis</p>
+        <p class="page-subtitle" data-i18n="profit.subtitle">FBA cost estimation, 1688 sourcing, and profit margin analysis</p>
     </div>
     <div style="display: flex; gap: 8px;">
         <button class="btn btn-secondary" onclick="saveCalculation()" id="btn-save" title="Save this calculation">
@@ -139,7 +139,7 @@
     <div>
         <!-- Profit Summary -->
         <div class="card mb-lg" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(6, 182, 212, 0.1));">
-            <h3 class="card-title mb-md">Profit Summary</h3>
+            <h3 class="card-title mb-md" data-i18n="profit.profit_summary">Profit Summary</h3>
             <div style="text-align: center; padding: 16px 0;">
                 <div style="font-size: 3rem; font-weight: 700; color: var(--success);" id="profit-amount">$0.00</div>
                 <div class="text-muted">Net Profit per Unit</div>
@@ -153,14 +153,14 @@
 
         <!-- Cost Breakdown -->
         <div class="card mb-lg">
-            <h3 class="card-title mb-md">Cost Breakdown</h3>
+            <h3 class="card-title mb-md" data-i18n="profit.cost_breakdown">Cost Breakdown</h3>
             <canvas id="chart-cost-breakdown" height="250"></canvas>
             <div id="cost-details" class="mt-md"></div>
         </div>
 
         <!-- ROI Analysis -->
         <div class="card mb-lg">
-            <h3 class="card-title mb-md">ROI Scenarios</h3>
+            <h3 class="card-title mb-md" data-i18n="profit.roi_scenarios">ROI Scenarios</h3>
             <div class="table-container">
                 <table class="data-table">
                     <thead>
@@ -179,7 +179,7 @@
 
         <!-- Verdict -->
         <div class="card" id="verdict-card">
-            <h3 class="card-title mb-md">AI Verdict</h3>
+            <h3 class="card-title mb-md" data-i18n="profit.ai_verdict">AI Verdict</h3>
             <div id="verdict-content" class="text-muted">Enter product parameters to see analysis</div>
         </div>
     </div>

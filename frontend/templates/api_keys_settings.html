@@ -214,6 +214,8 @@
     // Init
     // ============================================================
     document.addEventListener('DOMContentLoaded', async () => {
+        // Re-read token in case it was set after script parse time
+        authToken = localStorage.getItem('auth_token') || '';
         if (!authToken) {
             document.getElementById('services-container').innerHTML =
                 '<div style="text-align:center;padding:40px;color:#fb923c;">' +

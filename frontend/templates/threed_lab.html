@@ -84,7 +84,7 @@
 <div class="top-bar">
     <div>
         <h2 class="page-title" data-i18n="threed.title">3D Product Lab</h2>
-        <p class="page-subtitle">Generate, preview, and render 3D product models</p>
+        <p class="page-subtitle" data-i18n="threed.subtitle">Generate, preview, and render 3D product models</p>
     </div>
     <div style="display: flex; gap: 8px;">
         <button class="btn btn-secondary" onclick="openRenderModal()">Render Video</button>
@@ -141,10 +141,9 @@
         <span class="text-muted" id="asset-count">0 models</span>
     </div>
     <div class="asset-grid" id="asset-grid">
-        <div style="grid-column: 1 / -1; text-align: center; padding: 40px;" class="text-muted">
-            No 3D models yet. Click "Generate 3D Model" to create one.
-        </div>
+        <div style="grid-column: 1 / -1;" id="asset-empty-state"></div>
     </div>
+    <script>EmptyState.render(document.getElementById('asset-empty-state'), 'no-data', { title: 'No 3D Models Yet', message: 'Upload a product image and click "Generate 3D Model" to create your first 3D asset.', actionText: null });</script>
 </div>
 
 <!-- 3D Generation Progress Overlay (F-06) -->

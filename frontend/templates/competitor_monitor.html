@@ -6,21 +6,21 @@
 {% block content %}
 <div class="top-bar">
     <div>
-        <h2 class="page-title">Competitor Monitor</h2>
-        <p class="page-subtitle">Track competitor price, BSR, reviews & get alerts on changes</p>
+        <h2 class="page-title" data-i18n="competitor.title">Competitor Monitor</h2>
+        <p class="page-subtitle" data-i18n="competitor.subtitle">Track competitor price, BSR, reviews & get alerts on changes</p>
     </div>
 </div>
 
 <!-- Add Competitor -->
 <div class="card mb-lg">
-    <h3 class="card-title">Add Competitor to Monitor</h3>
+    <h3 class="card-title" data-i18n="competitor.add_competitor">Add Competitor to Monitor</h3>
     <form onsubmit="addCompetitor(event)" style="display: flex; gap: 12px; align-items: end; flex-wrap: wrap;">
         <div class="form-group" style="flex: 1; min-width: 200px; margin: 0;">
-            <label class="form-label">ASIN</label>
-            <input type="text" class="form-input" id="comp-asin" placeholder="e.g., B0XXXXXXXXX" required>
+            <label class="form-label" data-i18n="competitor.asin">ASIN</label>
+            <input type="text" class="form-input" id="comp-asin" data-i18n="competitor.asin_placeholder" data-i18n-attr="placeholder" placeholder="e.g., B0XXXXXXXXX" required>
         </div>
         <div class="form-group" style="min-width: 120px; margin: 0;">
-            <label class="form-label">Marketplace</label>
+            <label class="form-label" data-i18n="competitor.marketplace">Marketplace</label>
             <select class="form-select" id="comp-marketplace">
                 <optgroup label="Amazon">
                     <option value="US">US</option>
@@ -34,27 +34,29 @@
             </select>
         </div>
         <div class="form-group" style="flex: 1; min-width: 200px; margin: 0;">
-            <label class="form-label">Label (optional)</label>
-            <input type="text" class="form-input" id="comp-label" placeholder="e.g., Main competitor">
+            <label class="form-label" data-i18n="competitor.label">Label (optional)</label>
+            <input type="text" class="form-input" id="comp-label" data-i18n="competitor.label_placeholder" data-i18n-attr="placeholder" placeholder="e.g., Main competitor">
         </div>
-        <button type="submit" class="btn btn-primary">Add & Snapshot</button>
+        <button type="submit" class="btn btn-primary" data-i18n="competitor.add_snapshot">Add & Snapshot</button>
     </form>
 </div>
 
 <!-- Monitor List -->
 <div class="card mb-lg">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 class="card-title" style="margin: 0;">Monitored Competitors</h3>
-        <button class="btn btn-secondary" onclick="batchSnapshot()">Batch Snapshot All</button>
+        <h3 class="card-title" style="margin: 0;" data-i18n="competitor.monitored">Monitored Competitors</h3>
+        <button class="btn btn-secondary" onclick="batchSnapshot()" data-i18n="competitor.batch_snapshot">Batch Snapshot All</button>
     </div>
     <div id="monitor-list">
-        <p class="text-muted">Loading monitors...</p>
+        <div class="skeleton" style="height: 48px; margin-bottom: 8px;"></div>
+        <div class="skeleton" style="height: 48px; margin-bottom: 8px;"></div>
+        <div class="skeleton" style="height: 48px;"></div>
     </div>
 </div>
 
 <!-- Alerts -->
 <div class="card mb-lg">
-    <h3 class="card-title">Recent Alerts</h3>
+    <h3 class="card-title" data-i18n="competitor.recent_alerts">Recent Alerts</h3>
     <div id="alerts-container">
         <p class="text-muted">No alerts yet. Add competitors and take snapshots to detect changes.</p>
     </div>
@@ -63,7 +65,7 @@
 <!-- Trend Chart -->
 <div class="card mb-lg">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 class="card-title" style="margin: 0;">Trend Analysis</h3>
+        <h3 class="card-title" style="margin: 0;" data-i18n="competitor.trend_analysis">Trend Analysis</h3>
         <div style="display: flex; gap: 8px;">
             <select class="form-select" id="trend-metric" onchange="loadTrend()" style="width: auto;">
                 <option value="price">Price</option>
@@ -83,7 +85,7 @@
 
 <!-- Comparison Matrix -->
 <div class="card mb-lg">
-    <h3 class="card-title">Comparison Matrix</h3>
+    <h3 class="card-title" data-i18n="competitor.comparison_matrix">Comparison Matrix</h3>
     <div id="matrix-container">
         <p class="text-muted">Add at least 2 competitors to see comparison.</p>
     </div>
@@ -115,7 +117,7 @@ async function loadMonitors() {
 function renderMonitors() {
     const container = document.getElementById('monitor-list');
     if (!monitors.length) {
-        container.innerHTML = '<p class="text-muted">No competitors being monitored. Add one above.</p>';
+        EmptyState.render(container, 'no-competitors', { title: 'No Competitors Tracked', message: 'Add a competitor ASIN above to start monitoring price, BSR, and review changes.' });
         return;
     }
     let html = `<table class="data-table" style="width:100%">

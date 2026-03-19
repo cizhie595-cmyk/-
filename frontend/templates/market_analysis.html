@@ -7,7 +7,7 @@
 <div class="top-bar">
     <div>
         <h2 class="page-title" data-i18n="market_analysis.title">Market & Category Analysis</h2>
-        <p class="page-subtitle">Trend tracking, GMV estimation, and competitive landscape</p>
+        <p class="page-subtitle" data-i18n="market_analysis.subtitle">Trend tracking, GMV estimation, and competitive landscape</p>
     </div>
 </div>
 
@@ -91,20 +91,31 @@
     <!-- Related Keywords -->
     <div class="card-grid card-grid-2 mb-lg">
         <div class="card">
-            <h3 class="card-title mb-md">Top Related Queries</h3>
-            <div id="related-top" class="text-muted">Loading...</div>
+            <h3 class="card-title mb-md" data-i18n="market_analysis.top_queries">Top Related Queries</h3>
+            <div id="related-top">
+                <div class="skeleton" style="height: 16px; width: 80%; margin-bottom: 8px;"></div>
+                <div class="skeleton" style="height: 16px; width: 60%; margin-bottom: 8px;"></div>
+                <div class="skeleton" style="height: 16px; width: 70%;"></div>
+            </div>
         </div>
         <div class="card">
-            <h3 class="card-title mb-md">Rising Queries</h3>
-            <div id="related-rising" class="text-muted">Loading...</div>
+            <h3 class="card-title mb-md" data-i18n="market_analysis.rising_queries">Rising Queries</h3>
+            <div id="related-rising">
+                <div class="skeleton" style="height: 16px; width: 75%; margin-bottom: 8px;"></div>
+                <div class="skeleton" style="height: 16px; width: 55%; margin-bottom: 8px;"></div>
+                <div class="skeleton" style="height: 16px; width: 65%;"></div>
+            </div>
         </div>
     </div>
 
     <!-- AI Summary -->
     <div class="card">
-        <h3 class="card-title mb-md">AI Market Summary</h3>
-        <div id="ai-summary" class="text-muted" style="line-height: 1.8;">
-            Generating market summary...
+        <h3 class="card-title mb-md" data-i18n="market_analysis.ai_summary">AI Market Summary</h3>
+        <div id="ai-summary" style="line-height: 1.8;">
+            <div class="skeleton" style="height: 14px; width: 100%; margin-bottom: 10px;"></div>
+            <div class="skeleton" style="height: 14px; width: 95%; margin-bottom: 10px;"></div>
+            <div class="skeleton" style="height: 14px; width: 80%; margin-bottom: 10px;"></div>
+            <div class="skeleton" style="height: 14px; width: 90%;"></div>
         </div>
     </div>
 </div>
@@ -149,7 +160,8 @@
             renderMarketMetrics(marketResult.value);
         } else {
             document.getElementById('ai-summary').innerHTML =
-                '<p class="text-muted">Unable to load market data. Please create a sourcing project and run data scraping first.</p>';
+                '';
+            EmptyState.render(document.getElementById('ai-summary'), 'no-data', { title: 'No Market Data', message: 'Create a sourcing project and run data scraping first to see market analysis results.', actionText: 'New Project', actionHref: '/projects/new' });
         }
 
         btn.disabled = false;
@@ -379,7 +391,7 @@
                 </div>
             `).join('');
         } else {
-            topDiv.innerHTML = '<div class="text-muted">No data available</div>';
+            topDiv.innerHTML = '<div class="text-muted" style="padding: 16px 0;">No related queries found for this keyword.</div>';
         }
 
         if (related.rising && related.rising.length) {
@@ -390,7 +402,7 @@
                 </div>
             `).join('');
         } else {
-            risingDiv.innerHTML = '<div class="text-muted">No data available</div>';
+            risingDiv.innerHTML = '<div class="text-muted" style="padding: 16px 0;">No rising queries detected for this keyword.</div>';
         }
     }
 

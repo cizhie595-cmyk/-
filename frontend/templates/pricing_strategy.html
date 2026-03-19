@@ -6,38 +6,38 @@
 {% block content %}
 <div class="top-bar">
     <div>
-        <h2 class="page-title">Pricing Strategy Optimizer</h2>
-        <p class="page-subtitle">Find the optimal price point with elasticity analysis and strategy comparison</p>
+        <h2 class="page-title" data-i18n="pricing.title">Pricing Strategy Optimizer</h2>
+        <p class="page-subtitle" data-i18n="pricing.subtitle">Find the optimal price point with elasticity analysis and strategy comparison</p>
     </div>
 </div>
 
 <!-- Input Form -->
 <div class="card mb-lg">
-    <h3 class="card-title">Product Cost & Market Data</h3>
+    <h3 class="card-title" data-i18n="pricing.product_cost">Product Cost & Market Data</h3>
     <form onsubmit="optimizePrice(event)">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
             <div class="form-group">
-                <label class="form-label">ASIN (optional)</label>
-                <input type="text" class="form-input" id="pr-asin" value="{{ asin }}" placeholder="e.g., B0XXXXXXXXX">
+                <label class="form-label" data-i18n="pricing.asin_optional">ASIN (optional)</label>
+                <input type="text" class="form-input" id="pr-asin" value="{{ asin }}" data-i18n="pricing.asin_placeholder" data-i18n-attr="placeholder" placeholder="e.g., B0XXXXXXXXX">
             </div>
             <div class="form-group">
-                <label class="form-label">Landed Cost (USD)</label>
+                <label class="form-label" data-i18n="pricing.landed_cost">Landed Cost (USD)</label>
                 <input type="number" class="form-input" id="pr-landed-cost" step="0.01" placeholder="e.g., 8.50" required>
             </div>
             <div class="form-group">
-                <label class="form-label">Amazon Fees (USD)</label>
+                <label class="form-label" data-i18n="pricing.amazon_fees">Amazon Fees (USD)</label>
                 <input type="number" class="form-input" id="pr-amazon-fees" step="0.01" placeholder="e.g., 5.20" required>
             </div>
             <div class="form-group">
-                <label class="form-label">PPC Cost / Unit (USD)</label>
+                <label class="form-label" data-i18n="pricing.ppc_cost">PPC Cost / Unit (USD)</label>
                 <input type="number" class="form-input" id="pr-ppc" step="0.01" value="2.00" placeholder="e.g., 2.00">
             </div>
             <div class="form-group">
-                <label class="form-label">Target Margin (%)</label>
+                <label class="form-label" data-i18n="pricing.target_margin">Target Margin (%)</label>
                 <input type="number" class="form-input" id="pr-margin" step="1" value="25" placeholder="e.g., 25">
             </div>
             <div class="form-group">
-                <label class="form-label">Marketplace</label>
+                <label class="form-label" data-i18n="pricing.marketplace">Marketplace</label>
                 <select class="form-select" id="pr-marketplace" onchange="updateCurrencyLabels()">
                     <optgroup label="Amazon">
                         <option value="US">US</option>
@@ -52,10 +52,10 @@
             </div>
         </div>
         <div style="margin-top: 12px;">
-            <label class="form-label">Competitor Prices (comma-separated, USD)</label>
+            <label class="form-label" data-i18n="pricing.competitor_prices">Competitor Prices (comma-separated, USD)</label>
             <input type="text" class="form-input" id="pr-competitors" placeholder="e.g., 24.99, 29.99, 19.99, 27.50, 22.99">
         </div>
-        <button type="submit" class="btn btn-primary" style="margin-top: 16px;" id="optimize-btn">Optimize Pricing</button>
+        <button type="submit" class="btn btn-primary" style="margin-top: 16px;" id="optimize-btn" data-i18n="pricing.optimize_btn">Optimize Pricing</button>
     </form>
 </div>
 
@@ -200,7 +200,7 @@ function renderResults(d) {
 
 function renderStrategyTable(strategies) {
     const container = document.getElementById('strategy-table');
-    if (!strategies.length) { container.innerHTML = '<p class="text-muted">No strategies available.</p>'; return; }
+    if (!strategies.length) { EmptyState.render(container, 'no-data', { title: 'No Strategies Available', message: 'Run a pricing analysis first to see recommended strategies.' }); return; }
 
     let html = `<table class="data-table" style="width:100%">
         <thead><tr><th>Strategy</th><th>Price</th><th>Profit/Unit</th><th>Margin</th><th>Description</th></tr></thead><tbody>`;
@@ -246,7 +246,7 @@ function renderElasticity(elasticity) {
     const details = document.getElementById('elasticity-details');
 
     if (!points.length) {
-        details.innerHTML = '<p class="text-muted">No elasticity data available.</p>';
+        details.innerHTML = '<p class="text-muted" style="padding: 20px; text-align: center;">No elasticity data available. Run the analysis to see price sensitivity insights.</p>';
         return;
     }
 

@@ -35,7 +35,7 @@ def get_plans():
 @login_required
 def get_my_subscription(current_user):
     """获取当前用户的订阅状态"""
-    sub = SubscriptionManager.get_user_subscription(current_user["id"])
+    sub = SubscriptionManager.get_user_subscription(current_user["user_id"])
     return jsonify({"success": True, "subscription": sub})
 
 
@@ -76,7 +76,7 @@ def upgrade_subscription(current_user):
         }), 402
 
     success, message = SubscriptionManager.upgrade_subscription(
-        current_user["id"], plan_id, billing_cycle
+        current_user["user_id"], plan_id, billing_cycle
     )
 
     status_code = 200 if success else 400
@@ -87,7 +87,7 @@ def upgrade_subscription(current_user):
 @login_required
 def cancel_subscription(current_user):
     """取消订阅"""
-    success, message = SubscriptionManager.cancel_subscription(current_user["id"])
+    success, message = SubscriptionManager.cancel_subscription(current_user["user_id"])
     status_code = 200 if success else 400
     return jsonify({"success": success, "message": message}), status_code
 
@@ -96,13 +96,13 @@ def cancel_subscription(current_user):
 @login_required
 def get_usage(current_user):
     """获取使用量统计"""
-    sub = SubscriptionManager.get_user_subscription(current_user["id"])
+    sub = SubscriptionManager.get_user_subscription(current_user["user_id"])
     features = sub["plan_info"].get("features", {})
 
     usage = {}
     for quota_type, limit in features.items():
         has_quota, remaining = SubscriptionManager.check_quota(
-            current_user["id"], quota_type
+            current_user["user_id"], quota_type
         )
         usage[quota_type] = {
             "limit": limit,
@@ -140,7 +140,7 @@ def generate_affiliate_link(current_user):
 
     # 记录点击
     tag_used = user_tag or affiliate_mgr._get_system_tag(marketplace)
-    affiliate_mgr.log_click(current_user["id"], asin, marketplace, tag_used)
+    affiliate_mgr.log_click(current_user["user_id"], asin, marketplace, tag_used)
 
     return jsonify({
         "success": True,
