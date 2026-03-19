@@ -370,18 +370,30 @@ class AmazonSelectionPipeline:
                 if not asin:
                     continue
 
-                reviews = review_crawler.crawl_reviews(asin, max_reviews=200)
-                if not reviews:
+                crawl_result = review_crawler.crawl_reviews(asin, max_reviews=200)
+                if not crawl_result:
+                    continue
+
+                # crawl_reviews 返回 dict，提取评论列表
+                reviews_list = crawl_result.get("reviews", []) if isinstance(crawl_result, dict) else crawl_result
+                if not reviews_list:
                     continue
 
                 # 刷单检测
-                reviews = review_crawler._detect_fake_reviews(reviews)
+                fake_suspects = review_crawler._detect_fake_reviews(reviews_list)
 
-                # AI 分析
-                analysis = analyzer.analyze(reviews, product.get("title", ""))
+                # AI 分析 - 传入评论列表
+                analysis = analyzer.analyze(reviews_list, product.get("title", ""))
+
+                # 合并爬取统计信息到分析结果
+                if isinstance(crawl_result, dict):
+                    analysis["crawl_statistics"] = crawl_result.get("statistics", {})
+                    analysis["fake_review_suspects"] = fake_suspects if isinstance(fake_suspects, list) else crawl_result.get("fake_review_suspects", [])
+                    analysis["total_crawled"] = crawl_result.get("total_crawled", len(reviews_list))
+
                 self.review_analyses[asin] = analysis
 
-                logger.debug(f"评论分析 [{i+1}] 完成: {len(reviews)} 条评论")
+                logger.debug(f"评论分析 [{i+1}] 完成: {len(reviews_list)} 条评论")
         finally:
             review_crawler.close()
 
@@ -415,47 +427,77 @@ class AmazonSelectionPipeline:
 
         from analysis.market_analysis.amazon_category_analyzer import AmazonCategoryAnalyzer
 
+        # AmazonCategoryAnalyzer 只接受 ai_client 和 ai_model 参数
         analyzer = AmazonCategoryAnalyzer(
-            http_client=self.http_client,
             ai_client=self.ai_client,
+            ai_model=self.ai_model,
         )
 
         try:
+            # analyze_category 签名: (products, keyword, trends_data=None)
             self.category_analysis = analyzer.analyze_category(
-                keyword, self.products, self.keepa_data
+                self.products, keyword, self.keepa_data
             )
         except Exception as e:
             logger.warning(f"类目分析失败: {e}")
-        finally:
-            try:
-                analyzer.close()
-            except Exception:
-                pass
 
     def _step_source_search(self):
         """Step 8: 1688 货源搜索"""
         logger.info(f"\n--- Step 8/10: 1688 货源搜索 ---")
 
+        import tempfile
+        import requests as _requests
         from scrapers.alibaba1688.source_crawler import Alibaba1688Crawler
 
         crawler = Alibaba1688Crawler(http_client=self.http_client)
 
         try:
             for product in self.products[:5]:
-                images = product.get("images", [])
-                main_img = next(
-                    (img for img in images if img.get("type") == "main"),
-                    None,
+                sources = []
+
+                # 尝试以图搜货：从多种字段获取主图 URL
+                main_image_url = (
+                    product.get("main_image")
+                    or product.get("main_image_url")
+                    or product.get("image_url")
+                    or ""
                 )
 
-                if main_img and main_img.get("local_path"):
-                    sources = crawler.search_by_image(main_img["local_path"])
-                else:
+                # 也检查旧的 images 数组格式
+                if not main_image_url:
+                    images = product.get("images", [])
+                    main_img = next(
+                        (img for img in images if img.get("type") == "main"),
+                        None,
+                    )
+                    if main_img:
+                        main_image_url = main_img.get("local_path") or main_img.get("url", "")
+
+                # 如果有图片 URL，下载到临时文件后以图搜货
+                if main_image_url and main_image_url.startswith("http"):
+                    try:
+                        resp = _requests.get(main_image_url, timeout=15,
+                                             headers={"User-Agent": "Mozilla/5.0"})
+                        if resp.status_code == 200 and len(resp.content) > 1000:
+                            suffix = ".jpg"
+                            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+                                tmp.write(resp.content)
+                                tmp_path = tmp.name
+                            sources = crawler.search_by_image(tmp_path)
+                            os.remove(tmp_path)
+                    except Exception as e:
+                        logger.debug(f"图片下载/搜索失败: {e}")
+                elif main_image_url and os.path.isfile(main_image_url):
+                    # 本地文件路径
+                    sources = crawler.search_by_image(main_image_url)
+
+                # 降级为关键词搜索
+                if not sources:
                     title = product.get("title", "")
                     if title:
-                        sources = crawler.search_by_keyword(title[:20])
-                    else:
-                        sources = []
+                        # 提取核心关键词（去掉品牌名和无关修饰词）
+                        search_term = title[:30]
+                        sources = crawler.search_by_keyword(search_term)
 
                 product["sources_1688"] = sources
                 logger.debug(f"找到 {len(sources)} 个货源")
@@ -502,7 +544,7 @@ class AmazonSelectionPipeline:
 
         from analysis.market_analysis.report_generator import ReportGenerator
 
-        generator = ReportGenerator(ai_client=self.ai_client)
+        generator = ReportGenerator(ai_client=self.ai_client, platform="amazon")
         output_dir = self.config.get("output_dir", "reports")
 
         report_path = generator.generate(
