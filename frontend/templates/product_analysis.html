@@ -60,6 +60,39 @@
     .dimension-chip.added {
         opacity: 0.4; pointer-events: none;
     }
+
+    /* PA-01: Variant Donut */
+    .variant-legend-item { display: inline-flex; align-items: center; gap: 6px; margin: 4px 8px; font-size: 0.8rem; }
+    .variant-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* PA-02: Lifecycle */
+    .lifecycle-bar { height: 6px; border-radius: 3px; background: var(--border); margin-top: 8px; overflow: hidden; }
+    .lifecycle-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+    /* PA-03: Supplier cards */
+    .supplier-card { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; display: flex; gap: 16px; margin-bottom: 12px; transition: border-color 0.2s; }
+    .supplier-card:hover { border-color: var(--primary); }
+    .supplier-img { width: 120px; height: 120px; object-fit: cover; border-radius: var(--radius-sm); background: var(--bg-dark); flex-shrink: 0; }
+    .supplier-info { flex: 1; }
+    .supplier-info h4 { font-size: 0.95rem; margin-bottom: 8px; line-height: 1.4; }
+    .supplier-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 0.85rem; }
+    .supplier-score { display: flex; align-items: center; gap: 4px; }
+    .supplier-score-bar { width: 60px; height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+    .supplier-score-fill { height: 100%; border-radius: 3px; }
+
+    /* PA-05: Visual analysis cards */
+    .structure-item { padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .structure-item:last-child { border-bottom: none; }
+    .structure-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 2px; }
+    .structure-value { font-weight: 500; }
+    .color-swatch { display: inline-block; width: 24px; height: 24px; border-radius: 4px; border: 1px solid var(--border); vertical-align: middle; margin-right: 8px; }
+    .usp-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; background: rgba(99,102,241,0.1); color: var(--primary-light); border: 1px solid rgba(99,102,241,0.2); margin: 3px; }
+
+    /* PA-06: Filter stats */
+    .filter-stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    .filter-stat-row:last-child { border-bottom: none; }
+    .filter-bar { height: 8px; border-radius: 4px; background: var(--border); margin-top: 12px; overflow: hidden; }
+    .filter-bar-fill { height: 100%; border-radius: 4px; }
 </style>
 {% endblock %}
 {% block content %}
@@ -72,6 +105,14 @@
         <button class="btn btn-secondary" onclick="startVisualAnalysis()">Visual Analysis</button>
         <button class="btn btn-secondary" onclick="startReviewAnalysis()">Review Analysis</button>
         <button class="btn btn-secondary" onclick="api.downloadProductAssets(asin, true, true)">Download Assets</button>
+        <button class="btn btn-secondary" onclick="findSuppliers()" title="Search 1688 for suppliers">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            Find Suppliers
+        </button>
+        <button class="btn btn-secondary" onclick="generate3DModel()" title="Generate 3D model from product image">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            Generate 3D
+        </button>
         <a href="#" class="btn btn-primary" id="amazon-link" target="_blank">View on Amazon</a>
     </div>
 </div>
@@ -103,6 +144,28 @@
             <div class="text-muted">/ 100</div>
             <div id="risk-level" class="badge badge-info mt-sm">Calculating...</div>
         </div>
+    </div>
+</div>
+
+<!-- Product Lifecycle (PRD 3.3.3 PA-02) -->
+<div class="card-grid card-grid-4 mb-lg">
+    <div class="card" style="text-align: center;">
+        <div class="text-muted" style="font-size: 0.8rem; margin-bottom: 4px;">Estimated Launch</div>
+        <div id="lifecycle-launch" style="font-size: 1.1rem; font-weight: 600;">--</div>
+    </div>
+    <div class="card" style="text-align: center;">
+        <div class="text-muted" style="font-size: 0.8rem; margin-bottom: 4px;">Product Age</div>
+        <div id="lifecycle-age" style="font-size: 1.1rem; font-weight: 600;">--</div>
+    </div>
+    <div class="card" style="text-align: center;">
+        <div class="text-muted" style="font-size: 0.8rem; margin-bottom: 4px;">Lifecycle Stage</div>
+        <div id="lifecycle-stage" style="font-size: 1.1rem; font-weight: 600;">
+            <span class="badge badge-info">Unknown</span>
+        </div>
+    </div>
+    <div class="card" style="text-align: center;">
+        <div class="text-muted" style="font-size: 0.8rem; margin-bottom: 4px;">Review Velocity</div>
+        <div id="lifecycle-velocity" style="font-size: 1.1rem; font-weight: 600;">--/mo</div>
     </div>
 </div>
 
@@ -154,6 +217,7 @@
     <div class="tab" onclick="switchAnalysisTab('reviews')">Review Insights</div>
     <div class="tab" onclick="switchAnalysisTab('bsr')">BSR Trends</div>
     <div class="tab" onclick="switchAnalysisTab('competitors')">Competitors</div>
+    <div class="tab" onclick="switchAnalysisTab('suppliers')">Suppliers</div>
 </div>
 
 <!-- Visual Analysis Tab -->
@@ -207,6 +271,41 @@
             </div>
         </div>
     </div>
+    <!-- Marketing Structure & Text Semantic (PA-05) -->
+    <div class="card-grid card-grid-2 mt-lg">
+        <div class="card">
+            <h3 class="card-title mb-md">Marketing Structure</h3>
+            <div id="marketing-structure">
+                <div class="text-muted text-center" style="padding: 30px;">Run visual analysis to see marketing structure</div>
+            </div>
+        </div>
+        <div class="card">
+            <h3 class="card-title mb-md">Text Semantic / USP Extraction</h3>
+            <div id="text-semantic">
+                <div class="text-muted text-center" style="padding: 30px;">Run visual analysis to see text analysis</div>
+            </div>
+        </div>
+    </div>
+    <div class="card-grid card-grid-3 mt-lg">
+        <div class="card">
+            <h3 class="card-title mb-md">Color Psychology</h3>
+            <div id="color-psychology">
+                <div class="text-muted text-center" style="padding: 30px;">Run visual analysis</div>
+            </div>
+        </div>
+        <div class="card">
+            <h3 class="card-title mb-md">Font Hierarchy</h3>
+            <div id="font-hierarchy">
+                <div class="text-muted text-center" style="padding: 30px;">Run visual analysis</div>
+            </div>
+        </div>
+        <div class="card">
+            <h3 class="card-title mb-md">Brand Positioning</h3>
+            <div id="brand-positioning">
+                <div class="text-muted text-center" style="padding: 30px;">Run visual analysis</div>
+            </div>
+        </div>
+    </div>
     <div class="card mt-lg">
         <h3 class="card-title mb-md">Image Analysis</h3>
         <div id="image-analysis" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
@@ -241,10 +340,46 @@
             </div>
         </div>
     </div>
+    <!-- Variant Sales Donut Chart (PA-01) -->
+    <div class="card-grid card-grid-2 mt-lg">
+        <div class="card">
+            <h3 class="card-title mb-md">Variant Sales Distribution</h3>
+            <canvas id="chart-variant-donut" height="250"></canvas>
+            <div id="variant-legend" class="text-muted text-center" style="margin-top: 8px; font-size: 0.8rem;">
+                Run review analysis to see variant distribution
+            </div>
+        </div>
+        <!-- Fake Review Filter Stats (PA-06) -->
+        <div class="card">
+            <h3 class="card-title mb-md">Review Quality Filter</h3>
+            <div id="review-filter-stats">
+                <div class="text-muted text-center" style="padding: 30px;">Run review analysis to see filter stats</div>
+            </div>
+        </div>
+    </div>
     <div class="card mt-lg">
         <h3 class="card-title mb-md">Customer Persona</h3>
         <div id="customer-persona" class="persona-card text-muted text-center" style="padding: 40px;">
             Run review analysis to see customer persona
+        </div>
+    </div>
+</div>
+
+<!-- Suppliers Tab (PA-03) -->
+<div class="tab-content hidden" id="tab-suppliers">
+    <div class="card mb-lg">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="card-title">1688 Supplier Search Results</h3>
+            <button class="btn btn-primary btn-sm" onclick="findSuppliers()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                Search by Image
+            </button>
+        </div>
+    </div>
+    <div id="supplier-results">
+        <div class="text-muted text-center" style="padding: 60px;">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.3;margin-bottom:12px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            <div>Click "Find Suppliers" to search 1688 for matching products</div>
         </div>
     </div>
 </div>
@@ -413,10 +548,13 @@
     // Tab switching
     // ============================================================
     function switchAnalysisTab(tab) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-        event.target.classList.add('active');
-        document.getElementById(`tab-${tab}`).classList.remove('hidden');
+        const tabNames = ['visual', 'reviews', 'bsr', 'competitors', 'suppliers'];
+        document.querySelectorAll('.tab').forEach((t, i) => {
+            t.classList.toggle('active', tabNames[i] === tab);
+        });
+        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
+        const target = document.getElementById('tab-' + tab);
+        if (target) target.classList.remove('hidden');
     }
 
     // ============================================================
@@ -551,6 +689,12 @@
         if (type === 'visual' && data.result) {
             renderListingQualityChart(data.result);
             renderTrustAnchors(data.result.trust_anchors || []);
+            // PA-05: Render complete visual analysis results
+            renderMarketingStructure(data.result);
+            renderTextSemantic(data.result);
+            renderColorPsychology(data.result);
+            renderFontHierarchy(data.result);
+            renderBrandPositioning(data.result);
             // Update risk radar if risk scores available
             if (data.result.risk_scores) {
                 initRiskRadar(data.result.risk_scores);
@@ -562,6 +706,12 @@
             renderSellingPoints(data.result.selling_points || []);
             renderPainPoints(data.result.pain_points || []);
             renderCustomerPersona(data.result.customer_persona);
+            // PA-01: Render variant donut chart
+            renderVariantDonut(data.result);
+            // PA-06: Render fake review filter stats
+            renderReviewFilterStats(data.result);
+            // PA-02: Render lifecycle data
+            renderLifecycle(data.result);
         }
     }
 
@@ -703,6 +853,11 @@
                     initRiskRadar(p.risk_scores);
                 } else {
                     initRiskRadar({ competition: 0, demand: 0, profit: 0, ip_risk: 0, seasonality: 0 });
+                }
+
+                // PA-02: Render lifecycle data if available
+                if (p.estimated_launch_date || p.launch_date || p.earliest_review_date) {
+                    renderLifecycle(p);
                 }
 
                 // 如果有 AI 风险评估
@@ -942,6 +1097,334 @@
             console.warn('Decision score not available:', e.message);
         }
     }
+
+    // ============================================================
+    // PA-01: Variant Sales Donut Chart
+    // ============================================================
+    let variantChart = null;
+
+    function renderVariantDonut(data) {
+        const variants = data.variant_distribution || data.variants || [];
+        if (!variants.length) {
+            document.getElementById('variant-legend').textContent = 'No variant data available';
+            return;
+        }
+
+        const labels = variants.map(v => v.name || v.variant || 'Unknown');
+        const values = variants.map(v => v.count || v.sales || v.percentage || 0);
+        const colors = [
+            '#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6',
+            '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16',
+            '#a855f7', '#e11d48', '#0ea5e9', '#10b981', '#d946ef'
+        ];
+
+        const ctx = document.getElementById('chart-variant-donut').getContext('2d');
+        if (variantChart) variantChart.destroy();
+        variantChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors.slice(0, labels.length),
+                    borderWidth: 2,
+                    borderColor: 'var(--bg-card)',
+                }]
+            },
+            options: {
+                cutout: '55%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                const pct = total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0;
+                                return `${ctx.label}: ${ctx.raw} (${pct}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Render custom legend
+        const legendEl = document.getElementById('variant-legend');
+        legendEl.innerHTML = labels.map((l, i) => {
+            const total = values.reduce((a, b) => a + b, 0);
+            const pct = total > 0 ? ((values[i] / total) * 100).toFixed(1) : 0;
+            return `<span class="variant-legend-item"><span class="variant-dot" style="background:${colors[i]}"></span>${l} (${pct}%)</span>`;
+        }).join('');
+    }
+
+    // ============================================================
+    // PA-02: Product Lifecycle
+    // ============================================================
+    function renderLifecycle(data) {
+        const launchDate = data.estimated_launch_date || data.launch_date || data.earliest_review_date;
+        if (launchDate) {
+            document.getElementById('lifecycle-launch').textContent = launchDate;
+
+            // Calculate age
+            const launch = new Date(launchDate);
+            const now = new Date();
+            const months = Math.floor((now - launch) / (30 * 24 * 60 * 60 * 1000));
+            const years = Math.floor(months / 12);
+            const remainMonths = months % 12;
+            document.getElementById('lifecycle-age').textContent =
+                years > 0 ? `${years}y ${remainMonths}m` : `${months}m`;
+
+            // Determine lifecycle stage
+            let stage, stageClass;
+            if (months <= 3) { stage = 'Launch'; stageClass = 'info'; }
+            else if (months <= 12) { stage = 'Growth'; stageClass = 'success'; }
+            else if (months <= 36) { stage = 'Maturity'; stageClass = 'warning'; }
+            else { stage = 'Decline'; stageClass = 'danger'; }
+            document.getElementById('lifecycle-stage').innerHTML =
+                `<span class="badge badge-${stageClass}">${stage}</span>`;
+        }
+
+        // Review velocity
+        const velocity = data.review_velocity || data.reviews_per_month;
+        if (velocity !== undefined) {
+            document.getElementById('lifecycle-velocity').textContent =
+                parseFloat(velocity).toFixed(1) + '/mo';
+        }
+    }
+
+    // ============================================================
+    // PA-03: Find Suppliers (1688 Image Search)
+    // ============================================================
+    async function findSuppliers() {
+        try {
+            showToast('Searching 1688 for suppliers...', 'info');
+            switchAnalysisTab('suppliers');
+
+            const imageUrl = document.getElementById('product-image').src;
+            if (!imageUrl || imageUrl.endsWith('/')) {
+                showToast('Product image not available for supplier search', 'error');
+                return;
+            }
+
+            const resp = await api.request('POST', '/v1/supply/image-search', {
+                image_url: imageUrl,
+                asin: asin
+            });
+
+            if (resp && resp.success && resp.data) {
+                renderSupplierResults(resp.data.suppliers || resp.data.results || []);
+            } else {
+                // Show demo data if API not available
+                document.getElementById('supplier-results').innerHTML =
+                    '<div class="text-muted text-center" style="padding:40px;">Supplier search API not configured. Configure 1688 API keys in Settings.</div>';
+            }
+        } catch (e) {
+            showToast('Supplier search: ' + e.message, 'error');
+            document.getElementById('supplier-results').innerHTML =
+                '<div class="text-muted text-center" style="padding:40px;">Supplier search unavailable. Check API configuration.</div>';
+        }
+    }
+
+    function renderSupplierResults(suppliers) {
+        const container = document.getElementById('supplier-results');
+        if (!suppliers.length) {
+            container.innerHTML = '<div class="text-muted text-center" style="padding:40px;">No matching suppliers found</div>';
+            return;
+        }
+
+        container.innerHTML = suppliers.map((s, i) => {
+            const score = s.score || s.composite_score || 0;
+            const scoreColor = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444';
+            return `
+            <div class="supplier-card">
+                <img class="supplier-img" src="${s.image_url || s.thumbnail || ''}" alt="${s.title || 'Product'}" onerror="this.style.background='var(--border)';this.alt='No Image';">
+                <div class="supplier-info">
+                    <h4>${s.title || s.name || 'Supplier Product #' + (i + 1)}</h4>
+                    <div class="supplier-meta">
+                        <div><span class="text-muted">Price:</span> <strong style="color:var(--success);">¥${parseFloat(s.price || 0).toFixed(2)}</strong></div>
+                        <div><span class="text-muted">MOQ:</span> <strong>${s.moq || s.min_order || '-'}</strong></div>
+                        <div><span class="text-muted">Supplier:</span> <strong>${s.supplier_name || s.shop_name || '-'}</strong></div>
+                        <div><span class="text-muted">Location:</span> <strong>${s.location || '-'}</strong></div>
+                        <div><span class="text-muted">Sales:</span> <strong>${formatNumber(s.monthly_sales || s.total_sales || 0)}</strong></div>
+                        <div class="supplier-score">
+                            <span class="text-muted">Score:</span>
+                            <div class="supplier-score-bar">
+                                <div class="supplier-score-fill" style="width:${score}%;background:${scoreColor};"></div>
+                            </div>
+                            <strong style="color:${scoreColor};">${score}</strong>
+                        </div>
+                    </div>
+                    ${s.url ? `<a href="${s.url}" target="_blank" class="btn btn-sm btn-secondary" style="margin-top:8px;">View on 1688</a>` : ''}
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // ============================================================
+    // PA-04: Generate 3D Model
+    // ============================================================
+    function generate3DModel() {
+        const imageUrl = document.getElementById('product-image').src;
+        const title = document.getElementById('product-title').textContent;
+        if (!imageUrl || imageUrl.endsWith('/')) {
+            showToast('Product image not available', 'error');
+            return;
+        }
+        // Navigate to 3D Lab with pre-filled image
+        const params = new URLSearchParams({
+            image_url: imageUrl,
+            asin: asin,
+            title: title
+        });
+        window.location.href = `/3d-lab?${params.toString()}`;
+    }
+
+    // ============================================================
+    // PA-05: Visual Analysis Complete Renderers
+    // ============================================================
+    function renderMarketingStructure(data) {
+        const container = document.getElementById('marketing-structure');
+        const structure = data.marketing_structure || data.logic_flow || {};
+        if (!Object.keys(structure).length && !data.headline && !data.subheadline) {
+            container.innerHTML = '<div class="text-muted text-center" style="padding:20px;">No marketing structure data</div>';
+            return;
+        }
+
+        const items = [];
+        if (data.headline || structure.headline) items.push({ label: 'Headline', value: data.headline || structure.headline });
+        if (data.subheadline || structure.subheadline) items.push({ label: 'Subheadline', value: data.subheadline || structure.subheadline });
+        if (structure.value_proposition) items.push({ label: 'Value Proposition', value: structure.value_proposition });
+        if (structure.cta) items.push({ label: 'Call to Action', value: structure.cta });
+        if (structure.social_proof) items.push({ label: 'Social Proof', value: structure.social_proof });
+        if (structure.urgency) items.push({ label: 'Urgency Element', value: structure.urgency });
+        if (data.image_count) items.push({ label: 'Image Count', value: data.image_count + ' images' });
+        if (data.video_present !== undefined) items.push({ label: 'Video Present', value: data.video_present ? 'Yes' : 'No' });
+
+        container.innerHTML = items.length ? items.map(item => `
+            <div class="structure-item">
+                <div class="structure-label">${item.label}</div>
+                <div class="structure-value">${item.value}</div>
+            </div>
+        `).join('') : '<div class="text-muted text-center" style="padding:20px;">No marketing structure data</div>';
+    }
+
+    function renderTextSemantic(data) {
+        const container = document.getElementById('text-semantic');
+        const usps = data.visual_usps || data.usps || data.unique_selling_points || [];
+        const keywords = data.extracted_keywords || data.keywords || [];
+
+        let html = '';
+        if (usps.length) {
+            html += '<div class="structure-label" style="margin-bottom:8px;">Unique Selling Points</div>';
+            html += '<div style="margin-bottom:12px;">' + usps.map(u => `<span class="usp-tag">${typeof u === 'string' ? u : u.text || u.usp}</span>`).join('') + '</div>';
+        }
+        if (keywords.length) {
+            html += '<div class="structure-label" style="margin-bottom:8px;">Extracted Keywords</div>';
+            html += '<div>' + keywords.slice(0, 20).map(k => {
+                const word = typeof k === 'string' ? k : k.word || k.keyword;
+                return `<span class="usp-tag" style="background:rgba(34,197,94,0.1);color:var(--success);border-color:rgba(34,197,94,0.2);">${word}</span>`;
+            }).join('') + '</div>';
+        }
+        if (data.readability_score) {
+            html += `<div class="structure-item" style="margin-top:12px;"><div class="structure-label">Readability Score</div><div class="structure-value">${data.readability_score}/100</div></div>`;
+        }
+
+        container.innerHTML = html || '<div class="text-muted text-center" style="padding:20px;">No text analysis data</div>';
+    }
+
+    function renderColorPsychology(data) {
+        const container = document.getElementById('color-psychology');
+        const colors = data.color_palette || data.dominant_colors || [];
+        if (!colors.length) {
+            container.innerHTML = '<div class="text-muted text-center" style="padding:20px;">No color data</div>';
+            return;
+        }
+        container.innerHTML = colors.slice(0, 6).map(c => {
+            const hex = c.hex || c.color || '#ccc';
+            const name = c.name || c.label || hex;
+            const pct = c.percentage || c.coverage || '';
+            return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;"><span class="color-swatch" style="background:${hex};"></span><span>${name}</span>${pct ? `<span class="text-muted" style="font-size:0.8rem;">${pct}%</span>` : ''}</div>`;
+        }).join('');
+    }
+
+    function renderFontHierarchy(data) {
+        const container = document.getElementById('font-hierarchy');
+        const fonts = data.font_hierarchy || data.fonts || [];
+        if (!fonts.length) {
+            container.innerHTML = '<div class="text-muted text-center" style="padding:20px;">No font data</div>';
+            return;
+        }
+        container.innerHTML = fonts.map(f => `
+            <div class="structure-item">
+                <div class="structure-label">${f.role || f.level || 'Font'}</div>
+                <div class="structure-value" style="font-family:${f.family || 'inherit'};">${f.family || f.name || '-'} ${f.size ? '(' + f.size + ')' : ''}</div>
+            </div>
+        `).join('');
+    }
+
+    function renderBrandPositioning(data) {
+        const container = document.getElementById('brand-positioning');
+        const brand = data.brand_positioning || data.brand_analysis || {};
+        if (!Object.keys(brand).length) {
+            container.innerHTML = '<div class="text-muted text-center" style="padding:20px;">No brand data</div>';
+            return;
+        }
+        const items = [];
+        if (brand.tier) items.push({ label: 'Brand Tier', value: brand.tier });
+        if (brand.target_audience) items.push({ label: 'Target Audience', value: brand.target_audience });
+        if (brand.tone) items.push({ label: 'Brand Tone', value: brand.tone });
+        if (brand.differentiation) items.push({ label: 'Differentiation', value: brand.differentiation });
+        if (brand.price_positioning) items.push({ label: 'Price Position', value: brand.price_positioning });
+
+        container.innerHTML = items.length ? items.map(item => `
+            <div class="structure-item">
+                <div class="structure-label">${item.label}</div>
+                <div class="structure-value">${item.value}</div>
+            </div>
+        `).join('') : '<div class="text-muted text-center" style="padding:20px;">No brand positioning data</div>';
+    }
+
+    // ============================================================
+    // PA-06: Fake Review Filter Stats
+    // ============================================================
+    function renderReviewFilterStats(data) {
+        const container = document.getElementById('review-filter-stats');
+        const total = data.total_reviews || data.review_count || 0;
+        const filtered = data.filtered_count || data.fake_count || 0;
+        const authentic = total - filtered;
+        const filterRate = total > 0 ? ((filtered / total) * 100).toFixed(1) : 0;
+
+        const reasons = data.filter_reasons || data.fake_reasons || {};
+
+        let reasonsHtml = '';
+        if (Object.keys(reasons).length) {
+            reasonsHtml = Object.entries(reasons).map(([reason, count]) => `
+                <div class="filter-stat-row">
+                    <span>${reason}</span>
+                    <span><strong>${count}</strong> reviews</span>
+                </div>
+            `).join('');
+        }
+
+        container.innerHTML = `
+            <div style="text-align: center; margin-bottom: 16px;">
+                <div style="font-size: 2rem; font-weight: 700; color: ${filterRate > 20 ? 'var(--danger)' : filterRate > 10 ? 'var(--warning)' : 'var(--success)'};">${filterRate}%</div>
+                <div class="text-muted" style="font-size: 0.85rem;">Suspected Fake Rate</div>
+            </div>
+            <div class="filter-bar">
+                <div class="filter-bar-fill" style="width: ${100 - filterRate}%; background: var(--success);"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.8rem;">
+                <span style="color: var(--success);">Authentic: ${formatNumber(authentic)}</span>
+                <span style="color: var(--danger);">Filtered: ${formatNumber(filtered)}</span>
+            </div>
+            ${reasonsHtml ? '<div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px;"><div class="structure-label" style="margin-bottom:8px;">Filter Reasons</div>' + reasonsHtml + '</div>' : ''}
+        `;
+    }
+
+    // ============================================================
+    // Enhanced renderAnalysisResults to include new features
+    // ============================================================
 
     // ============================================================
     // Init: Load all data on page load

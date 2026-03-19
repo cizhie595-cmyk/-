@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-03-19
+
+### Added - Phase 18: Product Analysis Deep Enhancement
+- **PA-01**: Variant Sales Donut Chart - Color/Size variant distribution with Chart.js doughnut + custom legend
+- **PA-02**: Product Lifecycle Card - Estimated launch date, product age, lifecycle stage (Launch/Growth/Maturity/Decline), review velocity
+- **PA-03**: Find Suppliers Button + 1688 Image Search - Supplier results panel with image, price, MOQ, score, location
+- **PA-04**: Generate 3D Model Button - Quick navigation to 3D Lab with pre-filled product image and ASIN
+- **PA-05**: Visual Analysis Complete Results - Marketing Structure, Text Semantic/USP, Color Psychology, Font Hierarchy, Brand Positioning cards
+- **PA-06**: Fake Review Filter Stats - Suspected fake rate, authentic vs filtered count, filter reasons breakdown
+- New "Suppliers" tab in product analysis page with full supplier card layout
+- Enhanced `switchAnalysisTab()` to support 5 tabs (visual/reviews/bsr/competitors/suppliers)
+- 54 new test cases for all PA features (all passing)
+
 ## [1.7.0] - 2026-03-19
 
 ### Added
