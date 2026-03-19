@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-03-19
+
+### Added
+- GAP-01: Enhanced API status indicator with real connectivity testing, three-state lights (green/yellow/red), tooltip popups, auto-refresh every 5 minutes
+- GAP-02: `frontend/static/js/image_preprocessor.js` - Canvas-based image preprocessing (1024x1024 resize, remove-bg API + client-side fallback, preview widget)
+- GAP-03: `frontend/static/js/skeleton_loader.js` - Global skeleton screen loading (8 layouts: cards/table/stats/chart/list/detail/form/dashboard, fade transitions)
+- GAP-04: `frontend/static/js/empty_states.js` - Unified empty state SVG illustrations (9 types: no-data/no-results/error/no-projects/no-products/welcome/no-keywords/no-suppliers/no-competitors)
+- GAP-05: First-screen performance optimization (CDN preconnect/prefetch, critical CSS inlining, resource preloading, Gzip compression, cache headers, security headers)
+- `tests/test_gap_features.py` with 51 test cases covering all 5 GAP features
+- Image preprocessor integrated into 3D Lab (threed_lab.html) with preview widget
+
+### Changed
+- `base.html`: Added preconnect/dns-prefetch hints, preload directives, inline critical CSS, skeleton_loader.js and empty_states.js global loading
+- `app.py`: Added after_request middleware for Cache-Control, security headers, Gzip compression via flask-compress
+- `main.css`: Added styles for image preprocessor widget, skeleton loader enhancements, empty state components, API status tooltips
+- `threed_lab.html`: Integrated ImagePreprocessor with preview widget and preprocessed blob upload
+- Project stats: 375 files, 67,026 lines of code
+
 ## [1.5.0] - 2026-03-19
 
 ### Added

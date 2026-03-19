@@ -160,8 +160,10 @@
         </div>
         <div class="form-group">
             <label class="form-label">Or Upload Image</label>
-            <input type="file" class="form-input" id="gen-image-file" accept="image/*">
+            <input type="file" class="form-input" id="gen-image-file" accept="image/*" onchange="onImageFileSelected(this)">
         </div>
+        <!-- Image Preprocessing Preview (PRD 3.1) -->
+        <div id="gen-image-preview" style="display:none;"></div>
         <div class="form-group">
             <label class="form-label">ASIN (optional)</label>
             <input type="text" class="form-input" id="gen-asin" placeholder="B0XXXXXXXXX">
@@ -240,10 +242,69 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="/static/js/image_preprocessor.js"></script>
 <script>
     let scene, camera, renderer, controls, currentModel;
     let isWireframe = false;
     let currentAssetId = null;
+    let preprocessedBlob = null; // Store preprocessed image blob
+    let previewWidget = null;
+
+    // ========== Image Preprocessing (PRD 3.1) ==========
+    async function onImageFileSelected(input) {
+        const file = input.files && input.files[0];
+        if (!file) return;
+
+        const previewContainer = document.getElementById('gen-image-preview');
+        previewContainer.style.display = 'block';
+
+        // Initialize preview widget
+        if (!previewWidget) {
+            previewWidget = ImagePreprocessor.createPreviewWidget(previewContainer);
+        }
+        previewWidget.reset();
+        previewWidget.showActions(true);
+
+        // Show original
+        const origUrl = URL.createObjectURL(file);
+        const origSize = (file.size / 1024).toFixed(1) + ' KB';
+        previewWidget.setOriginal(origUrl, origSize);
+
+        // Create preprocessor
+        const preprocessor = new ImagePreprocessor({
+            maxSize: 1024,
+            quality: 0.92,
+            outputFormat: 'image/png',
+            onProgress: (p) => previewWidget.setProgress(p.percent, p.message),
+            onPreview: (p) => {
+                if (p.stage === 'resized' || p.stage === 'bg_removed') {
+                    previewWidget.setProcessed(p.dataUrl, `${p.width}x${p.height}`);
+                }
+            }
+        });
+
+        try {
+            const removeBg = previewWidget.getRemoveBg();
+            let result;
+            if (removeBg) {
+                result = await preprocessor.processWithBgRemoval(file);
+            } else {
+                result = await preprocessor.process(file);
+            }
+
+            preprocessedBlob = result.blob;
+            const processedSize = (result.processedSize / 1024).toFixed(1) + ' KB';
+            previewWidget.setProcessed(result.dataUrl, `${result.width}x${result.height} | ${processedSize} | -${result.compressionRatio}%`);
+
+            // Auto-fill a data URL for the generation API
+            document.getElementById('gen-image-url').value = result.dataUrl;
+            showToast('Image preprocessed successfully', 'success');
+        } catch (e) {
+            showToast('Image preprocessing failed: ' + e.message, 'warning');
+            // Fallback: use original file URL
+            document.getElementById('gen-image-url').value = origUrl;
+        }
+    }
 
     function initViewer() {
         const container = document.getElementById('viewer-container');
@@ -388,13 +449,33 @@
     }
 
     async function startGeneration() {
-        const imageUrl = document.getElementById('gen-image-url').value.trim();
+        let imageUrl = document.getElementById('gen-image-url').value.trim();
+        const fileInput = document.getElementById('gen-image-file');
         const asin = document.getElementById('gen-asin').value.trim();
         const artStyle = document.getElementById('gen-style').value;
         const format = document.getElementById('gen-format').value;
 
+        // If a file was uploaded and preprocessed, upload the blob first
+        if (preprocessedBlob && fileInput.files && fileInput.files.length > 0) {
+            showToast('Uploading preprocessed image...', 'info');
+            try {
+                const formData = new FormData();
+                formData.append('image', preprocessedBlob, 'preprocessed.png');
+                const token = localStorage.getItem('auth_token');
+                const headers = {};
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+                const uploadResp = await fetch('/api/v1/upload/image', { method: 'POST', headers, body: formData });
+                if (uploadResp.ok) {
+                    const uploadData = await uploadResp.json();
+                    if (uploadData.url) imageUrl = uploadData.url;
+                }
+            } catch (e) {
+                console.warn('Upload failed, using data URL fallback:', e);
+            }
+        }
+
         if (!imageUrl) {
-            showToast('Please provide an image URL', 'warning');
+            showToast('Please provide an image URL or upload a file', 'warning');
             return;
         }
 

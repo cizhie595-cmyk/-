@@ -88,6 +88,52 @@ def create_app() -> Flask:
         }
     })
 
+    # === 静态文件缓存配置 (PRD NFR-01: 首屏性能优化) ===
+    app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 31536000  # 1 year for hashed assets
+
+    @app.after_request
+    def add_performance_headers(response):
+        """PRD NFR-01: 添加缓存、压缩和安全头"""
+        path = response.headers.get('X-Request-Path', '') or ''
+
+        # Static file caching
+        if '/static/' in str(getattr(response, 'headers', {}).get('Content-Type', '')):
+            pass  # Use SEND_FILE_MAX_AGE_DEFAULT
+
+        # Cache control for static assets
+        content_type = response.headers.get('Content-Type', '')
+        if any(ext in content_type for ext in ['css', 'javascript', 'font', 'image/svg', 'image/png', 'image/jpeg', 'image/webp']):
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        elif 'text/html' in content_type:
+            response.headers['Cache-Control'] = 'no-cache, must-revalidate'
+
+        # Security headers
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+
+        # Vary header for proper CDN caching
+        if 'Vary' not in response.headers:
+            response.headers['Vary'] = 'Accept-Encoding'
+
+        return response
+
+    # === Gzip 压缩中间件 (PRD NFR-01) ===
+    try:
+        from flask_compress import Compress
+        compress = Compress()
+        compress.init_app(app)
+        app.config['COMPRESS_MIMETYPES'] = [
+            'text/html', 'text/css', 'text/javascript',
+            'application/javascript', 'application/json',
+            'image/svg+xml'
+        ]
+        app.config['COMPRESS_MIN_SIZE'] = 500  # Only compress responses > 500 bytes
+        app.config['COMPRESS_LEVEL'] = 6
+        logger.info("[App] Gzip 压缩中间件已启用")
+    except ImportError:
+        logger.info("[App] flask-compress 未安装，跳过 Gzip 压缩")
+
     # === API 限流中间件 ===
     try:
         from auth.rate_limiter import init_rate_limiter

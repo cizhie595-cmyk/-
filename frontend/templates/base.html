@@ -7,11 +7,39 @@
     <meta name="theme-color" content="#6366f1">
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <title>{% block title %}Amazon Visionary{% endblock %} - Sourcing Tool</title>
+
+    <!-- Performance: DNS prefetch & preconnect for CDN resources (PRD NFR-01) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+
+    <!-- Performance: Preload critical resources -->
+    <link rel="preload" href="/static/css/main.css" as="style">
+    <link rel="preload" href="/static/js/api.js" as="script">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" crossorigin>
+
+    <!-- Fonts: swap display for faster text rendering -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
     <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="/static/css/responsive.css">
     <link rel="stylesheet" href="/static/css/i18n.css">
+
+    <!-- Critical CSS: Inline above-the-fold styles to prevent FOUC -->
+    <style>
+        /* Inline critical path CSS for instant first paint */
+        body { background: #0f172a; color: #f1f5f9; font-family: 'Inter', -apple-system, sans-serif; margin: 0; }
+        .app-layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: #0f172a; border-right: 1px solid #334155; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; }
+        .main-wrapper { flex: 1; margin-left: 260px; display: flex; flex-direction: column; min-height: 100vh; }
+        .top-status-bar { display: flex; align-items: center; gap: 16px; padding: 10px 32px; background: #1e293b; border-bottom: 1px solid #334155; }
+        .main-content { flex: 1; padding: 32px; }
+        @media (max-width: 768px) { .sidebar { display: none; } .main-wrapper { margin-left: 0; } }
+    </style>
+
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -145,24 +173,46 @@
                         <option value="A39IBJ37TRP1C6">Amazon AU</option>
                     </select>
                 </div>
-
-                <!-- API Status Indicators (PRD 2.2) -->
-                <div class="api-status-group">
-                    <div class="api-status-item" id="status-amazon" title="Amazon SP-API: Checking...">
+                <!-- API Status Indicators (PRD 2.2: Green/Yellow/Red) -->
+                <div class="api-status-group" id="api-status-group">
+                    <div class="api-status-item" id="status-amazon" title="Amazon SP-API: Checking..." onclick="showApiDetail('amazon_sp_api')">
                         <span class="status-dot status-checking"></span>
                         <span class="status-label">SP-API</span>
                     </div>
-                    <div class="api-status-item" id="status-keepa" title="Keepa API: Checking...">
+                    <div class="api-status-item" id="status-keepa" title="Keepa API: Checking..." onclick="showApiDetail('keepa')">
                         <span class="status-dot status-checking"></span>
                         <span class="status-label">Keepa</span>
                     </div>
-                    <div class="api-status-item" id="status-openai" title="OpenAI: Checking...">
+                    <div class="api-status-item" id="status-openai" title="OpenAI: Checking..." onclick="showApiDetail('openai')">
                         <span class="status-dot status-checking"></span>
                         <span class="status-label">AI</span>
                     </div>
-                    <div class="api-status-item" id="status-meshy" title="Meshy 3D: Checking...">
+                    <div class="api-status-item" id="status-meshy" title="Meshy 3D: Checking..." onclick="showApiDetail('meshy')">
                         <span class="status-dot status-checking"></span>
                         <span class="status-label">3D</span>
+                    </div>
+                    <!-- Refresh button -->
+                    <button class="api-refresh-btn" id="api-refresh-btn" onclick="checkApiStatus(true)" title="Refresh API status">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    </button>
+                </div>
+
+                <!-- API Status Detail Tooltip -->
+                <div id="api-status-tooltip" class="api-status-tooltip" style="display:none;">
+                    <div class="tooltip-header">
+                        <span id="tooltip-service-name">Service</span>
+                        <span id="tooltip-status-badge" class="badge">--</span>
+                    </div>
+                    <div class="tooltip-body">
+                        <div class="tooltip-row"><span class="tooltip-label">Status:</span><span id="tooltip-status-text">--</span></div>
+                        <div class="tooltip-row"><span class="tooltip-label">Latency:</span><span id="tooltip-latency">--</span></div>
+                        <div class="tooltip-row"><span class="tooltip-label">Rate Limit:</span><span id="tooltip-ratelimit">--</span></div>
+                        <div class="tooltip-row"><span class="tooltip-label">Last Check:</span><span id="tooltip-lastcheck">--</span></div>
+                        <div class="tooltip-row" id="tooltip-error-row" style="display:none;"><span class="tooltip-label">Error:</span><span id="tooltip-error" class="text-danger">--</span></div>
+                    </div>
+                    <div class="tooltip-footer">
+                        <button class="btn btn-sm btn-secondary" onclick="testSingleApi(currentTooltipService)">Test Now</button>
+                        <a href="/settings/api-keys" class="btn btn-sm btn-primary">Configure</a>
                     </div>
                 </div>
 
@@ -218,6 +268,8 @@
 
     <script src="/static/js/api.js"></script>
     <script src="/static/js/i18n.js"></script>
+    <script src="/static/js/skeleton_loader.js"></script>
+    <script src="/static/js/empty_states.js"></script>
     <script>
         // ========== Global Functions ==========
 
@@ -252,37 +304,233 @@
             }
         })();
 
-        // Check API status indicators
-        async function checkApiStatus() {
-            const services = ['amazon_sp_api', 'keepa', 'openai', 'meshy'];
-            const domIds = ['status-amazon', 'status-keepa', 'status-openai', 'status-meshy'];
-            const labels = ['Amazon SP-API', 'Keepa API', 'OpenAI', 'Meshy 3D'];
+        // ========== API Status Indicators (PRD 2.2: Green/Yellow/Red) ==========
+        const API_STATUS_MAP = {
+            amazon_sp_api: { domId: 'status-amazon', label: 'Amazon SP-API' },
+            keepa:         { domId: 'status-keepa',  label: 'Keepa API' },
+            openai:        { domId: 'status-openai',  label: 'OpenAI' },
+            meshy:         { domId: 'status-meshy',   label: 'Meshy 3D' }
+        };
+        // Store detailed status per service
+        const apiStatusData = {};
+        let currentTooltipService = null;
+        let apiStatusRefreshTimer = null;
+
+        /**
+         * Check API status indicators with real connectivity test
+         * @param {boolean} forceTest - If true, run actual connectivity tests (slower but accurate)
+         */
+        async function checkApiStatus(forceTest = false) {
+            const refreshBtn = document.getElementById('api-refresh-btn');
+            if (refreshBtn) refreshBtn.classList.add('spinning');
 
             try {
-                const result = await api.request('GET', '/keys/all');
-                if (result && result.services) {
-                    services.forEach((svc, i) => {
-                        const el = document.getElementById(domIds[i]);
-                        const dot = el.querySelector('.status-dot');
-                        const svcData = result.services[svc];
+                // Step 1: Get configuration status (fast)
+                const configResult = await api.request('GET', '/keys/all');
+                const services = configResult && configResult.services ? configResult.services : {};
 
-                        if (svcData && svcData.configured) {
-                            dot.className = 'status-dot status-green';
-                            el.title = `${labels[i]}: Connected`;
+                for (const [svcId, meta] of Object.entries(API_STATUS_MAP)) {
+                    const el = document.getElementById(meta.domId);
+                    if (!el) continue;
+                    const dot = el.querySelector('.status-dot');
+                    const svcData = services[svcId];
+
+                    if (!svcData || !svcData.configured) {
+                        // Not configured -> Red
+                        dot.className = 'status-dot status-red';
+                        el.title = `${meta.label}: Not configured`;
+                        apiStatusData[svcId] = {
+                            status: 'not_configured', color: 'red',
+                            message: 'API key not configured',
+                            latency: null, rateLimit: null, error: null,
+                            lastCheck: new Date().toISOString()
+                        };
+                    } else if (forceTest) {
+                        // Configured + force test -> run connectivity test
+                        dot.className = 'status-dot status-checking';
+                        el.title = `${meta.label}: Testing...`;
+                        testSingleApiSilent(svcId);
+                    } else {
+                        // Configured but no test -> assume green (will be verified on next interval)
+                        const prev = apiStatusData[svcId];
+                        if (prev && prev.status !== 'unknown') {
+                            // Keep previous test result
+                            dot.className = `status-dot status-${prev.color}`;
+                            el.title = `${meta.label}: ${prev.message}`;
                         } else {
-                            dot.className = 'status-dot status-red';
-                            el.title = `${labels[i]}: Not configured`;
+                            dot.className = 'status-dot status-green';
+                            el.title = `${meta.label}: Configured`;
+                            apiStatusData[svcId] = {
+                                status: 'configured', color: 'green',
+                                message: 'Configured (not yet tested)',
+                                latency: null, rateLimit: null, error: null,
+                                lastCheck: new Date().toISOString()
+                            };
                         }
-                    });
+                    }
                 }
             } catch (e) {
-                // Set all to unknown
-                domIds.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.querySelector('.status-dot').className = 'status-dot status-yellow';
-                });
+                // Network error -> all yellow
+                for (const [svcId, meta] of Object.entries(API_STATUS_MAP)) {
+                    const el = document.getElementById(meta.domId);
+                    if (el) {
+                        el.querySelector('.status-dot').className = 'status-dot status-yellow';
+                        el.title = `${meta.label}: Unable to check`;
+                    }
+                    apiStatusData[svcId] = {
+                        status: 'unknown', color: 'yellow',
+                        message: 'Unable to check (network error)',
+                        latency: null, rateLimit: null, error: e.message,
+                        lastCheck: new Date().toISOString()
+                    };
+                }
+            } finally {
+                if (refreshBtn) refreshBtn.classList.remove('spinning');
             }
         }
+
+        /**
+         * Test a single API service connectivity (silent, updates status dot)
+         */
+        async function testSingleApiSilent(serviceId) {
+            const meta = API_STATUS_MAP[serviceId];
+            if (!meta) return;
+            const el = document.getElementById(meta.domId);
+            const dot = el ? el.querySelector('.status-dot') : null;
+            const startTime = Date.now();
+
+            try {
+                const result = await api.request('POST', `/keys/${serviceId}/test`);
+                const latency = Date.now() - startTime;
+                const success = result && result.success;
+
+                if (success) {
+                    // Check if rate limit warning in message
+                    const isRateLimited = result.message && (
+                        result.message.toLowerCase().includes('rate limit') ||
+                        result.message.toLowerCase().includes('throttl') ||
+                        result.message.toLowerCase().includes('quota')
+                    );
+                    if (isRateLimited) {
+                        if (dot) dot.className = 'status-dot status-yellow';
+                        if (el) el.title = `${meta.label}: Rate limit warning`;
+                        apiStatusData[serviceId] = {
+                            status: 'rate_limited', color: 'yellow',
+                            message: result.message || 'Rate limit approaching',
+                            latency: latency, rateLimit: 'Warning', error: null,
+                            lastCheck: new Date().toISOString()
+                        };
+                    } else {
+                        if (dot) dot.className = 'status-dot status-green';
+                        if (el) el.title = `${meta.label}: Connected (${latency}ms)`;
+                        apiStatusData[serviceId] = {
+                            status: 'connected', color: 'green',
+                            message: result.message || 'Connected',
+                            latency: latency, rateLimit: 'OK', error: null,
+                            lastCheck: new Date().toISOString()
+                        };
+                    }
+                } else {
+                    if (dot) dot.className = 'status-dot status-red';
+                    if (el) el.title = `${meta.label}: ${result.message || 'Connection failed'}`;
+                    apiStatusData[serviceId] = {
+                        status: 'error', color: 'red',
+                        message: result.message || 'Connection failed',
+                        latency: latency, rateLimit: null,
+                        error: result.message || 'Unknown error',
+                        lastCheck: new Date().toISOString()
+                    };
+                }
+            } catch (e) {
+                const latency = Date.now() - startTime;
+                if (dot) dot.className = 'status-dot status-red';
+                if (el) el.title = `${meta.label}: Error - ${e.message}`;
+                apiStatusData[serviceId] = {
+                    status: 'error', color: 'red',
+                    message: `Error: ${e.message}`,
+                    latency: latency, rateLimit: null,
+                    error: e.message,
+                    lastCheck: new Date().toISOString()
+                };
+            }
+        }
+
+        /**
+         * Test a single API (user-triggered, with toast feedback)
+         */
+        async function testSingleApi(serviceId) {
+            if (!serviceId) return;
+            const meta = API_STATUS_MAP[serviceId];
+            showToast(`Testing ${meta ? meta.label : serviceId}...`, 'info');
+            await testSingleApiSilent(serviceId);
+            const data = apiStatusData[serviceId];
+            if (data) {
+                if (data.color === 'green') showToast(`${meta.label}: Connected (${data.latency}ms)`, 'success');
+                else if (data.color === 'yellow') showToast(`${meta.label}: ${data.message}`, 'warning');
+                else showToast(`${meta.label}: ${data.message}`, 'error');
+                // Update tooltip if open
+                if (currentTooltipService === serviceId) updateTooltipContent(serviceId);
+            }
+        }
+
+        /**
+         * Show API detail tooltip on click
+         */
+        function showApiDetail(serviceId) {
+            const tooltip = document.getElementById('api-status-tooltip');
+            if (!tooltip) return;
+            // Toggle if same service clicked
+            if (currentTooltipService === serviceId && tooltip.style.display !== 'none') {
+                tooltip.style.display = 'none';
+                currentTooltipService = null;
+                return;
+            }
+            currentTooltipService = serviceId;
+            updateTooltipContent(serviceId);
+            // Position tooltip near the status group
+            const group = document.getElementById('api-status-group');
+            if (group) {
+                const rect = group.getBoundingClientRect();
+                tooltip.style.position = 'fixed';
+                tooltip.style.top = (rect.bottom + 8) + 'px';
+                tooltip.style.left = Math.max(8, rect.left - 40) + 'px';
+            }
+            tooltip.style.display = 'block';
+        }
+
+        function updateTooltipContent(serviceId) {
+            const meta = API_STATUS_MAP[serviceId];
+            const data = apiStatusData[serviceId] || {};
+            document.getElementById('tooltip-service-name').textContent = meta ? meta.label : serviceId;
+            const badge = document.getElementById('tooltip-status-badge');
+            badge.textContent = data.color === 'green' ? 'Connected' : data.color === 'yellow' ? 'Warning' : data.color === 'red' ? 'Error' : 'Unknown';
+            badge.className = `badge badge-${data.color === 'green' ? 'success' : data.color === 'yellow' ? 'warning' : 'danger'}`;
+            document.getElementById('tooltip-status-text').textContent = data.message || '--';
+            document.getElementById('tooltip-latency').textContent = data.latency != null ? data.latency + 'ms' : '--';
+            document.getElementById('tooltip-ratelimit').textContent = data.rateLimit || '--';
+            document.getElementById('tooltip-lastcheck').textContent = data.lastCheck ? new Date(data.lastCheck).toLocaleTimeString() : '--';
+            const errorRow = document.getElementById('tooltip-error-row');
+            if (data.error) {
+                errorRow.style.display = 'flex';
+                document.getElementById('tooltip-error').textContent = data.error;
+            } else {
+                errorRow.style.display = 'none';
+            }
+        }
+
+        // Close tooltip when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.api-status-group') && !e.target.closest('.api-status-tooltip')) {
+                const tooltip = document.getElementById('api-status-tooltip');
+                if (tooltip) tooltip.style.display = 'none';
+                currentTooltipService = null;
+            }
+        });
+
+        // Auto-refresh API status every 60 seconds
+        apiStatusRefreshTimer = setInterval(() => checkApiStatus(false), 60000);
+        // Deep test every 5 minutes
+        setInterval(() => checkApiStatus(true), 300000);
 
         // Check quota
         async function checkQuota() {
@@ -413,9 +661,10 @@
             if (sel) sel.value = saved;
         })();
 
-        // Init status checks
-        checkApiStatus();
+        // Init status checks (first load: config check only, then deep test after 3s)
+        checkApiStatus(false);
         checkQuota();
+        setTimeout(() => checkApiStatus(true), 3000);
     </script>
     {% block extra_js %}{% endblock %}
 </body>

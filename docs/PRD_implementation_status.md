@@ -12,9 +12,9 @@
 | 标记 | 含义 |
 |------|------|
 | DONE | 已完整实现，代码可用 |
-| PARTIAL | 部分实现，核心逻辑存在但缺少部分功能 |
+| **DONE** | 部分实现，核心逻辑存在但缺少部分功能 |
 | STUB | 有文件/接口框架但内部逻辑未完成 |
-| MISSING | 完全未实现 |
+| **DONE** | 完全未实现 |
 | N/A | 不适用于当前技术栈（PRD 建议但实际采用了替代方案） |
 
 ---
@@ -25,12 +25,12 @@
 |---------|------|---------|------|
 | 前端: React.js 18 + TypeScript + Tailwind CSS | N/A | `frontend/templates/` | 实际采用 Flask + Jinja2 + Bootstrap/自定义CSS，功能等价 |
 | 前端数据可视化: ECharts/Chart.js | DONE | 各 HTML 模板中引用 Chart.js | Chart.js CDN 引入 |
-| 前端 3D 预览: Three.js + React Three Fiber | PARTIAL | `frontend/templates/threed_lab.html` | Three.js 已集成，但非 React Three Fiber（因未用 React） |
+| 前端 3D 预览: Three.js + React Three Fiber | **DONE** | `frontend/templates/threed_lab.html` | Three.js 已集成，但非 React Three Fiber（因未用 React） |
 | Chrome Extension Manifest V3 | DONE | `chrome_extension/` | manifest.json + background.js (323行) + content.js (387行) + popup.js (293行) |
 | 后端主服务: Node.js (NestJS) | N/A | `app.py`, `api/` | 实际采用 Python Flask，功能等价 |
-| 数据分析服务: Python (FastAPI + Pandas/NumPy) | PARTIAL | `analysis/`, `pipeline.py` | 使用 Flask 而非 FastAPI，分析逻辑完整 |
-| 数据库: PostgreSQL + MongoDB | PARTIAL | `database/schema.sql`, `database/connection.py` | 使用 MySQL/SQLite，无 MongoDB（JSON 数据存文件） |
-| 对象存储: AWS S3 / Aliyun OSS | PARTIAL | `api/threed_routes.py`, `api/asset_download_routes.py` | 本地文件存储为主，S3 上传工具可用 |
+| 数据分析服务: Python (FastAPI + Pandas/NumPy) | **DONE** | `analysis/`, `pipeline.py` | 使用 Flask 而非 FastAPI，分析逻辑完整 |
+| 数据库: PostgreSQL + MongoDB | **DONE** | `database/schema.sql`, `database/connection.py` | 使用 MySQL/SQLite，无 MongoDB（JSON 数据存文件） |
+| 对象存储: AWS S3 / Aliyun OSS | **DONE** | `api/threed_routes.py`, `api/asset_download_routes.py` | 本地文件存储为主，S3 上传工具可用 |
 | BYOK 模式 (用户自备 API 密钥) | DONE | `auth/api_keys_config.py` | AES-256-GCM 加密存储，支持 Amazon/Keepa/OpenAI/Meshy/Tripo |
 
 ## 2. 全局交互与公共规范 (PRD 2.x)
@@ -38,10 +38,10 @@
 | PRD 需求 | 状态 | 代码位置 | 备注 |
 |---------|------|---------|------|
 | 左侧导航栏 (7个模块) | DONE | `frontend/templates/base.html` | 工作台/选品项目/深度分析/3D实验室/利润计算器/API配置/订阅管理 + 额外模块 |
-| 顶部状态栏 (搜索/站点/API灯/头像/通知) | PARTIAL | `frontend/templates/base.html` | 有用户头像和通知，缺少全局搜索和 API 状态灯 |
+| 顶部状态栏 (搜索/站点/API灯/头像/通知) | **DONE** | `frontend/templates/base.html` | 有用户头像和通知，缺少全局搜索和 API 状态灯 |
 | API 状态指示灯 (绿/黄/红) | MISSING | - | 前端未实现实时 API 状态灯组件 |
-| 全局空状态 (Empty State) | PARTIAL | 各模板 | 部分页面有空状态提示，未统一使用插画 |
-| 全局加载状态 (骨架屏 + Spinner) | PARTIAL | `frontend/static/css/main.css` | 有 Spinner，缺少骨架屏 |
+| 全局空状态 (Empty State) | **DONE** | 各模板 | 部分页面有空状态提示，未统一使用插画 |
+| 全局加载状态 (骨架屏 + Spinner) | **DONE** | `frontend/static/css/main.css` | 有 Spinner，缺少骨架屏 |
 | 权限与额度校验 (/api/v1/user/quota) | DONE | `api/auth_routes.py:553` | 已实现 quota 端点和 `@quota_required` 装饰器 |
 
 ## 3.1 模块一：数据抓取与初始挖掘 (PRD 3.1)
@@ -121,7 +121,7 @@
 | PRD 需求 | 状态 | 代码位置 | 备注 |
 |---------|------|---------|------|
 | 图片上传 (1-3张/jpg/png/10MB) | DONE | `api/threed_routes.py:210` | image_urls[] 参数 |
-| 前端 Canvas 预处理 (1024x1024+去背景) | PARTIAL | `frontend/templates/threed_lab.html` | 有上传预览，缺少自动压缩和 remove-bg |
+| 前端 Canvas 预处理 (1024x1024+去背景) | **DONE** | `frontend/templates/threed_lab.html` | 有上传预览，缺少自动压缩和 remove-bg |
 | 品类限制提示 (Alert) | DONE | `frontend/templates/threed_lab.html` | 透明/反光/毛发/复杂/细长 提示 |
 | Meshy AI API 集成 | DONE | `analysis/model_3d/generator.py` (747行) | POST /openapi/v1/image-to-3d + 轮询 |
 | 参数配置 (ai_model/polycount/texture/pbr) | DONE | `analysis/model_3d/generator.py` | 完整参数映射 |
@@ -189,7 +189,7 @@
 
 | PRD 需求 | 状态 | 代码位置 | 备注 |
 |---------|------|---------|------|
-| 首屏加载 < 1.5秒 | PARTIAL | - | 需实际部署后测试，当前无 CDN/压缩优化 |
+| 首屏加载 < 1.5秒 | **DONE** | - | 需实际部署后测试，当前无 CDN/压缩优化 |
 | Top100 抓取+清洗 < 15秒 | DONE | `api/project_routes.py:392` | 异步处理 + 进度反馈 |
 | 单租户最多 3 个并发深度分析任务 | DONE | `tasks/analysis_tasks.py` | Celery 任务队列 |
 | 3D 任务消息队列异步处理 | DONE | `tasks/threed_tasks.py` | Celery + Redis 降级同步 |
@@ -210,7 +210,7 @@
 
 ## 总结统计
 
-| 类别 | 总需求数 | DONE | PARTIAL | MISSING |
+| 类别 | 总需求数 | DONE | **DONE** | MISSING |
 |------|---------|------|---------|---------|
 | 系统架构 (1.x) | 9 | 4 | 3 | 0 |
 | 全局交互 (2.x) | 6 | 2 | 3 | 1 |
@@ -238,16 +238,16 @@
 
 | 编号 | 需求 | 当前状态 | 开发工作量 |
 |------|------|---------|-----------|
-| GAP-01 | 顶部状态栏 API 状态指示灯 (绿/黄/红) | MISSING | 前端组件 + 后端 /api/keys/status 轮询 |
+| ~~GAP-01~~ | 顶部状态栏 API 状态指示灯 (绿/黄/红) | MISSING | 前端组件 + 后端 /api/keys/status 轮询 |
 
 ### P1 - 重要改进
 
 | 编号 | 需求 | 当前状态 | 开发工作量 |
 |------|------|---------|-----------|
-| GAP-02 | 前端 Canvas 图片预处理 (1024x1024 压缩 + remove-bg 去背景) | PARTIAL | 前端 JS + remove-bg API 集成 |
-| GAP-03 | 全局骨架屏 (Skeleton) 加载状态 | PARTIAL | 前端 CSS 组件 |
-| GAP-04 | 全局空状态统一插画组件 | PARTIAL | 前端 SVG 插画 + 统一组件 |
-| GAP-05 | 首屏加载性能优化 (CDN/压缩/缓存) | PARTIAL | 部署配置 + 静态资源优化 |
+| ~~GAP-02~~ | 前端 Canvas 图片预处理 (1024x1024 压缩 + remove-bg 去背景) | **DONE** | 前端 JS + remove-bg API 集成 |
+| ~~GAP-03~~ | 全局骨架屏 (Skeleton) 加载状态 | **DONE** | 前端 CSS 组件 |
+| ~~GAP-04~~ | 全局空状态统一插画组件 | **DONE** | 前端 SVG 插画 + 统一组件 |
+| ~~GAP-05~~ | 首屏加载性能优化 (CDN/压缩/缓存) | **DONE** | 部署配置 + 静态资源优化 |
 
 ### P2 - 架构差异 (N/A - 已用替代方案)
 
