@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-03-19
+
+### Added
+- `analysis/ai_analyzer.py` - Unified AI Analyzer entry module integrating DetailPageAnalyzer, ReviewAnalyzer, RiskAnalyzer, and AIProductSummarizer with full_analysis(), batch_analyze() methods
+- `analysis/review_analyzer.py` - Top-level review analyzer with ReviewStatistics (rating distribution, review trends, suspicious detection, keyword frequency) and ReviewBatchAnalyzer (batch analysis, cross-product comparison)
+- `analysis/risk_scoring.py` - Five-dimension risk radar (Competition, Demand, Profit, IP Risk, Seasonality) with FiveDimensionRadar class, Chart.js compatible output, weighted scoring, and batch_score()
+- `analysis/profit_analysis/amazon_fba_calculator.py` - Backward-compatible alias module for AmazonFBAProfitCalculator
+- Updated `analysis/__init__.py` with comprehensive module documentation
+- `tests/test_missing_modules.py` with 44 test cases covering all new modules and full import verification of 23 analysis modules
+
+### Changed
+- Project stats: 253 files, 66,582 lines of code (up from 285 files*, 61,742 lines)
+  *File count decreased due to cleanup of duplicate/unused files
+
 ## [1.4.0] - 2026-03-19
 
 ### Added
