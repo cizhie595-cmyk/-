@@ -1,13 +1,67 @@
 # Amazon Visionary Sourcing Tool - Development Progress
 
-> Last Updated: 2026-03-19 (Phase 16)
+> Last Updated: 2026-03-19 (Phase 17)
 
-## Overall Status: **Production-Ready (Phase 16 Complete - 100% PRD Coverage)**
+## Overall Status: **Production-Ready (Phase 17 Complete - 100% PRD + Frontend UI)**
 
 All 21 GitHub Issues (P0-P3) and 20 remaining modules fully implemented. Phase 15: Missing module completion - 4 new modules created (AIAnalyzer unified entry, ReviewAnalyzer top-level with batch/statistics, RiskScoring five-dimension radar, AmazonFBACalculator alias). 253 files, 66,582 lines of code. Frontend: 19 HTML templates with full i18n (52 keys x 3 languages), OAuth login, password reset, email verification, team management, notifications, APM dashboard. Backend: 125 Python files, Stripe payments, rate limiting, audit logging, data export (CSV/Excel/PDF), multi-channel SSE, comprehensive error handling with HTML error pages. Infrastructure: gunicorn production config, Makefile (15 commands), 11 K8s YAML (PDB/NetworkPolicy/CronJob/ServiceMonitor), CI/CD pipeline, 14 test files (51+ mock tests passing). Chrome Extension fully rewritten with stats dashboard and collection history.
 
 ---
 
+
+
+## Phase 17: Frontend UI Completion (2026-03-19)
+
+### F-01: Scrape Depth Selector (P0)
+- Added Top 50/100/200 radio cards with visual icons and descriptions
+- Range slider for fine-grained control, default Top 100
+- `scrape_depth` sent in project creation API call
+
+### F-02: Quick Filter Panel (P0)
+- Collapsible advanced filters panel in project_detail.html
+- Price range (min/max), review count range, monthly sales min, BSR max
+- Rating chips (4.5+/4.0+/3.5+/3.0+), FBA/FBM filter
+- Brand exclude tags with "x" removal and Enter key input
+- Reset All button, integrated with getFilteredProducts()
+
+### F-03: AI Filter Textarea (P1)
+- Replaced prompt() dialog with collapsible Textarea panel
+- Helpful placeholder with example prompts
+- Apply AI Filter button, toggle visibility
+
+### F-04: CSV Field Mapping Modal (P1)
+- Auto-detect CSV columns on file upload
+- Modal with dropdown field mapping (ASIN, title, price, etc.)
+- Data preview table showing first 3 rows
+- Edit mapping link, column_mapping sent in project creation
+
+### F-05: Enhanced Data Table (P1)
+- Sticky header with z-index layering
+- Horizontal scroll container for wide tables
+- Column resize handles with drag-to-resize interaction
+- Column visibility toggle menu with checkboxes per column
+
+### F-06: 3D Progress Ring (P1)
+- SVG circular progress ring with gradient fill
+- Percentage display in center
+- 12 rotating fun messages (3-second interval)
+- Fullscreen overlay with backdrop blur
+- Integrated into pollGeneration flow (show/update/hide)
+
+### F-07/F-08: Dimension Selector (P2)
+- Active dimension tags with "x" removal
+- Category-based recommended dimensions (Electronics, Home, Beauty, Toys)
+- All 16 available dimensions picker with added/available states
+- Custom dimension input with Add button
+- Dimensions array passed to visual analysis API
+
+### Testing
+- `tests/test_frontend_features.py`: 69 test cases, all passing
+- Coverage: F-01 (7), F-02 (12), F-03 (6), F-04 (10), F-05 (8), F-06 (10), F-07/F-08 (12), CSS (4)
+
+### Stats
+- 377 files, 68,276 lines of code
+- 6 files changed, ~1,700 insertions
 
 ## Phase 16: PRD Gap Completion (2026-03-19)
 

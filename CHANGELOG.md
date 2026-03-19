@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-03-19
+
+### Added
+- F-01: Scrape Depth selector in `new_project.html` - Top 50/100/200 radio cards + range slider, default Top 100, depth value sent in project creation
+- F-02: Quick filter panel in `project_detail.html` - Price range, review count range, monthly sales min, BSR max, rating chips (4.5+/4.0+/3.5+/3.0+), FBA/FBM filter, brand exclude tags with "x" removal
+- F-03: AI filter Textarea panel in `project_detail.html` - Replaced `prompt()` dialog with collapsible Textarea + Apply button, example prompts in placeholder
+- F-04: CSV field mapping confirmation modal in `new_project.html` - Auto-detect columns, dropdown field mapping, data preview table, edit mapping link, mapping sent in project creation
+- F-05: Enhanced data table in `project_detail.html` - Sticky header, horizontal scroll, column resize handles (drag to resize), column visibility toggle menu with checkboxes
+- F-06: 3D generation progress ring in `threed_lab.html` - SVG circular progress with gradient fill, percentage display, 12 rotating fun messages, fullscreen overlay with backdrop blur
+- F-07/F-08: Dimension selector UI in `product_analysis.html` - Active dimension tags with "x" removal, category-based recommended dimensions, all available dimensions picker, custom dimension input, dimensions passed to visual analysis API
+- `tests/test_frontend_features.py` with 69 test cases covering all 8 features + CSS integration
+
+### Changed
+- `new_project.html`: Added scrape depth selector, CSV field mapping modal, scrape_depth and column_mapping in project creation data
+- `project_detail.html`: Added advanced filter panel, AI filter textarea, enhanced table with sticky header/resize/column visibility
+- `threed_lab.html`: Added progress ring overlay with fun messages, integrated into pollGeneration flow
+- `product_analysis.html`: Added dimension selector panel with 16 predefined + custom dimensions, category recommendations for Electronics/Home/Beauty/Toys
+- `main.css`: Added styles for filter panel, AI filter, table enhancements, progress ring, dimension selector
+- Project stats: 377 files, 68,276 lines of code
+
 ## [1.6.0] - 2026-03-19
 
 ### Added

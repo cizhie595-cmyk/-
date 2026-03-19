@@ -16,6 +16,50 @@
     .insight-card .label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
     .insight-card .value { font-weight: 600; }
     .persona-card { padding: 16px; border-radius: var(--radius-md); background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.08)); border: 1px solid var(--border); }
+
+    /* Dimension Selector (F-07/F-08) */
+    .dimension-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .dimension-tag {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 500;
+        background: rgba(99, 102, 241, 0.1); color: var(--primary-light);
+        border: 1px solid rgba(99, 102, 241, 0.3); cursor: default;
+        transition: all 0.15s;
+    }
+    .dimension-tag:hover { background: rgba(99, 102, 241, 0.15); }
+    .dimension-tag .dim-remove {
+        cursor: pointer; font-size: 1rem; line-height: 1; opacity: 0.6;
+        transition: opacity 0.15s;
+    }
+    .dimension-tag .dim-remove:hover { opacity: 1; color: var(--danger); }
+    .dimension-tag.recommended {
+        background: rgba(34, 197, 94, 0.1); color: var(--success);
+        border-color: rgba(34, 197, 94, 0.3);
+    }
+    .dimension-tag.custom {
+        background: rgba(245, 158, 11, 0.1); color: var(--warning);
+        border-color: rgba(245, 158, 11, 0.3);
+    }
+    .dimension-picker {
+        margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);
+        animation: slideDown 0.2s ease;
+    }
+    .dimension-picker-header { margin-bottom: 8px; }
+    .dimension-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    .dimension-chip {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 6px 14px; border-radius: 20px; font-size: 0.8rem;
+        background: var(--bg-dark); color: var(--text-secondary);
+        border: 1px solid var(--border); cursor: pointer;
+        transition: all 0.15s;
+    }
+    .dimension-chip:hover {
+        border-color: var(--primary); color: var(--primary-light);
+        background: rgba(99, 102, 241, 0.05);
+    }
+    .dimension-chip.added {
+        opacity: 0.4; pointer-events: none;
+    }
 </style>
 {% endblock %}
 {% block content %}
@@ -114,6 +158,43 @@
 
 <!-- Visual Analysis Tab -->
 <div class="tab-content active" id="tab-visual">
+    <!-- Dimension Selector (PRD 3.3.2 F-07/F-08) -->
+    <div class="card mb-lg">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3 class="card-title">Analysis Dimensions</h3>
+            <button class="btn btn-secondary btn-sm" onclick="toggleDimensionPanel()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px;"><path d="M12 5v14M5 12h14"/></svg>
+                Add Dimension
+            </button>
+        </div>
+        <!-- Active Dimensions -->
+        <div class="dimension-tags" id="active-dimensions">
+            <!-- Populated by JS -->
+        </div>
+        <!-- Dimension Picker Panel (collapsible) -->
+        <div id="dimension-picker" class="dimension-picker" style="display: none;">
+            <div class="dimension-picker-header">
+                <span class="text-muted" style="font-size: 0.85rem;">Category Recommended</span>
+            </div>
+            <div class="dimension-grid" id="recommended-dimensions">
+                <!-- Populated by JS -->
+            </div>
+            <div class="dimension-picker-header" style="margin-top: 12px;">
+                <span class="text-muted" style="font-size: 0.85rem;">All Available Dimensions</span>
+            </div>
+            <div class="dimension-grid" id="all-dimensions">
+                <!-- Populated by JS -->
+            </div>
+            <div class="dimension-picker-header" style="margin-top: 12px;">
+                <span class="text-muted" style="font-size: 0.85rem;">Custom Dimension</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" class="form-input" id="custom-dimension-input" placeholder="e.g., Packaging Quality" style="flex: 1; height: 34px; font-size: 0.85rem;">
+                <button class="btn btn-primary btn-sm" onclick="addCustomDimension()">Add</button>
+            </div>
+        </div>
+    </div>
+
     <div class="card-grid card-grid-2">
         <div class="card">
             <h3 class="card-title mb-md">Listing Quality Score</h3>
@@ -220,6 +301,115 @@
     document.getElementById('amazon-link').href = `https://www.amazon.com/dp/${asin}`;
 
     // ============================================================
+    // Dimension Selector (F-07/F-08)
+    // ============================================================
+    const DEFAULT_DIMENSIONS = [
+        { key: 'title', label: 'Title Quality', category: 'listing' },
+        { key: 'images', label: 'Image Quality', category: 'listing' },
+        { key: 'bullets', label: 'Bullet Points', category: 'listing' },
+        { key: 'description', label: 'Description', category: 'listing' },
+        { key: 'aplus', label: 'A+ Content', category: 'listing' },
+        { key: 'keywords', label: 'Keyword Optimization', category: 'listing' },
+    ];
+
+    const ALL_DIMENSIONS = [
+        ...DEFAULT_DIMENSIONS,
+        { key: 'pricing', label: 'Pricing Strategy', category: 'market' },
+        { key: 'brand_strength', label: 'Brand Strength', category: 'market' },
+        { key: 'review_quality', label: 'Review Quality', category: 'review' },
+        { key: 'review_velocity', label: 'Review Velocity', category: 'review' },
+        { key: 'packaging', label: 'Packaging', category: 'product' },
+        { key: 'differentiation', label: 'Differentiation', category: 'product' },
+        { key: 'supply_chain', label: 'Supply Chain', category: 'sourcing' },
+        { key: 'seasonality', label: 'Seasonality', category: 'market' },
+        { key: 'ad_spend', label: 'Ad Spend Efficiency', category: 'market' },
+        { key: 'compliance', label: 'Compliance / Cert', category: 'product' },
+    ];
+
+    // Category-based recommended dimensions
+    const CATEGORY_RECOMMENDATIONS = {
+        'default': ['title', 'images', 'bullets', 'pricing', 'review_quality', 'differentiation'],
+        'Electronics': ['title', 'images', 'compliance', 'review_quality', 'pricing', 'brand_strength'],
+        'Home & Kitchen': ['title', 'images', 'packaging', 'review_quality', 'pricing', 'differentiation'],
+        'Beauty': ['title', 'images', 'aplus', 'review_quality', 'compliance', 'brand_strength'],
+        'Toys': ['title', 'images', 'compliance', 'seasonality', 'pricing', 'differentiation'],
+    };
+
+    let activeDimensions = [...DEFAULT_DIMENSIONS.map(d => d.key)];
+
+    function getRecommendedDimensions() {
+        const category = document.getElementById('p-category')?.textContent || '';
+        const recs = CATEGORY_RECOMMENDATIONS[category] || CATEGORY_RECOMMENDATIONS['default'];
+        return recs;
+    }
+
+    function renderActiveDimensions() {
+        const container = document.getElementById('active-dimensions');
+        container.innerHTML = activeDimensions.map(key => {
+            const dim = ALL_DIMENSIONS.find(d => d.key === key);
+            const label = dim ? dim.label : key;
+            const isCustom = !dim;
+            const isRec = getRecommendedDimensions().includes(key);
+            const cls = isCustom ? 'custom' : isRec ? 'recommended' : '';
+            return `<span class="dimension-tag ${cls}">${label} <span class="dim-remove" onclick="removeDimension('${key}')">&times;</span></span>`;
+        }).join('');
+        updateDimensionChips();
+    }
+
+    function renderDimensionPicker() {
+        const recommended = getRecommendedDimensions();
+        const recContainer = document.getElementById('recommended-dimensions');
+        recContainer.innerHTML = recommended.map(key => {
+            const dim = ALL_DIMENSIONS.find(d => d.key === key);
+            if (!dim) return '';
+            const added = activeDimensions.includes(key);
+            return `<span class="dimension-chip ${added ? 'added' : ''}" onclick="addDimension('${key}')">${added ? '&#10003; ' : '+ '}${dim.label}</span>`;
+        }).join('');
+
+        const allContainer = document.getElementById('all-dimensions');
+        allContainer.innerHTML = ALL_DIMENSIONS.filter(d => !recommended.includes(d.key)).map(d => {
+            const added = activeDimensions.includes(d.key);
+            return `<span class="dimension-chip ${added ? 'added' : ''}" onclick="addDimension('${d.key}')">${added ? '&#10003; ' : '+ '}${d.label}</span>`;
+        }).join('');
+    }
+
+    function updateDimensionChips() {
+        renderDimensionPicker();
+    }
+
+    function toggleDimensionPanel() {
+        const panel = document.getElementById('dimension-picker');
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function addDimension(key) {
+        if (!activeDimensions.includes(key)) {
+            activeDimensions.push(key);
+            renderActiveDimensions();
+        }
+    }
+
+    function removeDimension(key) {
+        activeDimensions = activeDimensions.filter(k => k !== key);
+        renderActiveDimensions();
+    }
+
+    function addCustomDimension() {
+        const input = document.getElementById('custom-dimension-input');
+        const val = input.value.trim();
+        if (val && !activeDimensions.includes(val)) {
+            activeDimensions.push(val);
+            renderActiveDimensions();
+            input.value = '';
+        }
+    }
+
+    // Init dimensions on load
+    document.addEventListener('DOMContentLoaded', () => {
+        renderActiveDimensions();
+    });
+
+    // ============================================================
     // Tab switching
     // ============================================================
     function switchAnalysisTab(tab) {
@@ -317,8 +507,8 @@
     // ============================================================
     async function startVisualAnalysis() {
         try {
-            showToast('Starting visual analysis...', 'info');
-            const result = await api.startVisualAnalysis(asin);
+            showToast('Starting visual analysis with ' + activeDimensions.length + ' dimensions...', 'info');
+            const result = await api.startVisualAnalysis(asin, { dimensions: activeDimensions });
             if (result && result.task_id) {
                 pollAnalysis(result.task_id, 'visual');
             }

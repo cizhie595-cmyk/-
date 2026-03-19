@@ -10,6 +10,24 @@
         <button class="btn btn-secondary" onclick="exportData()" data-i18n="project.exportCsv">Export CSV</button>
         <button class="btn btn-secondary" onclick="exportBackend('xlsx')" data-i18n="project.exportExcel">Export Excel</button>
         <button class="btn btn-secondary" onclick="exportBackend('pdf')" data-i18n="project.exportPdf">Export PDF</button>
+        <div class="column-visibility-wrapper" style="position: relative;">
+            <button class="btn btn-secondary" onclick="toggleColumnMenu()" title="Show/Hide Columns">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px;"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                Columns
+            </button>
+            <div class="column-menu" id="column-menu" style="display: none;">
+                <div class="column-menu-header">Toggle Columns</div>
+                <label class="column-toggle"><input type="checkbox" checked onchange="toggleColumn(1, this.checked)"> Image</label>
+                <label class="column-toggle"><input type="checkbox" checked onchange="toggleColumn(2, this.checked)"> ASIN / Title</label>
+                <label class="column-toggle"><input type="checkbox" checked onchange="toggleColumn(3, this.checked)"> Price</label>
+                <label class="column-toggle"><input type="checkbox" checked onchange="toggleColumn(4, this.checked)"> Rating</label>
+                <label class="column-toggle"><input type="checkbox" checked onchange="toggleColumn(5, this.checked)"> Reviews</label>
+                <label class="column-toggle"><input type="checkbox" checked onchange="toggleColumn(6, this.checked)"> Monthly Sales</label>
+                <label class="column-toggle"><input type="checkbox" checked onchange="toggleColumn(7, this.checked)"> BSR</label>
+                <label class="column-toggle"><input type="checkbox" checked onchange="toggleColumn(8, this.checked)"> FBA</label>
+                <label class="column-toggle"><input type="checkbox" checked onchange="toggleColumn(9, this.checked)"> Actions</label>
+            </div>
+        </div>
         <button class="btn btn-primary" id="report-btn" onclick="generateReport()" data-i18n="project.generateReport">Generate Report</button>
     </div>
 </div>
@@ -81,7 +99,8 @@
 <div class="tab-content active" id="tab-products">
     <!-- Filters -->
     <div class="card mb-lg">
-        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: end;">
+        <!-- Row 1: Search + Sort + Toggle -->
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: end; margin-bottom: 12px;">
             <div class="form-group" style="margin: 0; flex: 1; min-width: 150px;">
                 <label class="form-label" data-i18n="common.search">Search</label>
                 <input type="text" class="form-input" id="search-input" placeholder="Search ASIN, title..." oninput="filterTable()">
@@ -96,25 +115,108 @@
                     <option value="reviews_desc">Reviews (Most)</option>
                 </select>
             </div>
-            <button class="btn btn-secondary" onclick="applyAIFilter()">AI Filter</button>
+            <button class="btn btn-secondary btn-sm" onclick="toggleAdvancedFilters()" id="toggle-filters-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px;"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                Advanced Filters
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="toggleAIFilterPanel()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px;"><path d="M12 2a4 4 0 0 1 4 4c0 1.95-1.4 3.58-3.25 3.93L12 22"/><path d="M8 6a4 4 0 0 0-4 4c0 1.95 1.4 3.58 3.25 3.93"/><path d="M16 6a4 4 0 0 1 4 4c0 1.95-1.4 3.58-3.25 3.93"/></svg>
+                AI Filter
+            </button>
+        </div>
+
+        <!-- Row 2: Advanced Quick Filters (collapsible) -->
+        <div id="advanced-filters" class="advanced-filters" style="display: none;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label">Min Price ($)</label>
+                    <input type="number" class="form-input form-input-sm" id="filter-price-min" placeholder="0" step="0.01" onchange="filterTable()">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label">Max Price ($)</label>
+                    <input type="number" class="form-input form-input-sm" id="filter-price-max" placeholder="999" step="0.01" onchange="filterTable()">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label">Min Reviews</label>
+                    <input type="number" class="form-input form-input-sm" id="filter-reviews-min" placeholder="0" onchange="filterTable()">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label">Max Reviews</label>
+                    <input type="number" class="form-input form-input-sm" id="filter-reviews-max" placeholder="99999" onchange="filterTable()">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label">Min Monthly Sales</label>
+                    <input type="number" class="form-input form-input-sm" id="filter-sales-min" placeholder="0" onchange="filterTable()">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label">Min BSR Rank</label>
+                    <input type="number" class="form-input form-input-sm" id="filter-bsr-max" placeholder="999999" onchange="filterTable()">
+                </div>
+            </div>
+
+            <!-- Star Rating Checkboxes -->
+            <div style="margin-bottom: 12px;">
+                <label class="form-label">Min Rating</label>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <label class="rating-chip"><input type="radio" name="rating-filter" value="0" checked onchange="filterTable()"><span class="chip">All</span></label>
+                    <label class="rating-chip"><input type="radio" name="rating-filter" value="4.5" onchange="filterTable()"><span class="chip">4.5+</span></label>
+                    <label class="rating-chip"><input type="radio" name="rating-filter" value="4" onchange="filterTable()"><span class="chip">4.0+</span></label>
+                    <label class="rating-chip"><input type="radio" name="rating-filter" value="3.5" onchange="filterTable()"><span class="chip">3.5+</span></label>
+                    <label class="rating-chip"><input type="radio" name="rating-filter" value="3" onchange="filterTable()"><span class="chip">3.0+</span></label>
+                </div>
+            </div>
+
+            <!-- FBA/FBM Filter -->
+            <div style="margin-bottom: 12px;">
+                <label class="form-label">Fulfillment</label>
+                <div style="display: flex; gap: 8px;">
+                    <label class="rating-chip"><input type="radio" name="fba-filter" value="all" checked onchange="filterTable()"><span class="chip">All</span></label>
+                    <label class="rating-chip"><input type="radio" name="fba-filter" value="fba" onchange="filterTable()"><span class="chip">FBA Only</span></label>
+                    <label class="rating-chip"><input type="radio" name="fba-filter" value="fbm" onchange="filterTable()"><span class="chip">FBM Only</span></label>
+                </div>
+            </div>
+
+            <!-- Brand Exclude Tags -->
+            <div style="margin-bottom: 8px;">
+                <label class="form-label">Exclude Brands</label>
+                <div class="brand-tag-input" id="brand-tag-container">
+                    <div class="brand-tags" id="brand-tags"></div>
+                    <input type="text" class="brand-input" id="brand-exclude-input" placeholder="Type brand name and press Enter..." onkeydown="handleBrandTagKey(event)">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button class="btn btn-secondary btn-sm" onclick="resetFilters()">Reset All</button>
+                <span class="text-muted" style="line-height: 32px; font-size: 0.8rem;" id="filter-count-label"></span>
+            </div>
+        </div>
+
+        <!-- Row 3: AI Filter Panel (collapsible) -->
+        <div id="ai-filter-panel" class="ai-filter-panel" style="display: none;">
+            <label class="form-label">Describe the products you want to keep</label>
+            <textarea class="form-input" id="ai-filter-textarea" rows="3" placeholder="e.g., lightweight products under $30 with high ratings, not from major brands, suitable for private label..."></textarea>
+            <div style="display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end;">
+                <span class="text-muted" style="line-height: 32px; font-size: 0.8rem;">Powered by GPT-4.1-mini</span>
+                <button class="btn btn-primary btn-sm" onclick="applyAIFilter()">Apply AI Filter</button>
+            </div>
         </div>
     </div>
 
     <!-- Products Table -->
-    <div class="table-container">
-        <table class="data-table">
-            <thead>
+    <div class="table-container enhanced-table" style="overflow-x: auto; max-height: 70vh; position: relative;">
+        <table class="data-table" id="products-table">
+            <thead style="position: sticky; top: 0; z-index: 10; background: var(--bg-card);">
                 <tr>
-                    <th style="width: 40px;"><input type="checkbox" id="select-all" onchange="toggleSelectAll()"></th>
-                    <th>Image</th>
-                    <th>ASIN / Title</th>
-                    <th>Price</th>
-                    <th>Rating</th>
-                    <th>Reviews</th>
-                    <th>Monthly Sales</th>
-                    <th>BSR</th>
-                    <th>FBA</th>
-                    <th>Actions</th>
+                    <th style="width: 40px;" class="col-0"><input type="checkbox" id="select-all" onchange="toggleSelectAll()"></th>
+                    <th class="col-1 resizable" style="min-width: 60px;">Image<div class="resize-handle" onmousedown="initResize(event, 1)"></div></th>
+                    <th class="col-2 resizable" style="min-width: 200px;">ASIN / Title<div class="resize-handle" onmousedown="initResize(event, 2)"></div></th>
+                    <th class="col-3 resizable" style="min-width: 80px;">Price<div class="resize-handle" onmousedown="initResize(event, 3)"></div></th>
+                    <th class="col-4 resizable" style="min-width: 80px;">Rating<div class="resize-handle" onmousedown="initResize(event, 4)"></div></th>
+                    <th class="col-5 resizable" style="min-width: 80px;">Reviews<div class="resize-handle" onmousedown="initResize(event, 5)"></div></th>
+                    <th class="col-6 resizable" style="min-width: 100px;">Monthly Sales<div class="resize-handle" onmousedown="initResize(event, 6)"></div></th>
+                    <th class="col-7 resizable" style="min-width: 80px;">BSR<div class="resize-handle" onmousedown="initResize(event, 7)"></div></th>
+                    <th class="col-8" style="min-width: 60px;">FBA</th>
+                    <th class="col-9" style="min-width: 100px;">Actions</th>
                 </tr>
             </thead>
             <tbody id="products-tbody">
@@ -255,6 +357,119 @@
         }
     }
 
+    // ========== Column Visibility & Resize (F-05) ==========
+    function toggleColumnMenu() {
+        const menu = document.getElementById('column-menu');
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+    // Close menu on outside click
+    document.addEventListener('click', function(e) {
+        const wrapper = document.querySelector('.column-visibility-wrapper');
+        const menu = document.getElementById('column-menu');
+        if (menu && wrapper && !wrapper.contains(e.target)) {
+            menu.style.display = 'none';
+        }
+    });
+
+    function toggleColumn(colIdx, visible) {
+        const table = document.getElementById('products-table');
+        if (!table) return;
+        const cells = table.querySelectorAll('.col-' + colIdx);
+        cells.forEach(cell => {
+            cell.style.display = visible ? '' : 'none';
+        });
+    }
+
+    // Column resize
+    let resizeCol = null, resizeStartX = 0, resizeStartW = 0;
+    function initResize(e, colIdx) {
+        e.preventDefault();
+        e.stopPropagation();
+        const th = e.target.parentElement;
+        resizeCol = th;
+        resizeStartX = e.clientX;
+        resizeStartW = th.offsetWidth;
+        document.addEventListener('mousemove', doResize);
+        document.addEventListener('mouseup', stopResize);
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+    }
+    function doResize(e) {
+        if (!resizeCol) return;
+        const diff = e.clientX - resizeStartX;
+        const newWidth = Math.max(50, resizeStartW + diff);
+        resizeCol.style.width = newWidth + 'px';
+        resizeCol.style.minWidth = newWidth + 'px';
+    }
+    function stopResize() {
+        resizeCol = null;
+        document.removeEventListener('mousemove', doResize);
+        document.removeEventListener('mouseup', stopResize);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+    }
+
+    // ========== Advanced Filter Helpers ==========
+    let excludedBrands = new Set();
+
+    function toggleAdvancedFilters() {
+        const panel = document.getElementById('advanced-filters');
+        const btn = document.getElementById('toggle-filters-btn');
+        if (panel.style.display === 'none') {
+            panel.style.display = 'block';
+            btn.classList.add('active');
+        } else {
+            panel.style.display = 'none';
+            btn.classList.remove('active');
+        }
+    }
+
+    function toggleAIFilterPanel() {
+        const panel = document.getElementById('ai-filter-panel');
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function handleBrandTagKey(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const input = document.getElementById('brand-exclude-input');
+            const brand = input.value.trim();
+            if (brand && !excludedBrands.has(brand.toLowerCase())) {
+                excludedBrands.add(brand.toLowerCase());
+                renderBrandTags();
+                filterTable();
+            }
+            input.value = '';
+        }
+    }
+
+    function removeBrandTag(brand) {
+        excludedBrands.delete(brand.toLowerCase());
+        renderBrandTags();
+        filterTable();
+    }
+
+    function renderBrandTags() {
+        const container = document.getElementById('brand-tags');
+        container.innerHTML = Array.from(excludedBrands).map(b =>
+            '<span class="brand-tag">' + b + ' <span class="brand-tag-remove" onclick="removeBrandTag(\'' + b + '\')">&times;</span></span>'
+        ).join('');
+    }
+
+    function resetFilters() {
+        document.getElementById('filter-price-min').value = '';
+        document.getElementById('filter-price-max').value = '';
+        document.getElementById('filter-reviews-min').value = '';
+        document.getElementById('filter-reviews-max').value = '';
+        document.getElementById('filter-sales-min').value = '';
+        document.getElementById('filter-bsr-max').value = '';
+        document.querySelector('input[name="rating-filter"][value="0"]').checked = true;
+        document.querySelector('input[name="fba-filter"][value="all"]').checked = true;
+        excludedBrands.clear();
+        renderBrandTags();
+        filterTable();
+    }
+
     function filterTable() {
         currentPage = 1;
         updatePagination();
@@ -268,10 +483,33 @@
     // ========== 获取当前过滤后的产品列表 ==========
     function getFilteredProducts() {
         const query = document.getElementById('search-input').value.toLowerCase();
-        return allProducts.filter(p =>
-            (!p.is_filtered) &&
-            (!query || (p.asin && p.asin.toLowerCase().includes(query)) || (p.title && p.title.toLowerCase().includes(query)))
-        );
+        const priceMin = parseFloat(document.getElementById('filter-price-min')?.value) || 0;
+        const priceMax = parseFloat(document.getElementById('filter-price-max')?.value) || Infinity;
+        const reviewsMin = parseInt(document.getElementById('filter-reviews-min')?.value) || 0;
+        const reviewsMax = parseInt(document.getElementById('filter-reviews-max')?.value) || Infinity;
+        const salesMin = parseInt(document.getElementById('filter-sales-min')?.value) || 0;
+        const bsrMax = parseInt(document.getElementById('filter-bsr-max')?.value) || Infinity;
+        const ratingFilter = parseFloat(document.querySelector('input[name="rating-filter"]:checked')?.value || '0');
+        const fbaFilter = document.querySelector('input[name="fba-filter"]:checked')?.value || 'all';
+
+        return allProducts.filter(p => {
+            if (p.is_filtered) return false;
+            if (query && !(p.asin && p.asin.toLowerCase().includes(query)) && !(p.title && p.title.toLowerCase().includes(query))) return false;
+            const price = p.price || 0;
+            if (price < priceMin || price > priceMax) return false;
+            const reviews = p.review_count || 0;
+            if (reviews < reviewsMin || reviews > reviewsMax) return false;
+            const sales = p.monthly_sales || 0;
+            if (sales < salesMin) return false;
+            const bsr = p.bsr || 0;
+            if (bsr > bsrMax && bsrMax > 0) return false;
+            const rating = p.rating || 0;
+            if (ratingFilter > 0 && rating < ratingFilter) return false;
+            if (fbaFilter === 'fba' && !p.is_fba) return false;
+            if (fbaFilter === 'fbm' && p.is_fba) return false;
+            if (excludedBrands.size > 0 && p.brand && excludedBrands.has(p.brand.toLowerCase())) return false;
+            return true;
+        });
     }
 
     // ========== 更新分页信息 ==========
@@ -352,8 +590,11 @@
 
     // ========== AI 过滤 ===========
     async function applyAIFilter() {
-        const description = prompt('Describe the products you are looking for (e.g., "lightweight, under $30, high rating"):');
-        if (!description) return;
+        const description = document.getElementById('ai-filter-textarea')?.value?.trim();
+        if (!description) {
+            showToast('Please describe the products you want to keep', 'warning');
+            return;
+        }
 
         showToast('Running AI filter...', 'info');
         try {

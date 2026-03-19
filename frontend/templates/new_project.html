@@ -48,6 +48,39 @@
             </div>
 
             <div class="form-group">
+                <label class="form-label">Scrape Depth</label>
+                <div class="scrape-depth-selector">
+                    <div class="depth-options">
+                        <label class="depth-option">
+                            <input type="radio" name="scrape-depth" value="50" onchange="updateDepthDisplay(50)">
+                            <div class="depth-card">
+                                <span class="depth-value">Top 50</span>
+                                <span class="depth-desc">Quick scan</span>
+                            </div>
+                        </label>
+                        <label class="depth-option">
+                            <input type="radio" name="scrape-depth" value="100" checked onchange="updateDepthDisplay(100)">
+                            <div class="depth-card active">
+                                <span class="depth-value">Top 100</span>
+                                <span class="depth-desc">Recommended</span>
+                            </div>
+                        </label>
+                        <label class="depth-option">
+                            <input type="radio" name="scrape-depth" value="200" onchange="updateDepthDisplay(200)">
+                            <div class="depth-card">
+                                <span class="depth-value">Top 200</span>
+                                <span class="depth-desc">Deep analysis</span>
+                            </div>
+                        </label>
+                    </div>
+                    <input type="range" class="depth-slider" id="depth-slider" min="50" max="200" step="50" value="100" oninput="updateDepthFromSlider(this.value)">
+                    <div class="depth-labels">
+                        <span>50</span><span>100</span><span>150</span><span>200</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
                 <label class="form-label">Data Source</label>
                 <div style="display: flex; gap: 12px; margin-top: 8px;">
                     <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
@@ -69,6 +102,33 @@
                     <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleFileUpload(this)">
                 </div>
                 <div id="upload-result" class="hidden mt-md"></div>
+            </div>
+
+            <!-- CSV Field Mapping Confirmation Modal -->
+            <div class="modal-overlay" id="field-mapping-modal" style="display: none;">
+                <div class="modal" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h3>Confirm Column Mapping</h3>
+                        <button class="modal-close" onclick="closeFieldMapping()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted mb-md">We auto-detected the following column mappings from your file. Please review and adjust if needed.</p>
+                        <div id="mapping-fields"></div>
+                        <div class="mt-md" id="mapping-preview">
+                            <label class="form-label">Data Preview (first 3 rows)</label>
+                            <div class="table-container" style="max-height: 200px; overflow: auto;">
+                                <table class="data-table" id="mapping-preview-table">
+                                    <thead id="mapping-preview-head"></thead>
+                                    <tbody id="mapping-preview-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeFieldMapping()">Cancel</button>
+                        <button class="btn btn-primary" onclick="confirmFieldMapping()">Confirm Mapping</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Filter Rules -->
@@ -149,6 +209,63 @@
         border-bottom: 1px solid var(--border);
     }
     .pipeline-step:last-child { border-bottom: none; }
+    /* Field Mapping Modal */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.6); z-index: 1000;
+        display: flex; align-items: center; justify-content: center;
+        animation: fadeIn 0.15s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal {
+        background: var(--bg-card); border: 1px solid var(--border);
+        border-radius: var(--radius-lg); width: 90%; max-width: 600px;
+        max-height: 80vh; overflow-y: auto; box-shadow: var(--shadow-lg);
+    }
+    .modal-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 16px 24px; border-bottom: 1px solid var(--border);
+    }
+    .modal-header h3 { font-size: 1.1rem; font-weight: 600; }
+    .modal-close {
+        background: none; border: none; color: var(--text-muted);
+        font-size: 1.5rem; cursor: pointer; padding: 0; line-height: 1;
+    }
+    .modal-close:hover { color: var(--text-primary); }
+    .modal-body { padding: 24px; }
+    .modal-footer {
+        display: flex; justify-content: flex-end; gap: 8px;
+        padding: 16px 24px; border-top: 1px solid var(--border);
+    }
+
+    /* Scrape Depth Selector */
+    .scrape-depth-selector { margin-top: 8px; }
+    .depth-options { display: flex; gap: 12px; margin-bottom: 12px; }
+    .depth-option { flex: 1; cursor: pointer; }
+    .depth-option input[type="radio"] { display: none; }
+    .depth-card {
+        display: flex; flex-direction: column; align-items: center; gap: 4px;
+        padding: 12px 8px; border: 2px solid var(--border); border-radius: var(--radius-md);
+        transition: all 0.2s; text-align: center;
+    }
+    .depth-card:hover { border-color: var(--primary); background: rgba(99, 102, 241, 0.04); }
+    .depth-option input:checked + .depth-card,
+    .depth-card.active {
+        border-color: var(--primary); background: rgba(99, 102, 241, 0.08);
+        box-shadow: 0 0 0 1px var(--primary);
+    }
+    .depth-value { font-weight: 700; font-size: 1.1rem; color: var(--text-primary); }
+    .depth-desc { font-size: 0.75rem; color: var(--text-muted); }
+    .depth-slider {
+        width: 100%; height: 6px; -webkit-appearance: none; appearance: none;
+        background: var(--border); border-radius: 3px; outline: none; margin: 4px 0;
+    }
+    .depth-slider::-webkit-slider-thumb {
+        -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+        background: var(--primary); cursor: pointer; box-shadow: 0 2px 6px rgba(99,102,241,0.3);
+    }
+    .depth-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); }
+
     .step-number {
         width: 32px;
         height: 32px;
@@ -178,6 +295,9 @@
         }
     }
 
+    let uploadResult = null;
+    let confirmedMapping = null;
+
     async function handleFileUpload(input) {
         const file = input.files[0];
         if (!file) return;
@@ -190,10 +310,14 @@
             const result = await api.uploadDataFile(file);
             if (result.success) {
                 uploadedFileId = result.file_id;
+                uploadResult = result;
+                // Show field mapping modal
+                showFieldMappingModal(result);
                 resultDiv.innerHTML = `
                     <div class="alert alert-success">
                         File parsed: <strong>${result.filename}</strong><br>
                         ${result.total_rows} rows | ${result.asin_count} ASINs | ${result.search_term_count} Search Terms
+                        <br><a href="javascript:void(0)" onclick="showFieldMappingModal(uploadResult)" style="color: var(--primary-light);">Edit column mapping</a>
                     </div>
                 `;
             } else {
@@ -202,6 +326,69 @@
         } catch (e) {
             resultDiv.innerHTML = `<div class="alert alert-danger">${e.message}</div>`;
         }
+    }
+
+    const STANDARD_FIELDS = [
+        { key: 'asin', label: 'ASIN' },
+        { key: 'search_term', label: 'Search Term' },
+        { key: 'title', label: 'Product Title' },
+        { key: 'price', label: 'Price' },
+        { key: 'rating', label: 'Rating' },
+        { key: 'review_count', label: 'Review Count' },
+        { key: 'brand', label: 'Brand' },
+        { key: 'bsr', label: 'BSR Rank' },
+        { key: 'monthly_sales', label: 'Monthly Sales' },
+        { key: 'ignore', label: '-- Ignore --' },
+    ];
+
+    function showFieldMappingModal(result) {
+        const headers = result.headers || [];
+        const mapping = result.column_mapping || {};
+        const preview = result.preview_rows || [];
+
+        // Build mapping dropdowns
+        const fieldsDiv = document.getElementById('mapping-fields');
+        fieldsDiv.innerHTML = headers.map((h, i) => {
+            const detected = Object.entries(mapping).find(([k, v]) => v === i || v === h);
+            const detectedKey = detected ? detected[0] : 'ignore';
+            return `
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                    <span style="min-width: 140px; font-weight: 500; color: var(--text-primary);">${h}</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <select class="form-select" id="mapping-col-${i}" style="flex: 1; height: 34px; font-size: 0.85rem;">
+                        ${STANDARD_FIELDS.map(f => `<option value="${f.key}" ${f.key === detectedKey ? 'selected' : ''}>${f.label}</option>`).join('')}
+                    </select>
+                    ${detected ? '<span class="badge badge-success" style="font-size: 0.7rem;">Auto</span>' : ''}
+                </div>
+            `;
+        }).join('');
+
+        // Build preview table
+        if (preview.length > 0) {
+            document.getElementById('mapping-preview-head').innerHTML = '<tr>' + headers.map(h => `<th style="font-size: 0.8rem;">${h}</th>`).join('') + '</tr>';
+            document.getElementById('mapping-preview-body').innerHTML = preview.slice(0, 3).map(row =>
+                '<tr>' + headers.map((h, i) => `<td style="font-size: 0.8rem;">${row[i] || row[h] || ''}</td>`).join('') + '</tr>'
+            ).join('');
+        }
+
+        document.getElementById('field-mapping-modal').style.display = 'flex';
+    }
+
+    function closeFieldMapping() {
+        document.getElementById('field-mapping-modal').style.display = 'none';
+    }
+
+    function confirmFieldMapping() {
+        const headers = uploadResult.headers || [];
+        confirmedMapping = {};
+        headers.forEach((h, i) => {
+            const sel = document.getElementById('mapping-col-' + i);
+            if (sel && sel.value !== 'ignore') {
+                confirmedMapping[sel.value] = i;
+            }
+        });
+        closeFieldMapping();
+        showToast('Column mapping confirmed', 'success');
     }
 
     async function createProject(e) {
@@ -226,6 +413,8 @@
                 },
                 file_id: uploadedFileId,
                 auto_start: true,
+                scrape_depth: parseInt(document.querySelector('input[name="scrape-depth"]:checked')?.value || '100'),
+                column_mapping: window._confirmedColumnMapping || null,
             };
 
             const result = await api.createProject(data);
@@ -267,6 +456,24 @@
         { title: 'Profit Calculation + Pricing Strategy', desc: 'Cost estimation + optimal pricing + elasticity analysis' },
         { title: 'Decision Report + Dashboard', desc: 'Comprehensive report with all enhanced analytics' },
     ];
+
+    function updateDepthDisplay(val) {
+        document.getElementById('depth-slider').value = val;
+        document.querySelectorAll('.depth-card').forEach(c => c.classList.remove('active'));
+        const checked = document.querySelector('input[name="scrape-depth"]:checked');
+        if (checked) checked.closest('.depth-option').querySelector('.depth-card').classList.add('active');
+    }
+    function updateDepthFromSlider(val) {
+        val = Math.round(val / 50) * 50;
+        if (val < 50) val = 50;
+        if (val > 200) val = 200;
+        document.getElementById('depth-slider').value = val;
+        const radio = document.querySelector('input[name="scrape-depth"][value="' + val + '"]');
+        if (radio) {
+            radio.checked = true;
+            updateDepthDisplay(val);
+        }
+    }
 
     function updatePipelineSteps() {
         const marketplace = document.getElementById('project-marketplace').value;
