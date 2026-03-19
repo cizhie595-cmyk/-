@@ -156,14 +156,40 @@ class AmazonFBAProfitCalculator:
         """
         selling_price = params.get("selling_price", 0)
         category = params.get("category", "Default")
+
+        # 兼容多种参数名：支持 API 路由和 Pipeline 两种调用方式
+        # 重量：优先 weight_lb，其次从 weight_kg 转换
         weight_lb = params.get("weight_lb", 0)
+        weight_kg = params.get("weight_kg", 0)
+        if not weight_lb and weight_kg:
+            weight_lb = weight_kg * 2.2046
+        elif not weight_kg and weight_lb:
+            weight_kg = weight_lb * 0.4536
+
+        # 尺寸：优先英寸，其次从厘米转换（1 in = 2.54 cm）
         length_in = params.get("length_in", 0)
         width_in = params.get("width_in", 0)
         height_in = params.get("height_in", 0)
-        cogs_rmb = params.get("cogs_rmb", 0)
-        shipping_rmb_per_kg = params.get("shipping_rmb_per_kg", 40)
-        weight_kg = params.get("weight_kg", weight_lb * 0.4536)
-        ppc_cost = params.get("ppc_cost_per_unit", 0)
+        if not length_in and params.get("length_cm"):
+            length_in = params["length_cm"] / 2.54
+        if not width_in and params.get("width_cm"):
+            width_in = params["width_cm"] / 2.54
+        if not height_in and params.get("height_cm"):
+            height_in = params["height_cm"] / 2.54
+
+        # 采购成本：兼容 cogs_rmb / sourcing_cost_rmb
+        cogs_rmb = params.get("cogs_rmb", 0) or params.get("sourcing_cost_rmb", 0)
+
+        # 物流费：兼容 shipping_rmb_per_kg / shipping_cost_per_kg
+        shipping_rmb_per_kg = (
+            params.get("shipping_rmb_per_kg", 0)
+            or params.get("shipping_cost_per_kg", 0)
+            or 40
+        )
+
+        # 广告费：兼容 ppc_cost_per_unit / estimated_cpa
+        ppc_cost = params.get("ppc_cost_per_unit", 0) or params.get("estimated_cpa", 0)
+
         return_rate = params.get("return_rate", 0.03)
         monthly_units = params.get("monthly_units", 100)
 
@@ -348,7 +374,12 @@ class AmazonFBAProfitCalculator:
         return 5.00  # 默认值
 
     def _calc_storage_fee(self, volume_cuft: float, monthly_units: int) -> float:
-        """计算月度仓储费（分摊到每件）"""
+        """
+        计算月度仓储费（分摊到每件）。
+
+        Amazon 仓储费按 "每立方英尺/月" 计费，这里是单件产品的体积对应的月度费用。
+        volume_cuft 已经是单件产品的体积，所以 volume_cuft * rate 就是单件的月度仓储费。
+        """
         month = datetime.now().month
         size_type = "standard"  # 简化处理
 
@@ -357,9 +388,9 @@ class AmazonFBAProfitCalculator:
         else:
             rate = self.STORAGE_FEES[size_type]["oct_dec"]
 
-        total_storage = volume_cuft * rate
-        per_unit = total_storage / max(monthly_units, 1) * monthly_units
-        return total_storage  # 返回单件仓储费
+        # 单件产品的月度仓储费 = 单件体积 * 费率
+        per_unit_storage = volume_cuft * rate
+        return per_unit_storage
 
     def _profit_health_check(self, margin: float, roi: float,
                               profit: float) -> dict:

@@ -189,8 +189,13 @@ def _db_get_products(db, project_id, filters: dict, page: int, page_size: int) -
     for row in rows:
         if row.get("created_at"):
             row["created_at"] = row["created_at"].isoformat()
-        # 兼容前端字段名
+        # 兼容前端字段名（前端使用 price/bsr/monthly_sales/main_image/fulfillment）
         row["price"] = float(row["price_current"]) if row.get("price_current") else None
+        row["bsr"] = row.get("bsr_rank")
+        row["monthly_sales"] = row.get("est_sales_30d")
+        row["main_image"] = row.get("main_image_url")
+        row["image_url"] = row.get("main_image_url")
+        row["fulfillment"] = row.get("fulfillment_type")
 
     return rows, total_count
 
@@ -421,20 +426,41 @@ def _execute_scrape_sync(project: dict, project_id: str, scrape_depth: int,
         if db:
             try:
                 for p in products:
+                    # 兼容爬虫(main_image)和SP-API(main_image)以及DB字段(main_image_url)
+                    image_url = (
+                        p.get("main_image_url")
+                        or p.get("main_image")
+                        or ""
+                    )
+                    # 兼容不同来源的价格字段
+                    price = p.get("price_current") or p.get("price")
+                    # BSR: 兼容 bsr_rank / bsr
+                    bsr_rank = p.get("bsr_rank") or p.get("bsr") or 0
+                    # 物流方式
+                    fulfillment = (
+                        p.get("fulfillment_type")
+                        or p.get("fulfillment", {}).get("type", "")
+                        if isinstance(p.get("fulfillment"), dict)
+                        else p.get("fulfillment_type", "")
+                    )
+
                     db.execute("""
                         INSERT INTO project_products
                         (project_id, asin, title, brand, main_image_url,
-                         price_current, rating, review_count, raw_data)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                         price_current, rating, review_count, bsr_rank,
+                         fulfillment_type, raw_data)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """, (
                         project_id,
                         p.get("asin", ""),
                         p.get("title", ""),
                         p.get("brand", ""),
-                        p.get("main_image_url", ""),
-                        p.get("price"),
+                        image_url,
+                        price,
                         p.get("rating"),
                         p.get("review_count", 0),
+                        bsr_rank,
+                        fulfillment,
                         json.dumps(p, ensure_ascii=False, default=str),
                     ))
                 _db_update_project_status(

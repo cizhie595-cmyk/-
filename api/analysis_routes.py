@@ -455,6 +455,44 @@ def _execute_report_sync(task_id, user_id: int, project_id: str, db):
         ai_client = AIConfigManager.create_client(user_id)
         generator = ReportGenerator(ai_client=ai_client)
 
+        # 收集项目产品数据
+        products = []
+        keyword = project_id or "analysis"
+
+        if db and project_id:
+            # 获取项目关键词
+            project_row = db.fetch_one(
+                "SELECT keyword FROM sourcing_projects WHERE id = %s AND user_id = %s",
+                (project_id, user_id)
+            )
+            if project_row and project_row.get("keyword"):
+                keyword = project_row["keyword"]
+
+            # 获取未过滤的产品数据
+            product_rows = db.fetch_all("""
+                SELECT asin, title, brand, main_image_url, price_current,
+                       fulfillment_type, rating, review_count, est_sales_30d,
+                       cvr_30d, bsr_rank, bsr_category
+                FROM project_products
+                WHERE project_id = %s AND is_filtered = 0
+                ORDER BY bsr_rank ASC
+                LIMIT 200
+            """, (project_id,))
+            for row in product_rows:
+                products.append({
+                    "asin": row.get("asin", ""),
+                    "title": row.get("title", ""),
+                    "brand": row.get("brand", ""),
+                    "main_image": row.get("main_image_url", ""),
+                    "price": float(row["price_current"]) if row.get("price_current") else 0,
+                    "fulfillment_type": row.get("fulfillment_type", ""),
+                    "rating": float(row["rating"]) if row.get("rating") else 0,
+                    "review_count": int(row["review_count"]) if row.get("review_count") else 0,
+                    "estimated_monthly_sales": int(row["est_sales_30d"]) if row.get("est_sales_30d") else 0,
+                    "bsr": int(row["bsr_rank"]) if row.get("bsr_rank") else 0,
+                    "category": row.get("bsr_category", ""),
+                })
+
         # 收集已完成的分析数据
         review_analyses = {}
         detail_analyses = {}
@@ -487,11 +525,58 @@ def _execute_report_sync(task_id, user_id: int, project_id: str, db):
                     elif t["task_type"] == "visual" and t.get("result_data"):
                         detail_analyses[asin] = t["result_data"]
 
+        # 收集利润计算数据
+        profit_results = []
+        if db:
+            profit_rows = db.fetch_all("""
+                SELECT asin, selling_price, sourcing_cost, net_profit, net_margin, roi
+                FROM profit_calculations
+                WHERE user_id = %s
+                ORDER BY created_at DESC LIMIT 50
+            """, (user_id,))
+            for row in profit_rows:
+                profit_results.append({
+                    "asin": row.get("asin", ""),
+                    "selling_price": float(row["selling_price"]) if row.get("selling_price") else 0,
+                    "profit": {
+                        "profit_per_unit_usd": float(row["net_profit"]) if row.get("net_profit") else 0,
+                        "profit_margin": f"{float(row['net_margin'])*100:.1f}%" if row.get("net_margin") else "0%",
+                        "roi": f"{float(row['roi'])*100:.1f}%" if row.get("roi") else "0%",
+                    },
+                })
+
+        # 简单的类目分析（基于已有产品数据生成）
+        category_analysis = {}
+        if products:
+            prices = [p["price"] for p in products if p.get("price")]
+            ratings = [p["rating"] for p in products if p.get("rating")]
+            reviews = [p["review_count"] for p in products if p.get("review_count")]
+            sales = [p["estimated_monthly_sales"] for p in products if p.get("estimated_monthly_sales")]
+            avg_price = sum(prices) / len(prices) if prices else 0
+            total_sales = sum(sales)
+            category_analysis = {
+                "market_size": {
+                    "estimated_monthly_gmv": round(total_sales * avg_price, 2),
+                    "estimated_monthly_sales": total_sales,
+                    "product_count": len(products),
+                },
+                "competition": {
+                    "avg_rating": round(sum(ratings) / len(ratings), 2) if ratings else 0,
+                    "avg_reviews": round(sum(reviews) / len(reviews)) if reviews else 0,
+                    "avg_price": round(avg_price, 2),
+                },
+                "pricing": {
+                    "min_price": round(min(prices), 2) if prices else 0,
+                    "max_price": round(max(prices), 2) if prices else 0,
+                    "avg_price": round(avg_price, 2),
+                },
+            }
+
         report_path = generator.generate(
-            keyword=project_id or "analysis",
-            products=[],
-            category_analysis={},
-            profit_results=[],
+            keyword=keyword,
+            products=products,
+            category_analysis=category_analysis,
+            profit_results=profit_results,
             review_analyses=review_analyses,
             detail_analyses=detail_analyses,
             output_dir="reports",
