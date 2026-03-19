@@ -534,8 +534,234 @@
         }
     }
 
+    // ============================================================
+    // BSR Trends Chart
+    // ============================================================
+    let bsrChart = null, priceHistChart = null, reviewGrowthChart = null;
+
+    async function loadBSRTrends() {
+        try {
+            const resp = await api.request('GET', `/v1/insights/bsr/${asin}/trends?days=30`);
+            if (resp && resp.success && resp.data) {
+                renderBSRChart(resp.data);
+            }
+        } catch (e) {
+            console.warn('BSR trends not available:', e.message);
+        }
+    }
+
+    function renderBSRChart(data) {
+        const history = data.history || [];
+        if (!history.length) return;
+
+        const labels = history.map(h => h.date || h.recorded_at || '');
+        const bsrData = history.map(h => h.bsr_rank || 0);
+        const priceData = history.map(h => h.price || 0);
+        const reviewData = history.map(h => h.review_count || 0);
+
+        // BSR Chart (inverted - lower is better)
+        const ctx1 = document.getElementById('chart-bsr').getContext('2d');
+        if (bsrChart) bsrChart.destroy();
+        bsrChart = new Chart(ctx1, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'BSR Rank',
+                    data: bsrData,
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99,102,241,0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { reverse: true, grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#94a3b8' }, title: { display: true, text: 'BSR Rank (lower = better)', color: '#94a3b8' } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8', maxTicksLimit: 10 } }
+                },
+                plugins: { legend: { labels: { color: '#94a3b8' } } }
+            }
+        });
+
+        // Price History
+        const ctx2 = document.getElementById('chart-price-history').getContext('2d');
+        if (priceHistChart) priceHistChart.destroy();
+        priceHistChart = new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Price ($)',
+                    data: priceData,
+                    borderColor: '#22c55e',
+                    backgroundColor: 'rgba(34,197,94,0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#94a3b8', callback: v => '$' + v } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8', maxTicksLimit: 10 } }
+                },
+                plugins: { legend: { labels: { color: '#94a3b8' } } }
+            }
+        });
+
+        // Review Growth
+        const ctx3 = document.getElementById('chart-review-growth').getContext('2d');
+        if (reviewGrowthChart) reviewGrowthChart.destroy();
+        reviewGrowthChart = new Chart(ctx3, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Reviews',
+                    data: reviewData,
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245,158,11,0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#94a3b8' } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8', maxTicksLimit: 10 } }
+                },
+                plugins: { legend: { labels: { color: '#94a3b8' } } }
+            }
+        });
+
+        // Update stats summary if available
+        if (data.stats) {
+            const s = data.stats;
+            document.getElementById('p-bsr').textContent = s.current_bsr ? '#' + formatNumber(s.current_bsr) : document.getElementById('p-bsr').textContent;
+        }
+    }
+
+    // ============================================================
+    // Competitors Loading
+    // ============================================================
+    async function loadCompetitors() {
+        try {
+            const resp = await api.request('GET', `/v1/insights/competitors/${asin}`);
+            if (resp && resp.success && resp.data) {
+                renderCompetitors(resp.data.competitors || []);
+            }
+        } catch (e) {
+            console.warn('Competitors not available:', e.message);
+            // Try loading from project products as fallback
+            try {
+                const projResp = await api.request('GET', `/v1/projects`);
+                if (projResp && projResp.success && projResp.data && projResp.data.length > 0) {
+                    const projectId = projResp.data[0].id;
+                    const prodResp = await api.request('GET', `/v1/projects/${projectId}/products`);
+                    if (prodResp && prodResp.success && prodResp.data) {
+                        const competitors = prodResp.data.filter(p => p.asin !== asin).slice(0, 10);
+                        renderCompetitors(competitors);
+                    }
+                }
+            } catch (e2) {
+                console.warn('Fallback competitors also failed:', e2.message);
+            }
+        }
+    }
+
+    function renderCompetitors(competitors) {
+        const tbody = document.getElementById('competitors-tbody');
+        if (!competitors.length) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:40px;">No competitor data available</td></tr>';
+            return;
+        }
+        tbody.innerHTML = competitors.map(c => `
+            <tr>
+                <td><a href="/product/${c.asin}" style="color: var(--primary);">${c.asin || '-'}</a></td>
+                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${c.title || '-'}</td>
+                <td>$${parseFloat(c.price || c.price_current || 0).toFixed(2)}</td>
+                <td>${c.rating || '-'}</td>
+                <td>${formatNumber(c.review_count || 0)}</td>
+                <td>${formatNumber(c.monthly_sales || c.est_sales_30d || 0)}/mo</td>
+                <td><span class="badge badge-${(c.fulfillment || c.fulfillment_type || '').includes('FBA') ? 'success' : 'info'}">${c.fulfillment || c.fulfillment_type || '-'}</span></td>
+                <td><a href="/product/${c.asin}" class="btn btn-sm btn-secondary">Analyze</a></td>
+            </tr>
+        `).join('');
+    }
+
+    // ============================================================
+    // Sentiment Visualization
+    // ============================================================
+    async function loadSentimentData() {
+        try {
+            const resp = await api.request('GET', `/v1/insights/sentiment/${asin}`);
+            if (resp && resp.success && resp.data) {
+                if (resp.data.distribution) {
+                    renderSentimentChart(resp.data.distribution);
+                }
+                if (resp.data.tags && resp.data.tags.length) {
+                    renderTagCloud(resp.data.tags);
+                }
+            }
+        } catch (e) {
+            console.warn('Sentiment data not available:', e.message);
+        }
+    }
+
+    function renderTagCloud(tags) {
+        const container = document.getElementById('selling-points');
+        if (!tags.length) return;
+        const maxCount = Math.max(...tags.map(t => t.count || 1));
+        container.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
+            tags.slice(0, 30).map(t => {
+                const size = 0.7 + (t.count || 1) / maxCount * 0.8;
+                const color = t.sentiment === 'positive' ? '#22c55e' : t.sentiment === 'negative' ? '#ef4444' : '#94a3b8';
+                return `<span style="font-size:${size}rem;color:${color};padding:4px 8px;background:rgba(99,102,241,0.05);border-radius:4px;cursor:default;" title="${t.count || 0} mentions">${t.tag || t.word}</span>`;
+            }).join('') + '</div>';
+    }
+
+    // ============================================================
+    // AI Decision Score
+    // ============================================================
+    async function loadDecisionScore() {
+        try {
+            const resp = await api.request('GET', `/v1/insights/decision/${asin}`);
+            if (resp && resp.success && resp.data) {
+                const d = resp.data;
+                if (d.overall_score) {
+                    document.getElementById('risk-score').textContent = d.overall_score;
+                    const level = d.overall_score >= 75 ? 'GO - Recommended' : d.overall_score >= 55 ? 'CONSIDER' : d.overall_score >= 35 ? 'CAUTION' : 'NO-GO';
+                    const levelClass = d.overall_score >= 75 ? 'success' : d.overall_score >= 55 ? 'info' : d.overall_score >= 35 ? 'warning' : 'danger';
+                    document.getElementById('risk-level').textContent = level;
+                    document.getElementById('risk-level').className = `badge badge-${levelClass} mt-sm`;
+                }
+                if (d.risk_scores) {
+                    initRiskRadar(d.risk_scores);
+                }
+                if (d.recommendation) {
+                    document.getElementById('ai-recommendation').textContent = d.recommendation;
+                }
+            }
+        } catch (e) {
+            console.warn('Decision score not available:', e.message);
+        }
+    }
+
+    // ============================================================
+    // Init: Load all data on page load
+    // ============================================================
     document.addEventListener('DOMContentLoaded', () => {
         loadProductData();
+        loadBSRTrends();
+        loadCompetitors();
+        loadSentimentData();
+        loadDecisionScore();
     });
 </script>
 {% endblock %}

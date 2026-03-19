@@ -76,6 +76,10 @@ class AmazonSelectionPipeline:
         self.keyword_analysis = {}
         self.supplier_scores = []
         self.pricing_analysis = {}
+        self.bsr_tracking = {}
+        self.competitor_analysis = {}
+        self.sentiment_analysis = {}
+        self.decision_results = {}
         self.marketplace = self.config.get("marketplace", "US")
 
     def _init_ai_client(self):
@@ -207,8 +211,14 @@ class AmazonSelectionPipeline:
             # Step 4: 详情页深度爬取
             self._step_crawl_details()
 
+            # Step 4.5: BSR 追踪和竞品发现
+            self._step_bsr_and_competitor()
+
             # Step 5: 评论爬取与分析
             self._step_review_analysis()
+
+            # Step 5.5: 评论情感可视化
+            self._step_sentiment_visualization()
 
             # Step 6: 视觉语义分析 (Deep Analysis)
             if not skip_deep_analysis:
@@ -230,6 +240,9 @@ class AmazonSelectionPipeline:
 
             # Step 9.5: 定价策略优化
             self._step_pricing_optimization(keyword)
+
+            # Step 9.8: AI 选品决策评伋
+            self._step_decision_evaluation()
 
             # Step 10: 生成报告
             report_path = self._step_generate_report(keyword)
@@ -691,6 +704,107 @@ class AmazonSelectionPipeline:
 
         return report_path
 
+    def _step_bsr_and_competitor(self):
+        """Step 4.5: BSR 追踪和竞品发现"""
+        logger.info(f"\n--- Step 4.5: BSR 追踪和竞品发现 ---")
+
+        # BSR 快照记录
+        try:
+            from analysis.bsr_tracker import BSRTracker
+            tracker = BSRTracker()
+
+            for product in self.products[:20]:
+                asin = product.get("asin", "")
+                if not asin:
+                    continue
+                snapshot = tracker.record_snapshot(
+                    asin=asin,
+                    marketplace=self.marketplace,
+                    bsr_rank=product.get("bsr_rank") or product.get("bsr"),
+                    price=product.get("price") or product.get("price_current"),
+                    rating=product.get("rating"),
+                    review_count=product.get("review_count"),
+                    est_sales=product.get("est_sales_30d") or product.get("monthly_sales"),
+                )
+                self.bsr_tracking[asin] = snapshot
+
+            logger.info(f"BSR 快照已记录 {len(self.bsr_tracking)} 个产品")
+        except Exception as e:
+            logger.warning(f"BSR 追踪失败: {e}")
+
+        # 竞品发现
+        try:
+            from analysis.competitor_finder import CompetitorFinder
+            finder = CompetitorFinder()
+
+            if len(self.products) >= 2:
+                landscape = finder.analyze_landscape(products=self.products[:20])
+                self.competitor_analysis = landscape
+                logger.info(f"竞争格局分析完成")
+
+                gaps = finder.find_market_gaps(products=self.products[:20])
+                self.competitor_analysis["market_gaps"] = gaps
+                logger.info(f"发现 {len(gaps.get('gaps', []))} 个市场空白")
+        except Exception as e:
+            logger.warning(f"竞品发现失败: {e}")
+
+    def _step_sentiment_visualization(self):
+        """Step 5.5: 评论情感可视化"""
+        logger.info(f"\n--- Step 5.5: 评论情感可视化 ---")
+
+        if not self.review_analyses:
+            logger.info("无评论数据，跳过情感分析")
+            return
+
+        try:
+            from analysis.sentiment_visualizer import SentimentVisualizer
+            visualizer = SentimentVisualizer()
+
+            # 汇总所有评论
+            all_reviews = []
+            for asin, analysis in self.review_analyses.items():
+                reviews = analysis.get("reviews", [])
+                if isinstance(reviews, list):
+                    all_reviews.extend(reviews)
+
+            if all_reviews:
+                result = visualizer.analyze_reviews(reviews=all_reviews)
+                self.sentiment_analysis = result
+                logger.info(f"情感分析完成: {len(all_reviews)} 条评论")
+
+                # 生成词云数据
+                wordcloud = visualizer.generate_word_cloud(reviews=all_reviews)
+                self.sentiment_analysis["wordcloud"] = wordcloud
+
+                # 提取标签
+                tags = visualizer.extract_tags(reviews=all_reviews)
+                self.sentiment_analysis["tags"] = tags
+                logger.info(f"词云和标签提取完成")
+        except Exception as e:
+            logger.warning(f"情感可视化失败: {e}")
+
+    def _step_decision_evaluation(self):
+        """Step 9.8: AI 选品决策评估"""
+        logger.info(f"\n--- Step 9.8: AI 选品决策评估 ---")
+
+        try:
+            from analysis.ai_analysis.product_decision_engine import ProductDecisionEngine
+            engine = ProductDecisionEngine(ai_client=self.ai_client)
+
+            result = engine.batch_evaluate(
+                products=self.products,
+                market_data=self.category_analysis,
+                profit_results=self.profit_results,
+                competitor_data=self.competitor_analysis,
+            )
+            self.decision_results = result
+
+            go_count = result.get("summary", {}).get("go_count", 0)
+            total = result.get("total_evaluated", 0)
+            logger.info(f"AI 决策评估完成: {total} 个产品, {go_count} 个推荐 GO")
+        except Exception as e:
+            logger.warning(f"AI 决策评估失败: {e}")
+
     def save_raw_data(self, keyword: str, output_dir: str = "data"):
         """保存原始数据到 JSON 文件"""
         os.makedirs(output_dir, exist_ok=True)
@@ -711,6 +825,10 @@ class AmazonSelectionPipeline:
             "keyword_analysis": self.keyword_analysis,
             "supplier_scores": self.supplier_scores,
             "pricing_analysis": self.pricing_analysis,
+            "bsr_tracking": self.bsr_tracking,
+            "competitor_analysis": self.competitor_analysis,
+            "sentiment_analysis": self.sentiment_analysis,
+            "decision_results": self.decision_results,
         }
 
         filepath = os.path.join(output_dir, f"amazon_raw_{keyword}_{timestamp}.json")

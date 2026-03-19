@@ -194,6 +194,10 @@ def create_app() -> Flask:
     from api.pricing_routes import pricing_bp
     app.register_blueprint(pricing_bp)
 
+    # 产品洞察路由 (BSR追踪/竞品发现/情感分析/AI决策/看板增强)
+    from api.product_insight_routes import product_insight_bp
+    app.register_blueprint(product_insight_bp)
+
     # === WebSocket (Chrome 插件通信) ===
     try:
         from api.websocket_handler import register_websocket_routes
