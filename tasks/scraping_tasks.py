@@ -199,13 +199,18 @@ def _save_products_to_db(project_id: str, products: list):
                 or product.get("monthly_sales")
                 or 0
             )
+            bsr_category = (
+                product.get("bsr_category")
+                or product.get("category")
+                or ""
+            )
 
             db.execute("""
                 INSERT INTO project_products
                 (project_id, asin, title, brand, main_image_url, price_current,
-                 rating, review_count, bsr_rank, fulfillment_type, est_sales_30d,
-                 raw_data)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 rating, review_count, bsr_rank, bsr_category,
+                 fulfillment_type, est_sales_30d, raw_data)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 project_id,
                 product.get("asin", ""),
@@ -216,8 +221,9 @@ def _save_products_to_db(project_id: str, products: list):
                 product.get("rating"),
                 product.get("review_count", 0),
                 bsr_rank,
+                bsr_category,
                 fulfillment,
-                est_sales,
+                int(est_sales) if est_sales else None,
                 json.dumps(product, ensure_ascii=False, default=str),
             ))
 

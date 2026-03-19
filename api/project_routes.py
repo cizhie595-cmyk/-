@@ -444,12 +444,25 @@ def _execute_scrape_sync(project: dict, project_id: str, scrape_depth: int,
                         else p.get("fulfillment_type", "")
                     )
 
+                    # 预估销量
+                    est_sales = (
+                        p.get("est_sales_30d")
+                        or p.get("estimated_monthly_sales")
+                        or p.get("monthly_sales")
+                    )
+                    # BSR 类目
+                    bsr_category = (
+                        p.get("bsr_category")
+                        or p.get("category")
+                        or ""
+                    )
                     db.execute("""
                         INSERT INTO project_products
                         (project_id, asin, title, brand, main_image_url,
                          price_current, rating, review_count, bsr_rank,
+                         bsr_category, est_sales_30d,
                          fulfillment_type, raw_data)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """, (
                         project_id,
                         p.get("asin", ""),
@@ -460,6 +473,8 @@ def _execute_scrape_sync(project: dict, project_id: str, scrape_depth: int,
                         p.get("rating"),
                         p.get("review_count", 0),
                         bsr_rank,
+                        bsr_category,
+                        int(est_sales) if est_sales else None,
                         fulfillment,
                         json.dumps(p, ensure_ascii=False, default=str),
                     ))

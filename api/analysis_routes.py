@@ -941,10 +941,15 @@ def get_product_detail(current_user, asin):
     if db:
         # 从 project_products 表获取产品基本信息
         row = db.fetch_one("""
-            SELECT pp.asin, pp.title, pp.image_url, pp.price_current AS price,
-                   pp.rating, pp.review_count, pp.bsr_current AS bsr,
-                   pp.est_sales_30d, pp.fulfillment_type AS fulfillment,
-                   pp.brand, pp.category_name AS category
+            SELECT pp.asin, pp.title,
+                   pp.main_image_url AS image_url,
+                   pp.price_current AS price,
+                   pp.rating, pp.review_count,
+                   pp.bsr_rank AS bsr,
+                   pp.est_sales_30d,
+                   pp.fulfillment_type AS fulfillment,
+                   pp.brand,
+                   pp.bsr_category AS category
             FROM project_products pp
             JOIN sourcing_projects sp ON pp.project_id = sp.id
             WHERE pp.asin = %s AND sp.user_id = %s
@@ -958,15 +963,15 @@ def get_product_detail(current_user, asin):
 
         # 从已完成的分析任务中获取风险评分
         visual_task = db.fetch_one("""
-            SELECT result FROM analysis_tasks
+            SELECT result_data FROM analysis_tasks
             WHERE asin = %s AND user_id = %s AND task_type = 'visual'
-                  AND status = 'completed' AND result IS NOT NULL
+                  AND status = 'completed' AND result_data IS NOT NULL
             ORDER BY created_at DESC LIMIT 1
         """, (asin, user_id))
 
-        if visual_task and visual_task.get("result"):
+        if visual_task and visual_task.get("result_data"):
             try:
-                result = visual_task["result"]
+                result = visual_task["result_data"]
                 if isinstance(result, str):
                     result = json.loads(result)
                 # 提取风险评分
