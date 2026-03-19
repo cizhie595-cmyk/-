@@ -258,6 +258,23 @@ class SelectionPipeline:
                 detail = crawler.crawl_detail(url, product.get("coupang_product_id", ""))
                 if detail:
                     product.update(detail)
+
+                    # 下载主图到本地，以支持 Step 8 以图搜货
+                    pid = product.get("coupang_product_id", "")
+                    images = product.get("images", [])
+                    detail_images = product.get("detail_images", [])
+                    if pid and images:
+                        try:
+                            saved = crawler.download_product_images(pid, images, detail_images)
+                            # 将本地路径写回 images 数组
+                            main_paths = saved.get("main", [])
+                            for img in images:
+                                if img.get("type") == "main" and main_paths:
+                                    img["local_path"] = main_paths[0]
+                                    break
+                        except Exception as e:
+                            logger.debug(f"图片下载失败: {e}")
+
                     logger.debug(f"Detail [{i+1}/{min(len(self.products), 30)}] done")
         finally:
             crawler.close()
@@ -372,7 +389,7 @@ class SelectionPipeline:
         """Step 10: 生成报告"""
         logger.info(f"\n--- Step 10/10: {t('pipeline.step_report')} ---")
 
-        generator = ReportGenerator(ai_client=self.ai_client)
+        generator = ReportGenerator(ai_client=self.ai_client, platform="coupang")
         output_dir = self.config.get("output_dir", "reports")
 
         report_path = generator.generate(

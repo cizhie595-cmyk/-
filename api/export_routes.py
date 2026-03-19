@@ -64,12 +64,16 @@ def export_products(current_user, project_id):
                 return jsonify({"success": False, "message": "项目不存在或无权访问"}), 404
 
             rows = db.fetch_all(
-                """SELECT asin, title, brand, price, rating, review_count,
-                          bsr_rank, category, monthly_sales, revenue,
-                          fba_fee, profit_margin, competition_level, opportunity_score
+                """SELECT asin, title, brand,
+                          price_current AS price,
+                          rating, review_count,
+                          bsr_rank,
+                          bsr_category AS category,
+                          est_sales_30d AS monthly_sales,
+                          ROUND(COALESCE(price_current, 0) * COALESCE(est_sales_30d, 0), 2) AS revenue
                    FROM project_products
-                   WHERE project_id = %s
-                   ORDER BY opportunity_score DESC""",
+                   WHERE project_id = %s AND is_filtered = 0
+                   ORDER BY bsr_rank ASC""",
                 (project_id,),
             )
             data = [dict(r) for r in rows] if rows else []
@@ -112,14 +116,15 @@ def export_analysis(current_user, task_id):
     if db:
         try:
             task = db.fetch_one(
-                "SELECT id, result_json FROM analysis_tasks WHERE id = %s AND user_id = %s",
+                "SELECT id, result_data FROM analysis_tasks WHERE id = %s AND user_id = %s",
                 (task_id, user_id),
             )
             if not task:
                 return jsonify({"success": False, "message": "分析任务不存在或无权访问"}), 404
 
             import json
-            result = json.loads(task.get("result_json", "[]")) if task.get("result_json") else []
+            raw = task.get("result_data", "[]")
+            result = json.loads(raw) if isinstance(raw, str) else (raw or [])
             if isinstance(result, list):
                 data = result
             elif isinstance(result, dict):
@@ -152,14 +157,20 @@ def export_profit(current_user, project_id):
     if db:
         try:
             rows = db.fetch_all(
-                """SELECT p.asin, p.title, p.price AS selling_price,
-                          pc.cost_price, pc.fba_fee, pc.referral_fee,
-                          pc.shipping_cost, pc.net_profit, pc.profit_margin, pc.roi
-                   FROM project_products p
-                   JOIN profit_calculations pc ON p.id = pc.product_id
-                   WHERE p.project_id = %s
-                   ORDER BY pc.profit_margin DESC""",
-                (project_id,),
+                """SELECT pc.asin, pp.title,
+                          pc.selling_price,
+                          pc.sourcing_cost AS cost_price,
+                          pc.amazon_fees AS fba_fee,
+                          0 AS referral_fee,
+                          pc.shipping_cost_per_kg AS shipping_cost,
+                          pc.net_profit,
+                          ROUND(pc.net_margin * 100, 1) AS profit_margin,
+                          ROUND(pc.roi * 100, 1) AS roi
+                   FROM profit_calculations pc
+                   LEFT JOIN project_products pp ON pc.asin = pp.asin AND pp.project_id = %s
+                   WHERE pc.user_id = %s
+                   ORDER BY pc.net_margin DESC""",
+                (project_id, user_id),
             )
             data = [dict(r) for r in rows] if rows else []
         except Exception as e:
@@ -190,17 +201,20 @@ def export_report(current_user, project_id):
     if db:
         try:
             project = db.fetch_one(
-                "SELECT id, name, keywords, marketplace, status FROM sourcing_projects WHERE id = %s AND user_id = %s",
+                "SELECT id, name, keyword AS keywords, marketplace_id AS marketplace, status FROM sourcing_projects WHERE id = %s AND user_id = %s",
                 (project_id, user_id),
             )
             if not project:
                 return jsonify({"success": False, "message": "项目不存在或无权访问"}), 404
 
             products = db.fetch_all(
-                """SELECT asin, title, brand, price, rating, review_count,
-                          bsr_rank, monthly_sales, profit_margin, opportunity_score
-                   FROM project_products WHERE project_id = %s
-                   ORDER BY opportunity_score DESC LIMIT 20""",
+                """SELECT asin, title, brand,
+                          price_current AS price,
+                          rating, review_count,
+                          bsr_rank,
+                          est_sales_30d AS monthly_sales
+                   FROM project_products WHERE project_id = %s AND is_filtered = 0
+                   ORDER BY bsr_rank ASC LIMIT 20""",
                 (project_id,),
             )
             report_data = {

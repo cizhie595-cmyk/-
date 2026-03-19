@@ -167,7 +167,15 @@ def cleanup_expired_tasks():
 
 
 def _save_products_to_db(project_id: str, products: list):
-    """将产品数据保存到数据库"""
+    """将产品数据保存到数据库
+
+    兼容多种爬虫输出的字段名:
+    - 图片: main_image / main_image_url / image_url
+    - 价格: price / price_current
+    - BSR: bsr / bsr_rank
+    - 物流: fulfillment_type / fulfillment
+    - 月销量: estimated_monthly_sales / est_sales_30d / monthly_sales
+    """
     try:
         from database.connection import DatabaseManager
         import json
@@ -175,20 +183,41 @@ def _save_products_to_db(project_id: str, products: list):
         db = DatabaseManager()
 
         for product in products:
+            # 兼容不同爬虫的字段名
+            image_url = (
+                product.get("main_image_url")
+                or product.get("main_image")
+                or product.get("image_url")
+                or ""
+            )
+            price = product.get("price_current") or product.get("price")
+            bsr_rank = product.get("bsr_rank") or product.get("bsr") or 0
+            fulfillment = product.get("fulfillment_type") or product.get("fulfillment") or ""
+            est_sales = (
+                product.get("est_sales_30d")
+                or product.get("estimated_monthly_sales")
+                or product.get("monthly_sales")
+                or 0
+            )
+
             db.execute("""
                 INSERT INTO project_products
                 (project_id, asin, title, brand, main_image_url, price_current,
-                 rating, review_count, raw_data)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 rating, review_count, bsr_rank, fulfillment_type, est_sales_30d,
+                 raw_data)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 project_id,
                 product.get("asin", ""),
                 product.get("title", ""),
                 product.get("brand", ""),
-                product.get("main_image_url", ""),
-                product.get("price"),
+                image_url,
+                price,
                 product.get("rating"),
                 product.get("review_count", 0),
+                bsr_rank,
+                fulfillment,
+                est_sales,
                 json.dumps(product, ensure_ascii=False, default=str),
             ))
 
