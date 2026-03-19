@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block title %}Supplier Scoring{% endblock %}
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+{% endblock %}
+{% block content %}
+<div class="top-bar">
+    <div>
+        <h2 class="page-title">Supplier Scoring</h2>
+        <p class="page-subtitle">Evaluate and compare 1688 suppliers across credibility, capability, service & price</p>
+    </div>
+</div>
+
+<!-- Score Single Supplier -->
+<div class="card mb-lg">
+    <h3 class="card-title">Score a Supplier</h3>
+    <form onsubmit="scoreSupplier(event)">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+            <div class="form-group">
+                <label class="form-label">Supplier Name</label>
+                <input type="text" class="form-input" id="sup-name" placeholder="e.g., 深圳优品科技" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Unit Price (RMB)</label>
+                <input type="number" class="form-input" id="sup-price" step="0.01" placeholder="e.g., 25.50">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Market Avg Price (RMB)</label>
+                <input type="number" class="form-input" id="sup-market-avg" step="0.01" placeholder="e.g., 30.00">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Business Years</label>
+                <input type="number" class="form-input" id="sup-years" placeholder="e.g., 5">
+            </div>
+            <div class="form-group">
+                <label class="form-label">MOQ</label>
+                <input type="text" class="form-input" id="sup-moq" placeholder="e.g., 100">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Lead Time (days)</label>
+                <input type="number" class="form-input" id="sup-leadtime" placeholder="e.g., 7">
+            </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 12px;">
+            <div class="form-group">
+                <label class="form-label">Certifications (comma-separated)</label>
+                <input type="text" class="form-input" id="sup-certs" placeholder="e.g., ISO9001, CE, FCC">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Response Time</label>
+                <select class="form-select" id="sup-response">
+                    <option value="">Unknown</option>
+                    <option value="1小时内">Within 1 hour</option>
+                    <option value="4小时内">Within 4 hours</option>
+                    <option value="24小时内">Within 24 hours</option>
+                </select>
+            </div>
+            <div class="form-group" style="display: flex; gap: 16px; align-items: end;">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" id="sup-oem"> OEM
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" id="sup-odm"> ODM
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" id="sup-sample"> Sample
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" id="sup-trade-assurance"> Trade Assurance
+                </label>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top: 16px;">Score Supplier</button>
+    </form>
+</div>
+
+<!-- Score Result -->
+<div class="card mb-lg" id="score-result" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: start;">
+        <h3 class="card-title">Score Result</h3>
+        <div id="total-score-badge" style="font-size: 48px; font-weight: 700; text-align: center;"></div>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 16px;">
+        <div>
+            <canvas id="scoreChart" height="280"></canvas>
+        </div>
+        <div>
+            <div id="dimension-scores"></div>
+            <div id="strengths-weaknesses" style="margin-top: 16px;"></div>
+        </div>
+    </div>
+    <div id="recommendation-text" style="margin-top: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;"></div>
+</div>
+
+<!-- Batch Score from Project -->
+<div class="card mb-lg">
+    <h3 class="card-title">Batch Score from Project</h3>
+    <div style="display: flex; gap: 12px; align-items: end;">
+        <div class="form-group" style="flex: 1; margin: 0;">
+            <label class="form-label">Project ID</label>
+            <input type="number" class="form-input" id="batch-project-id" placeholder="Enter project ID">
+        </div>
+        <button class="btn btn-secondary" onclick="batchScore()">Score All Suppliers</button>
+    </div>
+</div>
+
+<!-- Comparison Matrix -->
+<div class="card mb-lg" id="comparison-section" style="display: none;">
+    <h3 class="card-title">Supplier Comparison Matrix</h3>
+    <div id="comparison-matrix"></div>
+</div>
+
+<script>
+const API_BASE = '/api/v1/supplier';
+let scoreChart = null;
+let allScores = [];
+
+async function api(url, options = {}) {
+    const token = localStorage.getItem('access_token');
+    const headers = { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) };
+    const resp = await fetch(url, { headers, ...options });
+    return resp.json();
+}
+
+async function scoreSupplier(e) {
+    e.preventDefault();
+    const supplier = {
+        name: document.getElementById('sup-name').value,
+        price: parseFloat(document.getElementById('sup-price').value) || 0,
+        business_years: parseInt(document.getElementById('sup-years').value) || 0,
+        moq: document.getElementById('sup-moq').value,
+        lead_time: parseInt(document.getElementById('sup-leadtime').value) || 0,
+        certifications: document.getElementById('sup-certs').value.split(',').map(s => s.trim()).filter(Boolean),
+        response_time: document.getElementById('sup-response').value,
+        oem: document.getElementById('sup-oem').checked,
+        odm: document.getElementById('sup-odm').checked,
+        sample_available: document.getElementById('sup-sample').checked,
+        trade_assurance: document.getElementById('sup-trade-assurance').checked,
+    };
+    const market_avg_price = parseFloat(document.getElementById('sup-market-avg').value) || 0;
+
+    const data = await api(`${API_BASE}/score`, {
+        method: 'POST',
+        body: JSON.stringify({ supplier, market_avg_price })
+    });
+
+    if (data.success) {
+        renderScoreResult(data.data);
+        allScores.push(data.data);
+        if (allScores.length >= 2) renderComparison();
+    } else {
+        alert(data.error || 'Scoring failed');
+    }
+}
+
+function renderScoreResult(result) {
+    document.getElementById('score-result').style.display = '';
+
+    // Total score
+    const badge = document.getElementById('total-score-badge');
+    const score = result.total_score || 0;
+    const color = score >= 80 ? 'var(--success)' : score >= 60 ? 'var(--warning)' : 'var(--danger)';
+    badge.innerHTML = `<span style="color: ${color}">${score.toFixed(1)}</span><span style="font-size: 16px; color: var(--text-tertiary);">/100 ${result.grade || ''}</span>`;
+
+    // Radar chart
+    const dims = result.dimensions || {};
+    const labels = Object.keys(dims).map(k => k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()));
+    const values = Object.values(dims).map(d => d.score || 0);
+
+    const ctx = document.getElementById('scoreChart').getContext('2d');
+    if (scoreChart) scoreChart.destroy();
+    scoreChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Score',
+                data: values,
+                backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                borderColor: '#6366f1',
+                pointBackgroundColor: '#6366f1',
+                pointRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { r: { min: 0, max: 100, ticks: { stepSize: 20 } } },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // Dimension scores
+    let dimHtml = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+    for (const [key, val] of Object.entries(dims)) {
+        const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const s = val.score || 0;
+        const c = s >= 80 ? 'var(--success)' : s >= 60 ? 'var(--warning)' : 'var(--danger)';
+        dimHtml += `<div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                <span style="font-weight: 500; font-size: 13px;">${label}</span>
+                <span style="font-weight: 600; font-size: 13px;">${s.toFixed(1)}</span>
+            </div>
+            <div style="height: 5px; background: var(--bg-secondary); border-radius: 3px;">
+                <div style="height: 100%; width: ${s}%; background: ${c}; border-radius: 3px;"></div>
+            </div>
+        </div>`;
+    }
+    dimHtml += '</div>';
+    document.getElementById('dimension-scores').innerHTML = dimHtml;
+
+    // Strengths & weaknesses
+    let swHtml = '';
+    if (result.strengths?.length) {
+        swHtml += '<div style="margin-bottom: 8px;"><strong style="color: var(--success);">Strengths:</strong> ' + result.strengths.join(', ') + '</div>';
+    }
+    if (result.weaknesses?.length) {
+        swHtml += '<div><strong style="color: var(--danger);">Weaknesses:</strong> ' + result.weaknesses.join(', ') + '</div>';
+    }
+    document.getElementById('strengths-weaknesses').innerHTML = swHtml;
+
+    // Recommendation
+    document.getElementById('recommendation-text').innerHTML = `<strong>Recommendation:</strong> ${result.recommendation || 'N/A'}`;
+}
+
+async function batchScore() {
+    const projectId = document.getElementById('batch-project-id').value;
+    if (!projectId) return alert('Please enter a project ID');
+
+    const data = await api(`${API_BASE}/batch-score`, {
+        method: 'POST',
+        body: JSON.stringify({ project_id: parseInt(projectId) })
+    });
+
+    if (data.success) {
+        allScores = data.data || [];
+        if (allScores.length > 0) {
+            renderScoreResult(allScores[0]);
+            renderComparison();
+        } else {
+            alert('No suppliers found for this project');
+        }
+    }
+}
+
+function renderComparison() {
+    document.getElementById('comparison-section').style.display = '';
+    const container = document.getElementById('comparison-matrix');
+
+    let html = `<table class="data-table" style="width:100%">
+        <thead><tr><th>Supplier</th><th>Total</th><th>Grade</th><th>Credibility</th><th>Capability</th><th>Service</th><th>Price</th><th>Logistics</th></tr></thead><tbody>`;
+    allScores.forEach(s => {
+        const d = s.dimensions || {};
+        html += `<tr>
+            <td><strong>${s.supplier_name || 'Unknown'}</strong></td>
+            <td style="font-weight: 700;">${(s.total_score || 0).toFixed(1)}</td>
+            <td><span class="badge">${s.grade || '-'}</span></td>
+            <td>${(d.credibility?.score || 0).toFixed(0)}</td>
+            <td>${(d.product_capability?.score || 0).toFixed(0)}</td>
+            <td>${(d.service_quality?.score || 0).toFixed(0)}</td>
+            <td>${(d.price_competitiveness?.score || 0).toFixed(0)}</td>
+            <td>${(d.logistics?.score || 0).toFixed(0)}</td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+</script>
+{% endblock %}

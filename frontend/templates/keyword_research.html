@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% block title %}Keyword Research{% endblock %}
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+{% endblock %}
+{% block content %}
+<div class="top-bar">
+    <div>
+        <h2 class="page-title">Keyword Research</h2>
+        <p class="page-subtitle">Search volume estimation, difficulty analysis & long-tail keyword discovery</p>
+    </div>
+</div>
+
+<!-- Search Bar -->
+<div class="card mb-lg">
+    <form onsubmit="runResearch(event)" style="display: flex; gap: 12px; align-items: end; flex-wrap: wrap;">
+        <div class="form-group" style="flex: 2; min-width: 250px; margin: 0;">
+            <label class="form-label">Seed Keyword</label>
+            <input type="text" class="form-input" id="seed-keyword" placeholder="e.g., wireless earbuds" value="{{ keyword }}" required>
+        </div>
+        <div class="form-group" style="min-width: 120px; margin: 0;">
+            <label class="form-label">Marketplace</label>
+            <select class="form-select" id="kw-marketplace">
+                <option value="US">US</option>
+                <option value="UK">UK</option>
+                <option value="DE">DE</option>
+                <option value="JP">JP</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg" id="research-btn">Research</button>
+    </form>
+</div>
+
+<!-- Overview Cards -->
+<div id="overview-section" style="display: none;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div class="card" style="text-align: center;">
+            <div class="text-muted" style="font-size: 13px;">Difficulty Score</div>
+            <div id="difficulty-score" style="font-size: 36px; font-weight: 700; margin: 8px 0;">-</div>
+            <div id="difficulty-level" class="badge">-</div>
+        </div>
+        <div class="card" style="text-align: center;">
+            <div class="text-muted" style="font-size: 13px;">Est. Monthly Searches</div>
+            <div id="search-volume" style="font-size: 36px; font-weight: 700; margin: 8px 0;">-</div>
+            <div id="volume-tier" class="badge">-</div>
+        </div>
+        <div class="card" style="text-align: center;">
+            <div class="text-muted" style="font-size: 13px;">Avg. Reviews (Top 10)</div>
+            <div id="avg-reviews" style="font-size: 36px; font-weight: 700; margin: 8px 0;">-</div>
+            <div class="text-muted" style="font-size: 12px;">Review barrier</div>
+        </div>
+        <div class="card" style="text-align: center;">
+            <div class="text-muted" style="font-size: 13px;">Long-tail Keywords</div>
+            <div id="longtail-count" style="font-size: 36px; font-weight: 700; margin: 8px 0;">-</div>
+            <div class="text-muted" style="font-size: 12px;">Discovered</div>
+        </div>
+    </div>
+</div>
+
+<!-- Difficulty Breakdown -->
+<div class="card mb-lg" id="difficulty-section" style="display: none;">
+    <h3 class="card-title">Difficulty Breakdown</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div>
+            <canvas id="difficultyChart" height="250"></canvas>
+        </div>
+        <div id="difficulty-details">
+            <p class="text-muted">Loading...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Recommendations -->
+<div class="card mb-lg" id="recommendations-section" style="display: none;">
+    <h3 class="card-title">Recommendations</h3>
+    <div id="recommendations-list"></div>
+</div>
+
+<!-- Long-tail Keywords -->
+<div class="card mb-lg" id="longtail-section" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 class="card-title" style="margin: 0;">Long-tail Keywords</h3>
+        <div style="display: flex; gap: 8px;">
+            <select class="form-select" id="lt-category" onchange="filterLongTail()" style="width: auto;">
+                <option value="all">All Categories</option>
+                <option value="intent">Intent</option>
+                <option value="question">Question</option>
+                <option value="comparison">Comparison</option>
+                <option value="buying">Buying</option>
+                <option value="attribute">Attribute</option>
+            </select>
+        </div>
+    </div>
+    <div id="longtail-table"></div>
+</div>
+
+<!-- Autocomplete Suggestions -->
+<div class="card mb-lg" id="autocomplete-section" style="display: none;">
+    <h3 class="card-title">Amazon Autocomplete Suggestions</h3>
+    <div id="autocomplete-list"></div>
+</div>
+
+<script>
+const API_BASE = '/api/v1/keyword';
+let researchData = {};
+let allLongTail = [];
+let difficultyChart = null;
+
+async function api(url, options = {}) {
+    const token = localStorage.getItem('access_token');
+    const headers = { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) };
+    const resp = await fetch(url, { headers, ...options });
+    return resp.json();
+}
+
+async function runResearch(e) {
+    e.preventDefault();
+    const keyword = document.getElementById('seed-keyword').value.trim();
+    const marketplace = document.getElementById('kw-marketplace').value;
+    if (!keyword) return;
+
+    const btn = document.getElementById('research-btn');
+    btn.disabled = true;
+    btn.textContent = 'Researching...';
+
+    try {
+        const data = await api(`${API_BASE}/research`, {
+            method: 'POST',
+            body: JSON.stringify({ keyword, marketplace })
+        });
+
+        if (data.success) {
+            researchData = data.data;
+            renderResults();
+        } else {
+            alert(data.error || 'Research failed');
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Research';
+    }
+}
+
+function renderResults() {
+    const d = researchData;
+
+    // Show sections
+    ['overview-section', 'difficulty-section', 'recommendations-section', 'longtail-section', 'autocomplete-section'].forEach(id => {
+        document.getElementById(id).style.display = '';
+    });
+
+    // Overview cards
+    const diff = d.difficulty || {};
+    document.getElementById('difficulty-score').textContent = diff.difficulty_score || '-';
+    document.getElementById('difficulty-level').textContent = diff.difficulty_level || '-';
+    document.getElementById('difficulty-level').style.background =
+        diff.difficulty_score < 30 ? 'var(--success)' :
+        diff.difficulty_score < 60 ? 'var(--warning)' : 'var(--danger)';
+    document.getElementById('difficulty-level').style.color = '#fff';
+
+    const vol = d.search_volume || {};
+    document.getElementById('search-volume').textContent = (vol.estimated_monthly_searches || 0).toLocaleString();
+    document.getElementById('volume-tier').textContent = vol.volume_tier || '-';
+
+    document.getElementById('avg-reviews').textContent = Math.round(diff.breakdown?.review_barrier?.avg_reviews || 0).toLocaleString();
+
+    allLongTail = d.long_tail || [];
+    document.getElementById('longtail-count').textContent = allLongTail.length;
+
+    // Difficulty chart
+    renderDifficultyChart(diff);
+
+    // Difficulty details
+    renderDifficultyDetails(diff);
+
+    // Recommendations
+    renderRecommendations(diff.recommendations || []);
+
+    // Long-tail
+    filterLongTail();
+
+    // Autocomplete
+    renderAutocomplete(d.autocomplete || []);
+}
+
+function renderDifficultyChart(diff) {
+    const breakdown = diff.breakdown || {};
+    const labels = [];
+    const values = [];
+    const colors = [];
+
+    const colorMap = {
+        review_barrier: '#6366f1',
+        quality_bar: '#8b5cf6',
+        brand_monopoly: '#ec4899',
+        price_competition: '#f59e0b',
+        fba_dominance: '#10b981'
+    };
+
+    for (const [key, val] of Object.entries(breakdown)) {
+        labels.push(key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()));
+        values.push(val.score || 0);
+        colors.push(colorMap[key] || '#94a3b8');
+    }
+
+    const ctx = document.getElementById('difficultyChart').getContext('2d');
+    if (difficultyChart) difficultyChart.destroy();
+    difficultyChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Difficulty',
+                data: values,
+                backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                borderColor: '#6366f1',
+                pointBackgroundColor: colors,
+                pointRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { r: { min: 0, max: 100, ticks: { stepSize: 20 } } },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+function renderDifficultyDetails(diff) {
+    const container = document.getElementById('difficulty-details');
+    const breakdown = diff.breakdown || {};
+    let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+    for (const [key, val] of Object.entries(breakdown)) {
+        const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const pct = val.score || 0;
+        const color = pct < 30 ? 'var(--success)' : pct < 60 ? 'var(--warning)' : 'var(--danger)';
+        html += `<div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span style="font-weight: 500;">${label}</span>
+                <span style="font-weight: 600;">${pct}/100</span>
+            </div>
+            <div style="height: 6px; background: var(--bg-secondary); border-radius: 3px;">
+                <div style="height: 100%; width: ${pct}%; background: ${color}; border-radius: 3px;"></div>
+            </div>
+        </div>`;
+    }
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function renderRecommendations(recs) {
+    const container = document.getElementById('recommendations-list');
+    if (!recs.length) {
+        container.innerHTML = '<p class="text-muted">No recommendations available.</p>';
+        return;
+    }
+    let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+    recs.forEach(r => {
+        html += `<div style="padding: 10px 14px; background: var(--bg-secondary); border-radius: 6px; border-left: 3px solid var(--primary);">
+            ${r}
+        </div>`;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function filterLongTail() {
+    const category = document.getElementById('lt-category').value;
+    const filtered = category === 'all' ? allLongTail : allLongTail.filter(k => k.category === category);
+    const container = document.getElementById('longtail-table');
+
+    if (!filtered.length) {
+        container.innerHTML = '<p class="text-muted">No keywords found for this category.</p>';
+        return;
+    }
+
+    let html = `<table class="data-table" style="width:100%">
+        <thead><tr><th>Keyword</th><th>Category</th><th>Source</th><th>Modifier</th></tr></thead><tbody>`;
+    filtered.slice(0, 50).forEach(k => {
+        html += `<tr>
+            <td><strong>${k.keyword}</strong></td>
+            <td><span class="badge">${k.category || '-'}</span></td>
+            <td>${k.source || '-'}</td>
+            <td>${k.modifier || '-'}</td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    if (filtered.length > 50) html += `<p class="text-muted" style="margin-top: 8px;">Showing 50 of ${filtered.length} keywords</p>`;
+    container.innerHTML = html;
+}
+
+function renderAutocomplete(suggestions) {
+    const container = document.getElementById('autocomplete-list');
+    if (!suggestions.length) {
+        container.innerHTML = '<p class="text-muted">No autocomplete suggestions found.</p>';
+        return;
+    }
+    let html = '<div style="display: flex; flex-wrap: wrap; gap: 8px;">';
+    suggestions.forEach(s => {
+        html += `<span style="padding: 6px 12px; background: var(--bg-secondary); border-radius: 16px; font-size: 13px; cursor: pointer;" onclick="document.getElementById('seed-keyword').value='${s}'">${s}</span>`;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Auto-run if keyword provided
+document.addEventListener('DOMContentLoaded', () => {
+    const kw = document.getElementById('seed-keyword').value;
+    if (kw) runResearch(new Event('submit'));
+});
+</script>
+{% endblock %}

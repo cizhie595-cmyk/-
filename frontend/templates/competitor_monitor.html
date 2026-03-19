@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block title %}Competitor Monitor{% endblock %}
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+{% endblock %}
+{% block content %}
+<div class="top-bar">
+    <div>
+        <h2 class="page-title">Competitor Monitor</h2>
+        <p class="page-subtitle">Track competitor price, BSR, reviews & get alerts on changes</p>
+    </div>
+</div>
+
+<!-- Add Competitor -->
+<div class="card mb-lg">
+    <h3 class="card-title">Add Competitor to Monitor</h3>
+    <form onsubmit="addCompetitor(event)" style="display: flex; gap: 12px; align-items: end; flex-wrap: wrap;">
+        <div class="form-group" style="flex: 1; min-width: 200px; margin: 0;">
+            <label class="form-label">ASIN</label>
+            <input type="text" class="form-input" id="comp-asin" placeholder="e.g., B0XXXXXXXXX" required>
+        </div>
+        <div class="form-group" style="min-width: 120px; margin: 0;">
+            <label class="form-label">Marketplace</label>
+            <select class="form-select" id="comp-marketplace">
+                <option value="US">US</option>
+                <option value="UK">UK</option>
+                <option value="DE">DE</option>
+                <option value="JP">JP</option>
+            </select>
+        </div>
+        <div class="form-group" style="flex: 1; min-width: 200px; margin: 0;">
+            <label class="form-label">Label (optional)</label>
+            <input type="text" class="form-input" id="comp-label" placeholder="e.g., Main competitor">
+        </div>
+        <button type="submit" class="btn btn-primary">Add & Snapshot</button>
+    </form>
+</div>
+
+<!-- Monitor List -->
+<div class="card mb-lg">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 class="card-title" style="margin: 0;">Monitored Competitors</h3>
+        <button class="btn btn-secondary" onclick="batchSnapshot()">Batch Snapshot All</button>
+    </div>
+    <div id="monitor-list">
+        <p class="text-muted">Loading monitors...</p>
+    </div>
+</div>
+
+<!-- Alerts -->
+<div class="card mb-lg">
+    <h3 class="card-title">Recent Alerts</h3>
+    <div id="alerts-container">
+        <p class="text-muted">No alerts yet. Add competitors and take snapshots to detect changes.</p>
+    </div>
+</div>
+
+<!-- Trend Chart -->
+<div class="card mb-lg">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 class="card-title" style="margin: 0;">Trend Analysis</h3>
+        <div style="display: flex; gap: 8px;">
+            <select class="form-select" id="trend-metric" onchange="loadTrend()" style="width: auto;">
+                <option value="price">Price</option>
+                <option value="bsr_rank">BSR Rank</option>
+                <option value="rating">Rating</option>
+                <option value="review_count">Reviews</option>
+            </select>
+            <select class="form-select" id="trend-days" onchange="loadTrend()" style="width: auto;">
+                <option value="7">7 Days</option>
+                <option value="30" selected>30 Days</option>
+                <option value="90">90 Days</option>
+            </select>
+        </div>
+    </div>
+    <canvas id="trendChart" height="300"></canvas>
+</div>
+
+<!-- Comparison Matrix -->
+<div class="card mb-lg">
+    <h3 class="card-title">Comparison Matrix</h3>
+    <div id="matrix-container">
+        <p class="text-muted">Add at least 2 competitors to see comparison.</p>
+    </div>
+</div>
+
+<script>
+const API_BASE = '/api/v1/competitor';
+let monitors = [];
+let trendChart = null;
+
+async function api(url, options = {}) {
+    const token = localStorage.getItem('access_token');
+    const headers = { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) };
+    const resp = await fetch(url, { headers, ...options });
+    return resp.json();
+}
+
+async function loadMonitors() {
+    const data = await api(`${API_BASE}/monitors`);
+    monitors = data.data || [];
+    renderMonitors();
+    if (monitors.length > 0) {
+        loadAlerts();
+        loadTrend();
+        loadMatrix();
+    }
+}
+
+function renderMonitors() {
+    const container = document.getElementById('monitor-list');
+    if (!monitors.length) {
+        container.innerHTML = '<p class="text-muted">No competitors being monitored. Add one above.</p>';
+        return;
+    }
+    let html = `<table class="data-table" style="width:100%">
+        <thead><tr>
+            <th>ASIN</th><th>Label</th><th>Marketplace</th><th>Last Price</th><th>BSR</th><th>Rating</th><th>Reviews</th><th>Actions</th>
+        </tr></thead><tbody>`;
+    monitors.forEach(m => {
+        html += `<tr>
+            <td><code>${m.asin}</code></td>
+            <td>${m.label || '-'}</td>
+            <td>${m.marketplace || 'US'}</td>
+            <td>${m.last_price ? '$' + m.last_price.toFixed(2) : '-'}</td>
+            <td>${m.last_bsr ? '#' + m.last_bsr.toLocaleString() : '-'}</td>
+            <td>${m.last_rating || '-'}</td>
+            <td>${m.last_review_count || '-'}</td>
+            <td>
+                <button class="btn btn-sm btn-secondary" onclick="takeSnapshot('${m.asin}')">Snapshot</button>
+                <button class="btn btn-sm btn-danger" onclick="removeMonitor(${m.id})">Remove</button>
+            </td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+async function addCompetitor(e) {
+    e.preventDefault();
+    const asin = document.getElementById('comp-asin').value.trim();
+    const marketplace = document.getElementById('comp-marketplace').value;
+    const label = document.getElementById('comp-label').value.trim();
+    if (!asin) return;
+
+    const data = await api(`${API_BASE}/monitors`, {
+        method: 'POST',
+        body: JSON.stringify({ asin, marketplace, label })
+    });
+    if (data.success) {
+        document.getElementById('comp-asin').value = '';
+        document.getElementById('comp-label').value = '';
+        await takeSnapshot(asin);
+        loadMonitors();
+    } else {
+        alert(data.error || 'Failed to add competitor');
+    }
+}
+
+async function removeMonitor(id) {
+    if (!confirm('Remove this competitor from monitoring?')) return;
+    await api(`${API_BASE}/monitors/${id}`, { method: 'DELETE' });
+    loadMonitors();
+}
+
+async function takeSnapshot(asin) {
+    const data = await api(`${API_BASE}/snapshot/${asin}`, { method: 'POST' });
+    if (data.success && data.data?.alerts?.length) {
+        alert(`Alerts detected:\n${data.data.alerts.map(a => a.message).join('\n')}`);
+    }
+    loadMonitors();
+}
+
+async function batchSnapshot() {
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = 'Snapshotting...';
+    const asins = monitors.map(m => m.asin);
+    await api(`${API_BASE}/snapshot/batch`, {
+        method: 'POST',
+        body: JSON.stringify({ asins })
+    });
+    btn.disabled = false;
+    btn.textContent = 'Batch Snapshot All';
+    loadMonitors();
+}
+
+async function loadAlerts() {
+    const container = document.getElementById('alerts-container');
+    let allAlerts = [];
+    for (const m of monitors.slice(0, 10)) {
+        const data = await api(`${API_BASE}/alerts/${m.id}?days=7`);
+        if (data.data) allAlerts = allAlerts.concat(data.data.map(a => ({ ...a, asin: m.asin })));
+    }
+    if (!allAlerts.length) {
+        container.innerHTML = '<p class="text-muted">No alerts in the last 7 days.</p>';
+        return;
+    }
+    let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+    allAlerts.slice(0, 20).forEach(a => {
+        const color = a.alert_type === 'price_drop' || a.alert_type === 'bsr_improvement' ? 'var(--success)' : 'var(--warning)';
+        html += `<div style="padding: 10px 14px; border-left: 3px solid ${color}; background: var(--bg-secondary); border-radius: 6px;">
+            <strong>${a.asin}</strong> - ${a.message}
+            <span style="float: right; color: var(--text-tertiary); font-size: 12px;">${a.created_at || ''}</span>
+        </div>`;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+async function loadTrend() {
+    if (!monitors.length) return;
+    const metric = document.getElementById('trend-metric').value;
+    const days = document.getElementById('trend-days').value;
+    const m = monitors[0];
+    const data = await api(`${API_BASE}/trend/${m.id}?metric=${metric}&days=${days}`);
+    if (!data.success || !data.data) return;
+
+    const trend = data.data;
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    if (trendChart) trendChart.destroy();
+    trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: trend.dates || [],
+            datasets: [{
+                label: `${m.asin} - ${metric}`,
+                data: trend.values || [],
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: true } },
+            scales: {
+                y: { reverse: metric === 'bsr_rank' }
+            }
+        }
+    });
+}
+
+async function loadMatrix() {
+    const data = await api(`${API_BASE}/matrix`);
+    if (!data.success || !data.data?.length) return;
+    const container = document.getElementById('matrix-container');
+    const items = data.data;
+    let html = `<table class="data-table" style="width:100%">
+        <thead><tr><th>ASIN</th><th>Price</th><th>BSR</th><th>Rating</th><th>Reviews</th><th>Fulfillment</th></tr></thead><tbody>`;
+    items.forEach(item => {
+        html += `<tr>
+            <td><code>${item.asin}</code></td>
+            <td>${item.price ? '$' + item.price.toFixed(2) : '-'}</td>
+            <td>${item.bsr_rank ? '#' + item.bsr_rank.toLocaleString() : '-'}</td>
+            <td>${item.rating || '-'}</td>
+            <td>${item.review_count || '-'}</td>
+            <td>${item.fulfillment || '-'}</td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+document.addEventListener('DOMContentLoaded', loadMonitors);
+</script>
+{% endblock %}

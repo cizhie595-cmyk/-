@@ -73,6 +73,9 @@ class AmazonSelectionPipeline:
         self.deep_analyses = {}
         self.profit_results = []
         self.category_analysis = {}
+        self.keyword_analysis = {}
+        self.supplier_scores = []
+        self.pricing_analysis = {}
         self.marketplace = self.config.get("marketplace", "US")
 
     def _init_ai_client(self):
@@ -218,8 +221,15 @@ class AmazonSelectionPipeline:
             if not skip_1688:
                 self._step_source_search()
 
+            # Step 8.5: 供应商评分（基于 1688 搜索结果）
+            if not skip_1688:
+                self._step_supplier_scoring()
+
             # Step 9: FBA 利润计算
             self._step_profit_calculation()
+
+            # Step 9.5: 定价策略优化
+            self._step_pricing_optimization(keyword)
 
             # Step 10: 生成报告
             report_path = self._step_generate_report(keyword)
@@ -326,6 +336,31 @@ class AmazonSelectionPipeline:
 
         self.products = result["kept"]
         logger.info(f"筛选后保留 {len(self.products)} 个产品")
+
+        # Step 3.5: 关键词研究分析
+        try:
+            from analysis.keyword_researcher import KeywordResearcher
+            researcher = KeywordResearcher(marketplace=self.marketplace)
+
+            # 关键词竞争度评伋
+            difficulty = researcher.assess_keyword_difficulty(keyword, self.products)
+            self.keyword_analysis["difficulty"] = difficulty
+
+            # 搜索量估算
+            volume = researcher.estimate_search_volume(keyword, self.products)
+            self.keyword_analysis["search_volume"] = volume
+
+            # 长尾词挖掘
+            long_tail = researcher.generate_long_tail_keywords(keyword)
+            self.keyword_analysis["long_tail"] = long_tail
+
+            logger.info(
+                f"关键词分析: 竞争度 {difficulty.get('difficulty_score', 'N/A')}/100  "
+                f"估算月搜索量 {volume.get('estimated_monthly_searches', 'N/A')}  "
+                f"长尾词 {len(long_tail)} 个"
+            )
+        except Exception as e:
+            logger.warning(f"关键词研究失败: {e}")
 
     def _step_crawl_details(self):
         """Step 4: 详情页深度爬取"""
@@ -538,6 +573,103 @@ class AmazonSelectionPipeline:
                     except Exception as e:
                         logger.debug(f"利润计算失败: {e}")
 
+    def _step_supplier_scoring(self):
+        """Step 8.5: 供应商评分"""
+        logger.info(f"\n--- Step 8.5: 供应商评分 ---")
+
+        from analysis.supplier_scorer import SupplierScorer
+
+        scorer = SupplierScorer()
+
+        try:
+            # 收集所有产品的 1688 货源供应商
+            all_suppliers = []
+            for product in self.products[:5]:
+                sources = product.get("sources_1688", [])
+                for source in sources:
+                    if source not in all_suppliers:
+                        all_suppliers.append(source)
+
+            if all_suppliers:
+                # 计算市场均价
+                prices = [s.get("price", 0) for s in all_suppliers if s.get("price")]
+                market_avg = sum(prices) / len(prices) if prices else 0
+
+                # 批量评分
+                self.supplier_scores = scorer.score_multiple_suppliers(
+                    all_suppliers, market_avg
+                )
+                logger.info(f"评分了 {len(self.supplier_scores)} 个供应商")
+
+                # 将评分结果关联回产品
+                for product in self.products[:5]:
+                    sources = product.get("sources_1688", [])
+                    for source in sources:
+                        for scored in self.supplier_scores:
+                            if (scored.get("supplier_name") == source.get("name") or
+                                scored.get("supplier_url") == source.get("url")):
+                                source["score"] = scored["total_score"]
+                                source["grade"] = scored["grade"]
+                                break
+            else:
+                logger.info("无 1688 货源数据，跳过供应商评分")
+        except Exception as e:
+            logger.warning(f"供应商评分失败: {e}")
+
+    def _step_pricing_optimization(self, keyword: str):
+        """Step 9.5: 定价策略优化"""
+        logger.info(f"\n--- Step 9.5: 定价策略优化 ---")
+
+        from analysis.pricing_optimizer import PricingOptimizer
+
+        optimizer = PricingOptimizer(
+            marketplace=self.marketplace,
+            exchange_rate=self.config.get("exchange_rate", 7.25),
+        )
+
+        try:
+            # 1. 竞品价格分布分析
+            distribution = optimizer.analyze_price_distribution(self.products)
+            self.pricing_analysis["distribution"] = distribution
+
+            # 2. 如果有利润计算结果，生成定价策略对比
+            if self.profit_results:
+                # 从利润结果中提取成本参数
+                first_profit = self.profit_results[0]
+                costs = first_profit.get("costs", {})
+                cost_params = {
+                    "sourcing_cost_rmb": costs.get("cogs_rmb", 0) or costs.get("sourcing_cost_rmb", 0),
+                    "shipping_cost_per_kg": costs.get("shipping_rmb_per_kg", 0),
+                    "weight_kg": costs.get("weight_kg", 0.5),
+                    "fba_fee": costs.get("fba_fulfillment_fee", 5.50),
+                }
+
+                # 多策略对比
+                strategies = optimizer.compare_strategies(cost_params, self.products)
+                self.pricing_analysis["strategies"] = strategies
+
+                # 最优定价建议
+                optimal = optimizer.suggest_optimal_price(
+                    cost_params, self.products, target_margin=0.25
+                )
+                self.pricing_analysis["optimal"] = optimal
+
+                # 价格弹性模拟
+                elasticity = optimizer.simulate_price_elasticity(
+                    cost_params, self.products
+                )
+                self.pricing_analysis["elasticity"] = elasticity
+
+                logger.info(
+                    f"推荐策略: {optimal.get('strategy_name', 'N/A')}  "
+                    f"最优价格: ${optimal.get('optimal_price', 0):.2f}  "
+                    f"利润率: {optimal.get('profit_at_optimal', {}).get('margin_pct', 0):.1f}%"
+                )
+            else:
+                logger.info("无利润计算结果，仅生成价格分布分析")
+        except Exception as e:
+            logger.warning(f"定价策略优化失败: {e}")
+
     def _step_generate_report(self, keyword: str) -> str:
         """Step 10: 生成报告"""
         logger.info(f"\n--- Step 10/10: 生成报告 ---")
@@ -576,6 +708,9 @@ class AmazonSelectionPipeline:
             "deep_analyses": self.deep_analyses,
             "category_analysis": self.category_analysis,
             "profit_results": self.profit_results,
+            "keyword_analysis": self.keyword_analysis,
+            "supplier_scores": self.supplier_scores,
+            "pricing_analysis": self.pricing_analysis,
         }
 
         filepath = os.path.join(output_dir, f"amazon_raw_{keyword}_{timestamp}.json")

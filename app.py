@@ -178,6 +178,22 @@ def create_app() -> Flask:
     from utils.apm_monitor import init_apm
     init_apm(app)
 
+    # 竞品监控路由
+    from api.competitor_routes import competitor_bp
+    app.register_blueprint(competitor_bp)
+
+    # 关键词研究路由
+    from api.keyword_routes import keyword_bp
+    app.register_blueprint(keyword_bp)
+
+    # 供应商评分路由
+    from api.supplier_routes import supplier_bp
+    app.register_blueprint(supplier_bp)
+
+    # 定价策略优化路由
+    from api.pricing_routes import pricing_bp
+    app.register_blueprint(pricing_bp)
+
     # === WebSocket (Chrome 插件通信) ===
     try:
         from api.websocket_handler import register_websocket_routes

@@ -166,3 +166,43 @@ def notifications_page():
 def apm_dashboard():
     """APM 性能监控面板"""
     return render_template("apm_dashboard.html", active_page="apm")
+
+
+# ============================================================
+# P-15 竞品监控  /competitors
+# ============================================================
+@frontend_bp.route("/competitors")
+def competitor_monitor():
+    """竞品监控追踪"""
+    return render_template("competitor_monitor.html", active_page="competitors")
+
+
+# ============================================================
+# P-16 关键词研究  /keywords
+# ============================================================
+@frontend_bp.route("/keywords")
+@frontend_bp.route("/keywords/<seed_keyword>")
+def keyword_research(seed_keyword=None):
+    """关键词研究工具"""
+    kw = seed_keyword or request.args.get("keyword", "")
+    return render_template("keyword_research.html", active_page="keywords", keyword=kw)
+
+
+# ============================================================
+# P-17 供应商评分  /suppliers
+# ============================================================
+@frontend_bp.route("/suppliers")
+def supplier_scoring():
+    """供应商评分系统"""
+    return render_template("supplier_scoring.html", active_page="suppliers")
+
+
+# ============================================================
+# P-18 定价策略  /pricing
+# ============================================================
+@frontend_bp.route("/pricing")
+@frontend_bp.route("/pricing/<asin>")
+def pricing_strategy(asin=None):
+    """定价策略优化器"""
+    asin_val = asin or request.args.get("asin", "")
+    return render_template("pricing_strategy.html", active_page="pricing", asin=asin_val)

@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+{% block title %}Pricing Strategy{% endblock %}
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+{% endblock %}
+{% block content %}
+<div class="top-bar">
+    <div>
+        <h2 class="page-title">Pricing Strategy Optimizer</h2>
+        <p class="page-subtitle">Find the optimal price point with elasticity analysis and strategy comparison</p>
+    </div>
+</div>
+
+<!-- Input Form -->
+<div class="card mb-lg">
+    <h3 class="card-title">Product Cost & Market Data</h3>
+    <form onsubmit="optimizePrice(event)">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+            <div class="form-group">
+                <label class="form-label">ASIN (optional)</label>
+                <input type="text" class="form-input" id="pr-asin" value="{{ asin }}" placeholder="e.g., B0XXXXXXXXX">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Landed Cost (USD)</label>
+                <input type="number" class="form-input" id="pr-landed-cost" step="0.01" placeholder="e.g., 8.50" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Amazon Fees (USD)</label>
+                <input type="number" class="form-input" id="pr-amazon-fees" step="0.01" placeholder="e.g., 5.20" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">PPC Cost / Unit (USD)</label>
+                <input type="number" class="form-input" id="pr-ppc" step="0.01" value="2.00" placeholder="e.g., 2.00">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Target Margin (%)</label>
+                <input type="number" class="form-input" id="pr-margin" step="1" value="25" placeholder="e.g., 25">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Marketplace</label>
+                <select class="form-select" id="pr-marketplace">
+                    <option value="US">US</option>
+                    <option value="UK">UK</option>
+                    <option value="DE">DE</option>
+                    <option value="JP">JP</option>
+                </select>
+            </div>
+        </div>
+        <div style="margin-top: 12px;">
+            <label class="form-label">Competitor Prices (comma-separated, USD)</label>
+            <input type="text" class="form-input" id="pr-competitors" placeholder="e.g., 24.99, 29.99, 19.99, 27.50, 22.99">
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top: 16px;" id="optimize-btn">Optimize Pricing</button>
+    </form>
+</div>
+
+<!-- Overview Cards -->
+<div id="overview-section" style="display: none;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div class="card" style="text-align: center;">
+            <div class="text-muted" style="font-size: 13px;">Optimal Price</div>
+            <div id="optimal-price" style="font-size: 36px; font-weight: 700; color: var(--primary); margin: 8px 0;">-</div>
+            <div id="optimal-strategy" class="badge" style="background: var(--primary); color: #fff;">-</div>
+        </div>
+        <div class="card" style="text-align: center;">
+            <div class="text-muted" style="font-size: 13px;">Breakeven Price</div>
+            <div id="breakeven-price" style="font-size: 36px; font-weight: 700; margin: 8px 0;">-</div>
+            <div class="text-muted" style="font-size: 12px;">Minimum viable</div>
+        </div>
+        <div class="card" style="text-align: center;">
+            <div class="text-muted" style="font-size: 13px;">Expected Profit</div>
+            <div id="expected-profit" style="font-size: 36px; font-weight: 700; color: var(--success); margin: 8px 0;">-</div>
+            <div id="expected-margin" class="text-muted" style="font-size: 12px;">-</div>
+        </div>
+        <div class="card" style="text-align: center;">
+            <div class="text-muted" style="font-size: 13px;">Price Range</div>
+            <div id="price-range" style="font-size: 24px; font-weight: 700; margin: 8px 0;">-</div>
+            <div class="text-muted" style="font-size: 12px;">Floor - Ceiling</div>
+        </div>
+    </div>
+</div>
+
+<!-- Strategy Comparison -->
+<div class="card mb-lg" id="strategy-section" style="display: none;">
+    <h3 class="card-title">Strategy Comparison</h3>
+    <div id="strategy-table"></div>
+    <div style="margin-top: 16px;">
+        <canvas id="strategyChart" height="280"></canvas>
+    </div>
+</div>
+
+<!-- Elasticity Analysis -->
+<div class="card mb-lg" id="elasticity-section" style="display: none;">
+    <h3 class="card-title">Price Elasticity Analysis</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div>
+            <canvas id="elasticityChart" height="280"></canvas>
+        </div>
+        <div id="elasticity-details"></div>
+    </div>
+</div>
+
+<!-- Market Distribution -->
+<div class="card mb-lg" id="distribution-section" style="display: none;">
+    <h3 class="card-title">Market Price Distribution</h3>
+    <canvas id="distributionChart" height="250"></canvas>
+</div>
+
+<script>
+const API_BASE = '/api/v1/pricing';
+let strategyChart = null;
+let elasticityChart = null;
+let distributionChart = null;
+
+async function api(url, options = {}) {
+    const token = localStorage.getItem('access_token');
+    const headers = { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) };
+    const resp = await fetch(url, { headers, ...options });
+    return resp.json();
+}
+
+async function optimizePrice(e) {
+    e.preventDefault();
+    const btn = document.getElementById('optimize-btn');
+    btn.disabled = true;
+    btn.textContent = 'Optimizing...';
+
+    const competitorPrices = document.getElementById('pr-competitors').value
+        .split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+
+    const payload = {
+        asin: document.getElementById('pr-asin').value.trim(),
+        landed_cost: parseFloat(document.getElementById('pr-landed-cost').value) || 0,
+        amazon_fees: parseFloat(document.getElementById('pr-amazon-fees').value) || 0,
+        ppc_cost_per_unit: parseFloat(document.getElementById('pr-ppc').value) || 0,
+        target_margin: (parseFloat(document.getElementById('pr-margin').value) || 25) / 100,
+        marketplace: document.getElementById('pr-marketplace').value,
+        competitor_prices: competitorPrices
+    };
+
+    try {
+        const data = await api(`${API_BASE}/optimize`, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+
+        if (data.success) {
+            renderResults(data.data);
+        } else {
+            alert(data.error || 'Optimization failed');
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Optimize Pricing';
+    }
+}
+
+function renderResults(d) {
+    ['overview-section', 'strategy-section', 'elasticity-section', 'distribution-section'].forEach(id => {
+        document.getElementById(id).style.display = '';
+    });
+
+    // Overview
+    document.getElementById('optimal-price').textContent = '$' + (d.optimal_price || 0).toFixed(2);
+    document.getElementById('optimal-strategy').textContent = (d.recommended_strategy || '-').replace(/_/g, ' ');
+    document.getElementById('breakeven-price').textContent = '$' + (d.breakeven_price || 0).toFixed(2);
+    document.getElementById('expected-profit').textContent = '$' + (d.expected_profit_per_unit || 0).toFixed(2);
+    document.getElementById('expected-margin').textContent = ((d.expected_margin_pct || 0) * 100).toFixed(1) + '% margin';
+    document.getElementById('price-range').textContent = '$' + (d.price_floor || 0).toFixed(2) + ' - $' + (d.price_ceiling || 0).toFixed(2);
+
+    // Strategy table
+    renderStrategyTable(d.strategies || []);
+
+    // Strategy chart
+    renderStrategyChart(d.strategies || []);
+
+    // Elasticity
+    renderElasticity(d.elasticity || {});
+
+    // Distribution
+    renderDistribution(d.distribution || {});
+}
+
+function renderStrategyTable(strategies) {
+    const container = document.getElementById('strategy-table');
+    if (!strategies.length) { container.innerHTML = '<p class="text-muted">No strategies available.</p>'; return; }
+
+    let html = `<table class="data-table" style="width:100%">
+        <thead><tr><th>Strategy</th><th>Price</th><th>Profit/Unit</th><th>Margin</th><th>Description</th></tr></thead><tbody>`;
+    strategies.forEach(s => {
+        const isRecommended = s.is_recommended;
+        const style = isRecommended ? 'background: rgba(99,102,241,0.08);' : '';
+        html += `<tr style="${style}">
+            <td><strong>${(s.name || '').replace(/_/g, ' ')}</strong>${isRecommended ? ' <span class="badge" style="background:var(--primary);color:#fff;font-size:10px;">Recommended</span>' : ''}</td>
+            <td style="font-weight: 600;">$${(s.price || 0).toFixed(2)}</td>
+            <td style="color: ${(s.profit_per_unit || 0) > 0 ? 'var(--success)' : 'var(--danger)'};">$${(s.profit_per_unit || 0).toFixed(2)}</td>
+            <td>${((s.margin_pct || 0) * 100).toFixed(1)}%</td>
+            <td class="text-muted">${s.description || ''}</td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function renderStrategyChart(strategies) {
+    const ctx = document.getElementById('strategyChart').getContext('2d');
+    if (strategyChart) strategyChart.destroy();
+
+    const labels = strategies.map(s => (s.name || '').replace(/_/g, ' '));
+    const prices = strategies.map(s => s.price || 0);
+    const profits = strategies.map(s => s.profit_per_unit || 0);
+    const colors = strategies.map(s => s.is_recommended ? '#6366f1' : '#94a3b8');
+
+    strategyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Price ($)', data: prices, backgroundColor: colors.map(c => c + '40'), borderColor: colors, borderWidth: 1 },
+                { label: 'Profit/Unit ($)', data: profits, backgroundColor: profits.map(p => p > 0 ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'), borderColor: profits.map(p => p > 0 ? '#10b981' : '#ef4444'), borderWidth: 1 }
+            ]
+        },
+        options: { responsive: true, plugins: { legend: { display: true } } }
+    });
+}
+
+function renderElasticity(elasticity) {
+    const points = elasticity.price_points || [];
+    const details = document.getElementById('elasticity-details');
+
+    if (!points.length) {
+        details.innerHTML = '<p class="text-muted">No elasticity data available.</p>';
+        return;
+    }
+
+    const ctx = document.getElementById('elasticityChart').getContext('2d');
+    if (elasticityChart) elasticityChart.destroy();
+
+    elasticityChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: points.map(p => '$' + p.price.toFixed(2)),
+            datasets: [
+                {
+                    label: 'Est. Profit/Unit',
+                    data: points.map(p => p.profit_per_unit),
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16,185,129,0.1)',
+                    fill: true,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Est. Margin %',
+                    data: points.map(p => (p.margin_pct * 100).toFixed(1)),
+                    borderColor: '#6366f1',
+                    borderDash: [5, 5],
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { position: 'left', title: { display: true, text: 'Profit ($)' } },
+                y1: { position: 'right', title: { display: true, text: 'Margin (%)' }, grid: { drawOnChartArea: false } }
+            }
+        }
+    });
+
+    let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+    html += `<div><strong>Elasticity Coefficient:</strong> ${(elasticity.elasticity_coefficient || 0).toFixed(2)}</div>`;
+    html += `<div><strong>Interpretation:</strong> ${elasticity.interpretation || 'N/A'}</div>`;
+    html += `<div><strong>Sweet Spot:</strong> $${(elasticity.sweet_spot_price || 0).toFixed(2)}</div>`;
+    html += '</div>';
+    details.innerHTML = html;
+}
+
+function renderDistribution(dist) {
+    const bins = dist.bins || [];
+    if (!bins.length) return;
+
+    const ctx = document.getElementById('distributionChart').getContext('2d');
+    if (distributionChart) distributionChart.destroy();
+
+    distributionChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: bins.map(b => b.range || ''),
+            datasets: [{
+                label: 'Competitors',
+                data: bins.map(b => b.count || 0),
+                backgroundColor: bins.map(b => b.is_optimal_zone ? 'rgba(99,102,241,0.5)' : 'rgba(148,163,184,0.3)'),
+                borderColor: bins.map(b => b.is_optimal_zone ? '#6366f1' : '#94a3b8'),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                title: { display: true, text: `Market: Avg $${(dist.avg_price || 0).toFixed(2)} | Median $${(dist.median_price || 0).toFixed(2)}` }
+            }
+        }
+    });
+}
+
+// Auto-run if ASIN provided
+document.addEventListener('DOMContentLoaded', () => {
+    const asin = document.getElementById('pr-asin').value;
+    if (asin) {
+        // Could auto-load cost data from profit calculator
+    }
+});
+</script>
+{% endblock %}
