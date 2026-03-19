@@ -24,6 +24,51 @@
         text-align: center; padding: 24px; color: var(--text-muted);
         font-style: italic;
     }
+    /* 五维雷达图 */
+    .radar-container {
+        display: flex; align-items: center; justify-content: center;
+        padding: 16px; min-height: 320px;
+    }
+    .radar-container canvas { max-width: 400px; max-height: 400px; }
+    .risk-legend { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 12px; }
+    .risk-legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+    .risk-legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    /* Markdown 渲染 */
+    .md-content { line-height: 1.9; font-size: 14px; }
+    .md-content h1, .md-content h2, .md-content h3 { margin: 20px 0 12px; color: var(--text-primary); }
+    .md-content h2 { font-size: 1.3rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    .md-content h3 { font-size: 1.1rem; }
+    .md-content p { margin: 8px 0; }
+    .md-content ul, .md-content ol { padding-left: 24px; margin: 8px 0; }
+    .md-content li { margin: 4px 0; }
+    .md-content table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    .md-content th, .md-content td { padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+    .md-content th { background: var(--bg-secondary); font-weight: 600; }
+    .md-content blockquote { border-left: 3px solid var(--primary); padding-left: 16px; margin: 12px 0; color: var(--text-secondary); }
+    .md-content code { background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+    .md-content strong { color: var(--text-primary); }
+
+    /* 服务商推荐 */
+    .service-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .service-card { padding: 16px; border-radius: var(--radius-md); background: var(--bg-primary); border: 1px solid var(--border); transition: transform 0.2s; }
+    .service-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .service-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .service-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; }
+    .service-info h4 { margin: 0; font-size: 15px; }
+    .service-tagline { font-size: 12px; color: var(--text-muted); margin: 2px 0 0; }
+    .service-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.6; }
+    .service-reason { font-size: 12px; color: var(--warning); font-style: italic; margin-bottom: 8px; }
+    .service-features { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .feature-tag { font-size: 11px; padding: 2px 8px; border-radius: 12px; background: var(--bg-secondary); color: var(--text-secondary); }
+    .service-footer { display: flex; justify-content: space-between; align-items: center; }
+    .service-pricing { font-size: 12px; color: var(--text-muted); }
+    .badge-danger { background: var(--danger); color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+    .badge-warning { background: var(--warning); color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+    .section-title { font-size: 1.2rem; margin-bottom: 8px; }
+    .section-desc { color: var(--text-muted); font-size: 13px; margin-bottom: 16px; }
+
+    @media print {
     @media print {
         .sidebar, .top-bar .btn, .no-print { display: none !important; }
         .main-content { margin-left: 0 !important; }
@@ -84,6 +129,24 @@
             <div style="font-size: 2rem; font-weight: 700; color: var(--info);" id="score-risk">--</div>
             <div class="text-muted">Risk Score</div>
             <div class="progress-bar mt-sm"><div class="progress-fill" id="bar-risk" style="width: 0%;"></div></div>
+        </div>
+    </div>
+</div>
+
+<!-- Risk Radar Chart (PRD 3.6 五维风险雷达图) -->
+<div class="report-section">
+    <div class="card">
+        <h3 class="card-title mb-md">Risk Radar Analysis</h3>
+        <div class="card-grid card-grid-2" style="gap: 24px;">
+            <div class="radar-container">
+                <canvas id="risk-radar-chart"></canvas>
+            </div>
+            <div>
+                <div id="radar-summary" style="line-height: 1.8; padding: 16px;">
+                    <p class="text-muted">Loading risk analysis...</p>
+                </div>
+                <div class="risk-legend" id="risk-legend"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -158,15 +221,39 @@
         </div>
     </div>
 </div>
+
+<!-- Full Report (Markdown Rendered) -->
+<div class="report-section">
+    <div class="card">
+        <h3 class="card-title mb-md">Full Decision Report</h3>
+        <div id="full-report-md" class="md-content">
+            <p class="no-data-hint">Loading full report...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Service Recommendations (PRD 5.3) -->
+<div class="report-section" id="service-recommendations-section" style="display: none;">
+    <div class="card">
+        <h3 class="card-title mb-md">Recommended Tools & Services</h3>
+        <p class="section-desc">Based on the analysis results, these tools can help reduce risk and improve competitiveness</p>
+        <div class="service-grid" id="service-cards-container"></div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
+<!-- Chart.js for radar chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- marked.js for Markdown rendering -->
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
 <script>
     const projectId = window.location.pathname.split('/').pop();
+    let radarChart = null;
 
     async function loadReport() {
         try {
-            // 加载项目基本信息 - 后端返回 {success, data: project}
+            // 加载项目基本信息
             const projResp = await api.getProject(projectId);
             const project = projResp && projResp.data ? projResp.data : projResp;
             if (project) {
@@ -213,6 +300,9 @@
             document.getElementById('executive-summary').innerHTML = `<p>${data.executive_summary}</p>`;
         }
 
+        // 五维风险雷达图 (DEV-03)
+        renderRiskRadar(data.risk_dimensions || scores);
+
         // Market Analysis
         if (hasData) {
             document.getElementById('market-analysis-content').innerHTML =
@@ -230,10 +320,343 @@
         renderRecommendationList('rec-caution-content', recs.caution);
         renderRecommendationList('rec-stop-content', recs.stop);
 
-        // Top Products - 从项目产品中加载
+        // Full Markdown Report (DEV-04)
+        renderMarkdownReport(data);
+
+        // Service Recommendations (DEV-02)
+        renderServiceRecommendations(data.risk_dimensions || scores);
+
+        // Top Products
         loadTopProducts();
     }
 
+    // ============================================================
+    // DEV-03: 五维风险雷达图
+    // ============================================================
+    function renderRiskRadar(dimensions) {
+        const labels = ['Competition', 'Demand', 'Profit', 'IP Risk', 'Seasonality'];
+        const dimKeys = ['competition', 'demand', 'profit', 'ip_risk', 'seasonality'];
+        const colors = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#0ea5e9'];
+
+        const values = dimKeys.map(k => {
+            const v = dimensions[k];
+            return (v !== null && v !== undefined) ? v : 50;
+        });
+
+        const ctx = document.getElementById('risk-radar-chart');
+        if (!ctx) return;
+
+        if (radarChart) radarChart.destroy();
+
+        radarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Risk Score',
+                    data: values,
+                    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                    borderColor: '#6366f1',
+                    borderWidth: 2,
+                    pointBackgroundColor: colors,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                return `${ctx.label}: ${ctx.raw}/100`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            stepSize: 20,
+                            font: { size: 11 },
+                            backdropColor: 'transparent',
+                        },
+                        pointLabels: {
+                            font: { size: 13, weight: '600' },
+                            color: '#6b7280',
+                        },
+                        grid: {
+                            color: 'rgba(107, 114, 128, 0.15)',
+                        },
+                        angleLines: {
+                            color: 'rgba(107, 114, 128, 0.15)',
+                        }
+                    }
+                }
+            }
+        });
+
+        // 渲染雷达图摘要
+        const summaryEl = document.getElementById('radar-summary');
+        const riskLevel = (val) => val >= 70 ? 'High' : val >= 40 ? 'Medium' : 'Low';
+        const riskColor = (val) => val >= 70 ? 'var(--danger)' : val >= 40 ? 'var(--warning)' : 'var(--success)';
+
+        let summaryHtml = '<div style="margin-bottom: 16px;">';
+        dimKeys.forEach((k, i) => {
+            const v = values[i];
+            const level = riskLevel(v);
+            const color = riskColor(v);
+            summaryHtml += `
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                    <span style="width: 10px; height: 10px; border-radius: 50%; background: ${colors[i]}; flex-shrink: 0;"></span>
+                    <span style="flex: 1; font-weight: 500;">${labels[i]}</span>
+                    <span style="font-weight: 700; color: ${color};">${v}/100</span>
+                    <span style="font-size: 12px; padding: 2px 8px; border-radius: 10px; background: ${color}20; color: ${color};">${level}</span>
+                </div>
+            `;
+        });
+        summaryHtml += '</div>';
+
+        const avgRisk = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+        const overallLevel = riskLevel(avgRisk);
+        summaryHtml += `<p style="font-size: 14px; color: var(--text-secondary);">
+            Average Risk Score: <strong style="color: ${riskColor(avgRisk)};">${avgRisk}/100 (${overallLevel})</strong>
+        </p>`;
+
+        summaryEl.innerHTML = summaryHtml;
+    }
+
+    // ============================================================
+    // DEV-04: Markdown 报告渲染
+    // ============================================================
+    function renderMarkdownReport(data) {
+        const container = document.getElementById('full-report-md');
+        if (!container) return;
+
+        // 尝试从报告数据中获取 Markdown 内容
+        let mdContent = data.full_report_md || data.report_markdown || data.markdown_content || '';
+
+        // 如果没有预生成的 Markdown，从结构化数据生成
+        if (!mdContent) {
+            mdContent = generateMarkdownFromData(data);
+        }
+
+        if (mdContent && typeof marked !== 'undefined') {
+            try {
+                marked.setOptions({
+                    gfm: true,
+                    breaks: true,
+                    sanitize: false,
+                });
+                container.innerHTML = marked.parse(mdContent);
+            } catch (e) {
+                container.innerHTML = `<pre style="white-space: pre-wrap;">${mdContent}</pre>`;
+            }
+        } else if (mdContent) {
+            container.innerHTML = `<pre style="white-space: pre-wrap;">${mdContent}</pre>`;
+        } else {
+            container.innerHTML = '<p class="no-data-hint">Run comprehensive analysis to generate the full decision report.</p>';
+        }
+    }
+
+    function generateMarkdownFromData(data) {
+        const scores = data.scores || {};
+        const recs = data.recommendations || {};
+        let md = '';
+
+        md += `## Sourcing Decision Report\n\n`;
+
+        if (data.executive_summary) {
+            md += `### Executive Summary\n\n${data.executive_summary}\n\n`;
+        }
+
+        md += `### Score Overview\n\n`;
+        md += `| Dimension | Score | Rating |\n`;
+        md += `|-----------|-------|--------|\n`;
+        const dims = [
+            ['Overall', scores.overall],
+            ['Market', scores.market],
+            ['Profit', scores.profit],
+            ['Competition', scores.competition],
+            ['Risk', scores.risk],
+        ];
+        dims.forEach(([name, val]) => {
+            const rating = val >= 70 ? 'Excellent' : val >= 50 ? 'Good' : val >= 30 ? 'Fair' : 'Poor';
+            md += `| ${name} | ${val || '--'}/100 | ${val ? rating : '--'} |\n`;
+        });
+        md += `\n`;
+
+        if (recs.go && recs.go.length) {
+            md += `### Recommended Actions (GO)\n\n`;
+            recs.go.forEach(item => { md += `- ${item}\n`; });
+            md += `\n`;
+        }
+
+        if (recs.caution && recs.caution.length) {
+            md += `### Areas to Watch (CAUTION)\n\n`;
+            recs.caution.forEach(item => { md += `- ${item}\n`; });
+            md += `\n`;
+        }
+
+        if (recs.stop && recs.stop.length) {
+            md += `### Potential Issues (RISK)\n\n`;
+            recs.stop.forEach(item => { md += `- ${item}\n`; });
+            md += `\n`;
+        }
+
+        md += `### Next Steps\n\n`;
+        md += `1. Contact top 3 suppliers on 1688 for sample quotes\n`;
+        md += `2. Order product samples for quality verification\n`;
+        md += `3. Run a small test batch (50-100 units) via FBA\n`;
+        md += `4. Set up PPC campaigns with identified keywords\n`;
+        md += `5. Monitor BSR and review velocity for 30 days\n`;
+
+        return md;
+    }
+
+    // ============================================================
+    // DEV-02: 服务商推荐卡片
+    // ============================================================
+    const SERVICE_CATALOG = {
+        trademarkia: {
+            name: 'Trademarkia', icon: 'TM', color: '#6366f1',
+            tagline: 'Trademark Search & Registration',
+            description: 'Search global trademark databases to check if brand names are already registered.',
+            features: ['Global Search', 'Registration', 'Monitoring', 'Legal Advice'],
+            pricing: 'Search Free, Registration from $199',
+            url: 'https://www.trademarkia.com', cta: 'Free Search',
+            trigger: 'ip_risk', threshold: 40,
+        },
+        deliverr: {
+            name: 'Deliverr', icon: 'DL', color: '#0ea5e9',
+            tagline: 'Cross-border Logistics & Fulfillment',
+            description: 'Smart warehouse distribution with 2-day delivery coverage across the US.',
+            features: ['Smart Warehousing', '2-Day Delivery', 'FBA Replenishment', 'Multi-channel'],
+            pricing: 'From $3.99/unit',
+            url: 'https://www.deliverr.com', cta: 'Get Quote',
+            trigger: 'seasonality', threshold: 50,
+        },
+        helium10: {
+            name: 'Helium 10', icon: 'H10', color: '#f59e0b',
+            tagline: 'Amazon Seller Tool Suite',
+            description: 'All-in-one Amazon seller toolkit including product research, keyword analysis, and listing optimization.',
+            features: ['Black Box', 'Cerebro Keywords', 'Listing Optimizer', 'Profit Tracker'],
+            pricing: 'From $29/mo',
+            url: 'https://www.helium10.com', cta: 'Free Trial',
+            trigger: 'competition', threshold: 50,
+        },
+        junglescout: {
+            name: 'Jungle Scout', icon: 'JS', color: '#22c55e',
+            tagline: 'Amazon Product Research & Analytics',
+            description: 'Accurate sales estimates and market trend analysis to discover high-potential products.',
+            features: ['Product Tracker', 'Keyword Scout', 'Sales Estimates', 'Supplier DB'],
+            pricing: 'From $49/mo',
+            url: 'https://www.junglescout.com', cta: 'Start Analysis',
+            trigger: 'competition', threshold: 45,
+        },
+        canva: {
+            name: 'Canva Pro', icon: 'CV', color: '#8b5cf6',
+            tagline: 'Product Images & A+ Page Design',
+            description: 'Professional design tool with Amazon product image templates and A+ page templates.',
+            features: ['Product Templates', 'A+ Design', 'Brand Kit', 'AI Background Removal'],
+            pricing: '$12.99/mo',
+            url: 'https://www.canva.com', cta: 'Start Designing',
+            trigger: null, threshold: 0,
+        },
+    };
+
+    function renderServiceRecommendations(dimensions) {
+        const container = document.getElementById('service-cards-container');
+        const section = document.getElementById('service-recommendations-section');
+        if (!container || !section) return;
+
+        // 计算每个服务商的相关性分数
+        const scored = Object.entries(SERVICE_CATALOG).map(([id, svc]) => {
+            let score = 30;
+            if (svc.trigger && dimensions[svc.trigger] !== undefined) {
+                const val = dimensions[svc.trigger];
+                if (val >= svc.threshold) {
+                    score += 40 + Math.min(val - svc.threshold, 30);
+                } else {
+                    score += (val / svc.threshold) * 20;
+                }
+            }
+            return { id, ...svc, score };
+        });
+
+        scored.sort((a, b) => b.score - a.score);
+        const top = scored.slice(0, 4);
+
+        let html = '';
+        top.forEach(svc => {
+            const relevance = svc.score >= 70 ? 'high' : svc.score >= 45 ? 'medium' : 'low';
+            const badge = relevance === 'high'
+                ? '<span class="badge-danger" style="margin-left: 6px;">Highly Recommended</span>'
+                : relevance === 'medium'
+                ? '<span class="badge-warning" style="margin-left: 6px;">Recommended</span>'
+                : '';
+
+            let reason = '';
+            if (svc.trigger && dimensions[svc.trigger] >= svc.threshold) {
+                const val = dimensions[svc.trigger];
+                const reasons = {
+                    ip_risk: `IP risk score ${val}/100 - trademark check recommended`,
+                    competition: `Competition score ${val}/100 - deep analysis recommended`,
+                    seasonality: `Seasonality score ${val}/100 - flexible logistics recommended`,
+                };
+                reason = reasons[svc.trigger] || '';
+            }
+
+            html += `
+            <div class="service-card" style="border-left: 4px solid ${svc.color}">
+                <div class="service-header">
+                    <div class="service-icon" style="background: ${svc.color}20; color: ${svc.color}; font-weight: 700; font-size: 14px;">
+                        ${svc.icon}
+                    </div>
+                    <div class="service-info">
+                        <h4>${svc.name}${badge}</h4>
+                        <p class="service-tagline">${svc.tagline}</p>
+                    </div>
+                </div>
+                <p class="service-desc">${svc.description}</p>
+                ${reason ? `<p class="service-reason">${reason}</p>` : ''}
+                <div class="service-features">
+                    ${svc.features.map(f => `<span class="feature-tag">${f}</span>`).join('')}
+                </div>
+                <div class="service-footer">
+                    <span class="service-pricing">${svc.pricing}</span>
+                    <a href="${svc.url}" target="_blank" rel="noopener"
+                       class="btn btn-sm" style="background: ${svc.color}; color: white; padding: 6px 16px; border-radius: 6px; text-decoration: none; font-size: 13px;">
+                        ${svc.cta}
+                    </a>
+                </div>
+            </div>`;
+        });
+
+        container.innerHTML = html;
+        section.style.display = 'block';
+    }
+
+    function trackServiceClick(serviceId) {
+        fetch('/api/v1/affiliate/click', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            },
+            body: JSON.stringify({ service_id: serviceId, type: 'third_party' })
+        }).catch(() => {});
+    }
+
+    // ============================================================
+    // 通用工具函数
+    // ============================================================
     function renderNoData() {
         document.getElementById('executive-summary').innerHTML =
             '<p class="no-data-hint">No analysis data available yet. Please run visual and review analyses for this project first.</p>';
@@ -241,9 +664,14 @@
             '<p class="no-data-hint">No market data available.</p>';
         document.getElementById('top-products-tbody').innerHTML =
             '<tr><td colspan="8" class="text-center text-muted">No product data available</td></tr>';
+        document.getElementById('full-report-md').innerHTML =
+            '<p class="no-data-hint">No report data available. Run analyses first.</p>';
         renderRecommendationList('rec-go-content', ['Complete data scraping and analysis to get recommendations']);
         renderRecommendationList('rec-caution-content', ['No data available yet']);
         renderRecommendationList('rec-stop-content', ['No data available yet']);
+
+        // 渲染空雷达图
+        renderRiskRadar({ competition: 0, demand: 0, profit: 0, ip_risk: 0, seasonality: 0 });
     }
 
     function setScore(elementId, value) {

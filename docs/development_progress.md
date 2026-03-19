@@ -537,3 +537,30 @@ Developed 26 missing ORM models to achieve 100% coverage of all 31 database tabl
 - Files: 391
 - Lines: 72,867
 - Version: 1.9.0
+
+
+---
+
+## Phase 20 - 商业化与报告增强 (v1.10.0) - 2026-03-19
+
+### 目标
+开发 PRD 中最后 6 项缺失功能，完成商业化模块和报告页面的完整实现。
+
+### 完成项
+| 编号 | 功能 | 文件 | 代码行数 |
+|------|------|------|---------|
+| DEV-01 | 1688/阿里妈妈返佣 | monetization/affiliate.py | 重写 |
+| DEV-02 | 第三方服务商推荐卡片 | monetization/service_recommendations.py | 新增 ~300行 |
+| DEV-03 | 报告页五维风险雷达图 | frontend/templates/report.html | +200行 |
+| DEV-04 | 报告页 Markdown 渲染 | frontend/templates/report.html | +228行 |
+| DEV-05 | Stripe 支付集成 | frontend/templates/subscription.html | +189行 |
+| DEV-06 | Chrome 插件统计面板增强 | chrome_extension/popup.html + popup.js | +316行 |
+
+### 测试
+- 新增 test_dev_phase20.py: 50 个测试全部通过
+- 覆盖: DEV-01(8) + DEV-02(8) + DEV-03(5) + DEV-04(4) + DEV-05(9) + DEV-06(11) + 集成(5)
+
+### 统计
+- 文件数: 395
+- 代码行数: 74,908
+- 7 files changed, ~1,500 insertions

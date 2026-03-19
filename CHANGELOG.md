@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-03-19
+
+### Phase 20 - 商业化与报告增强
+
+#### Added
+- **DEV-01**: 1688/阿里妈妈返佣 - affiliate.py 新增 1688 平台支持，阿里妈妈 PID 推广位植入，淘宝客 API 集成
+- **DEV-02**: 第三方服务商推荐卡片 - 新增 `monetization/service_recommendations.py`，支持 IP/商标/物流/合规/质检 5 大类服务商推荐，含返佣链接
+- **DEV-03**: report.html 五维风险雷达图 - Chart.js radar chart，竞争/需求/利润/知识产权/季节性五维可视化
+- **DEV-04**: report.html Markdown 渲染 - marked.js CDN 引入，综合决策报告完整 Markdown 渲染，代码高亮
+- **DEV-05**: subscription.html Stripe 支付集成 - Stripe.js Checkout Session，年/月计费切换，支付历史，回调处理，处理中模态框
+- **DEV-06**: Chrome 插件统计面板增强 - 今日/本周/本月时间切换，Canvas 迷你趋势图，数值动画，趋势百分比指示器，90天历史存储
+
+#### Changed
+- `monetization/affiliate.py`: 重写为支持 Amazon/Coupang/1688 三平台返佣
+- `frontend/templates/report.html`: 312 → 740 行（+428 行）
+- `frontend/templates/subscription.html`: 259 → 448 行（+189 行）
+- `chrome_extension/popup.html`: 371 → 440 行（+69 行）
+- `chrome_extension/popup.js`: 293 → 540 行（+247 行）
+
 ## [1.9.0] - 2026-03-19
 ### Added - Phase 19: Complete ORM Model Layer (26 New Models)
 - **models_user.py**: UserModel (15 methods) + UserOAuthModel (5 methods) - User auth, OAuth, subscription, API keys, AI settings

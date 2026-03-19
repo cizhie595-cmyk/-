@@ -1,5 +1,27 @@
 {% extends "base.html" %}
 {% block title %}Subscription{% endblock %}
+{% block extra_css %}
+<style>
+    .billing-toggle { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 24px; }
+    .billing-toggle label { font-size: 14px; color: var(--text-secondary); cursor: pointer; }
+    .billing-toggle label.active { color: var(--text-primary); font-weight: 600; }
+    .toggle-switch { position: relative; width: 48px; height: 26px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: var(--bg-tertiary); border-radius: 26px; transition: 0.3s; }
+    .toggle-slider:before { content: ''; position: absolute; height: 20px; width: 20px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+    .toggle-switch input:checked + .toggle-slider { background: var(--primary); }
+    .toggle-switch input:checked + .toggle-slider:before { transform: translateX(22px); }
+    .save-badge { background: var(--success); color: white; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-left: 4px; }
+    .payment-processing { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .payment-modal { background: var(--bg-primary); border-radius: var(--radius-lg); padding: 40px; text-align: center; max-width: 400px; }
+    .payment-spinner { width: 48px; height: 48px; border: 4px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .payment-history-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .payment-history-row:last-child { border-bottom: none; }
+    .payment-status-paid { color: var(--success); font-weight: 600; }
+    .payment-status-pending { color: var(--warning); font-weight: 600; }
+</style>
+{% endblock %}
 {% block content %}
 <div class="top-bar">
     <div>
@@ -29,6 +51,16 @@
             <div class="progress-fill" id="usage-bar" style="width: 0%;"></div>
         </div>
     </div>
+</div>
+
+<!-- Billing Toggle -->
+<div class="billing-toggle">
+    <label id="label-monthly" class="active" onclick="setBillingCycle('monthly')">Monthly</label>
+    <div class="toggle-switch">
+        <input type="checkbox" id="billing-toggle" onchange="toggleBillingCycle()">
+        <span class="toggle-slider"></span>
+    </div>
+    <label id="label-yearly" onclick="setBillingCycle('yearly')">Yearly <span class="save-badge">Save 17%</span></label>
 </div>
 
 <!-- Plans -->
@@ -91,7 +123,7 @@
                 <span style="color: var(--success);">&#10003;</span> 20 saved projects, 90-day retention
             </div>
         </div>
-        <button class="btn btn-primary btn-lg" style="width: 100%; margin-top: 16px;" onclick="upgradePlan('orbit')">Upgrade to Orbit</button>
+        <button class="btn btn-primary btn-lg" style="width: 100%; margin-top: 16px;" onclick="upgradePlan('orbit')" data-plan="orbit" data-monthly="29.99" data-yearly="299.99">Upgrade to Orbit</button>
     </div>
 
     <!-- Moonshot Plan (Enterprise) -->
@@ -121,7 +153,7 @@
                 <span style="color: var(--success);">&#10003;</span> Priority support + dedicated advisor
             </div>
         </div>
-        <button class="btn btn-secondary btn-lg" style="width: 100%; margin-top: 16px;" onclick="upgradePlan('moonshot')">Upgrade to Moonshot</button>
+        <button class="btn btn-secondary btn-lg" style="width: 100%; margin-top: 16px;" onclick="upgradePlan('moonshot')" data-plan="moonshot" data-monthly="99.99" data-yearly="999.99">Upgrade to Moonshot</button>
     </div>
 </div>
 
@@ -144,21 +176,162 @@
         </table>
     </div>
 </div>
+
+<!-- Payment History -->
+<div class="card mt-lg">
+    <h3 class="card-title mb-md">Payment History</h3>
+    <div id="payment-history">
+        <p class="text-muted text-center" style="padding: 24px;">Loading payment history...</p>
+    </div>
+</div>
+
+<!-- Payment Processing Modal (hidden) -->
+<div id="payment-processing-modal" class="payment-processing" style="display: none;">
+    <div class="payment-modal">
+        <div class="payment-spinner"></div>
+        <h3 style="margin-bottom: 8px;">Processing Payment</h3>
+        <p class="text-muted">Redirecting to secure checkout...</p>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
+<!-- Stripe.js for secure checkout -->
+<script src="https://js.stripe.com/v3/"></script>
 <script>
+    let billingCycle = 'monthly';
+    let stripe = null;
+
+    // 初始化 Stripe（使用后端提供的 publishable key）
+    async function initStripe() {
+        try {
+            const resp = await fetch('/api/v1/payments/config', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+            });
+            const config = await resp.json();
+            if (config.success && config.publishable_key) {
+                stripe = Stripe(config.publishable_key);
+            }
+        } catch (e) {
+            console.warn('Stripe init skipped:', e.message);
+        }
+    }
+
+    // ============================================================
+    // 计费周期切换
+    // ============================================================
+    function toggleBillingCycle() {
+        const toggle = document.getElementById('billing-toggle');
+        billingCycle = toggle.checked ? 'yearly' : 'monthly';
+        updateBillingLabels();
+        updatePlanPrices();
+    }
+
+    function setBillingCycle(cycle) {
+        billingCycle = cycle;
+        document.getElementById('billing-toggle').checked = (cycle === 'yearly');
+        updateBillingLabels();
+        updatePlanPrices();
+    }
+
+    function updateBillingLabels() {
+        document.getElementById('label-monthly').classList.toggle('active', billingCycle === 'monthly');
+        document.getElementById('label-yearly').classList.toggle('active', billingCycle === 'yearly');
+    }
+
+    function updatePlanPrices() {
+        // 更新 Orbit 价格显示
+        const orbitCard = document.getElementById('plan-pro');
+        const orbitPrice = orbitCard.querySelector('[style*="2.5rem"]');
+        if (orbitPrice) {
+            orbitPrice.textContent = billingCycle === 'yearly' ? '$299.99' : '$29.99';
+        }
+        const orbitPeriod = orbitCard.querySelector('.text-muted:last-of-type');
+
+        // 更新 Moonshot 价格显示
+        const moonCard = document.getElementById('plan-enterprise');
+        const moonPrice = moonCard.querySelector('[style*="2.5rem"]');
+        if (moonPrice) {
+            moonPrice.textContent = billingCycle === 'yearly' ? '$999.99' : '$99.99';
+        }
+    }
+
+    // ============================================================
+    // Stripe Checkout 支付流程
+    // ============================================================
+    async function upgradePlan(plan) {
+        const modal = document.getElementById('payment-processing-modal');
+
+        try {
+            modal.style.display = 'flex';
+
+            // 1. 创建 Stripe Checkout Session
+            const resp = await fetch('/api/v1/payments/create-checkout-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                },
+                body: JSON.stringify({
+                    plan: plan,
+                    billing_cycle: billingCycle,
+                    success_url: window.location.origin + '/subscription?payment=success',
+                    cancel_url: window.location.origin + '/subscription?payment=cancelled',
+                })
+            });
+
+            const result = await resp.json();
+
+            if (result.success && result.session_id && stripe) {
+                // 2. 跳转到 Stripe Checkout 页面
+                const { error } = await stripe.redirectToCheckout({
+                    sessionId: result.session_id
+                });
+                if (error) {
+                    throw new Error(error.message);
+                }
+            } else if (result.success && result.checkout_url) {
+                // 备选：直接跳转 URL
+                window.location.href = result.checkout_url;
+            } else if (result.success && !result.requires_payment) {
+                // 免费升级（如降级到 Free）
+                modal.style.display = 'none';
+                showToast(`Plan updated to ${plan}!`, 'success');
+                loadSubscription();
+            } else {
+                throw new Error(result.message || 'Failed to create checkout session');
+            }
+        } catch (e) {
+            modal.style.display = 'none';
+            showToast(e.message || 'Payment error', 'danger');
+        }
+    }
+
+    // 检查支付回调参数
+    function checkPaymentCallback() {
+        const params = new URLSearchParams(window.location.search);
+        const payment = params.get('payment');
+        if (payment === 'success') {
+            showToast('Payment successful! Your plan has been upgraded.', 'success');
+            // 清理 URL 参数
+            window.history.replaceState({}, '', '/subscription');
+        } else if (payment === 'cancelled') {
+            showToast('Payment cancelled. Your plan was not changed.', 'warning');
+            window.history.replaceState({}, '', '/subscription');
+        }
+    }
+
+    // ============================================================
+    // 加载订阅和配额信息
+    // ============================================================
     async function loadSubscription() {
         try {
             const resp = await api.getMySubscription();
-            // 后端返回 {success, subscription: {plan, plan_info, is_active, expires_at, ...}}
             const sub = resp && resp.subscription ? resp.subscription : resp;
             if (sub) {
                 const planName = sub.plan || 'free';
                 document.getElementById('current-plan').textContent = planName.charAt(0).toUpperCase() + planName.slice(1);
                 document.getElementById('renewal-date').textContent = sub.expires_at ? formatDate(sub.expires_at) : '-';
-
-                // 加载配额信息来计算 usage
                 highlightCurrentPlan(planName);
             }
         } catch (e) {
@@ -168,17 +341,14 @@
         // 加载配额使用情况
         try {
             const usageResp = await api.getUsageStats();
-            // 后端返回 {success, plan, usage: {quota_type: {limit, remaining, unlimited}}}
             if (usageResp && usageResp.usage) {
                 const usage = usageResp.usage;
-                // 计算总使用量
                 let totalUsed = 0;
                 let totalLimit = 0;
                 const tbody = document.getElementById('usage-table');
                 const rows = [];
 
                 for (const [type, info] of Object.entries(usage)) {
-                    const limit = info.unlimited ? '∞' : info.limit;
                     const used = info.unlimited ? 0 : (info.limit - info.remaining);
                     totalUsed += info.unlimited ? 0 : used;
                     totalLimit += info.unlimited ? 0 : info.limit;
@@ -201,7 +371,6 @@
                     tbody.innerHTML = rows.join('');
                 }
 
-                // 更新顶部进度条
                 if (totalLimit > 0) {
                     document.getElementById('usage-text').textContent = `${totalUsed} / ${totalLimit} total operations`;
                     document.getElementById('usage-bar').style.width = `${(totalUsed / totalLimit) * 100}%`;
@@ -210,26 +379,44 @@
         } catch (e) {
             console.error('Usage stats load error:', e);
         }
+
+        // 加载支付历史
+        loadPaymentHistory();
     }
 
-    async function upgradePlan(plan) {
+    // ============================================================
+    // 支付历史
+    // ============================================================
+    async function loadPaymentHistory() {
+        const container = document.getElementById('payment-history');
         try {
-            showToast('Processing upgrade...', 'info');
-            const result = await api.upgradePlan(plan);
-            if (result.success) {
-                showToast(`Upgraded to ${plan}!`, 'success');
-                loadSubscription();
-            } else if (result.requires_payment) {
-                // 需要支付
-                showToast(`Payment required: ${result.currency || '$'}${result.price} / ${result.billing_cycle || 'month'}`, 'warning');
+            const resp = await fetch('/api/v1/payments/history', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+            });
+            const result = await resp.json();
+
+            if (result.success && result.payments && result.payments.length > 0) {
+                container.innerHTML = result.payments.map(p => `
+                    <div class="payment-history-row">
+                        <div>
+                            <div style="font-weight: 600;">${p.description || p.plan + ' Plan'}</div>
+                            <div class="text-muted" style="font-size: 12px;">${formatDate(p.created_at)}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600;">$${Number(p.amount).toFixed(2)}</div>
+                            <div class="payment-status-${p.status || 'paid'}">${(p.status || 'paid').toUpperCase()}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p class="text-muted text-center" style="padding: 24px;">No payment history yet.</p>';
             }
         } catch (e) {
-            showToast(e.message, 'danger');
+            container.innerHTML = '<p class="text-muted text-center" style="padding: 24px;">No payment history yet.</p>';
         }
     }
 
     function highlightCurrentPlan(planName) {
-        // 后端计划名: free, orbit, moonshot; 前端显示: free, pro, enterprise
         const planMapping = { 'free': 'free', 'orbit': 'pro', 'moonshot': 'enterprise' };
         const mappedPlan = planMapping[planName.toLowerCase()] || planName.toLowerCase();
 
@@ -253,6 +440,9 @@
         });
     }
 
+    // 初始化
+    checkPaymentCallback();
+    initStripe();
     loadSubscription();
 </script>
 {% endblock %}

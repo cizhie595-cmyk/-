@@ -87,6 +87,54 @@
         .stat-value.orange { color: #f59e0b; }
         .stat-value.blue { color: #3b82f6; }
         .stat-label { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+        .stat-mini-chart { width: 100%; height: 30px; margin-top: 6px; }
+        .stat-mini-chart canvas { width: 100% !important; height: 30px !important; }
+        .stat-trend { font-size: 10px; margin-top: 2px; }
+        .stat-trend.up { color: #22c55e; }
+        .stat-trend.down { color: #ef4444; }
+        .stat-trend.flat { color: #9ca3af; }
+        .time-toggle {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 3px;
+        }
+        .time-toggle-btn {
+            flex: 1;
+            padding: 5px 8px;
+            font-size: 11px;
+            font-weight: 500;
+            text-align: center;
+            border: none;
+            background: transparent;
+            color: #6b7280;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .time-toggle-btn:hover { color: #374151; }
+        .time-toggle-btn.active {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 1px 3px rgba(102, 126, 234, 0.3);
+        }
+        .stat-value { font-size: 22px; font-weight: 700; color: #1f2937; transition: all 0.3s; }
+        .stat-value.animating { transform: scale(1.1); }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        .summary-label { color: #6b7280; }
+        .summary-value { font-weight: 600; color: #1f2937; }
         .quick-actions {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -260,23 +308,44 @@
                 <span class="status-user" id="statusUser"></span>
             </div>
 
+            <!-- Time Range Toggle -->
+            <div class="time-toggle">
+                <button class="time-toggle-btn active" data-range="today" onclick="switchTimeRange('today')">今日</button>
+                <button class="time-toggle-btn" data-range="week" onclick="switchTimeRange('week')">本周</button>
+                <button class="time-toggle-btn" data-range="month" onclick="switchTimeRange('month')">本月</button>
+            </div>
+
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value purple" id="stat-captured">0</div>
-                    <div class="stat-label">今日采集</div>
+                    <div class="stat-label" id="label-captured">今日采集</div>
+                    <div class="stat-trend flat" id="trend-captured">-</div>
+                    <div class="stat-mini-chart"><canvas id="chart-captured"></canvas></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value green" id="stat-projects">0</div>
                     <div class="stat-label">活跃项目</div>
+                    <div class="stat-trend flat" id="trend-projects">-</div>
+                    <div class="stat-mini-chart"><canvas id="chart-projects"></canvas></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value orange" id="stat-analyzed">0</div>
-                    <div class="stat-label">已分析</div>
+                    <div class="stat-label" id="label-analyzed">今日分析</div>
+                    <div class="stat-trend flat" id="trend-analyzed">-</div>
+                    <div class="stat-mini-chart"><canvas id="chart-analyzed"></canvas></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value blue" id="stat-tracked">0</div>
-                    <div class="stat-label">追踪中</div>
+                    <div class="stat-label" id="label-tracked">今日追踪</div>
+                    <div class="stat-trend flat" id="trend-tracked">-</div>
+                    <div class="stat-mini-chart"><canvas id="chart-tracked"></canvas></div>
                 </div>
+            </div>
+
+            <!-- Summary Row -->
+            <div class="summary-row" id="stats-summary">
+                <span class="summary-label">总计操作</span>
+                <span class="summary-value" id="summary-total">0</span>
             </div>
 
             <div class="section-title">配额使用</div>
